@@ -1,0 +1,152 @@
+import Anthropic from "@anthropic-ai/sdk";
+import type {
+  Horse,
+  TrainingSession,
+  HealthRecord,
+  Competition,
+  HorseScore,
+} from "@/lib/supabase/types";
+import { formatDate } from "@/lib/utils";
+
+const client = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+});
+
+interface InsightData {
+  horse: Horse;
+  trainingSessions: TrainingSession[];
+  healthRecords: HealthRecord[];
+  competitions: Competition[];
+  currentScore: HorseScore | null;
+}
+
+const SYSTEM_PROMPT = `Tu es Equilog AI, un assistant expert en performance et santé équine.
+Tu analyses les données croisées d'un cheval (entraînement, santé, concours, wearables) pour fournir des insights actionnables à son propriétaire.
+
+Règles de réponse :
+- Sois direct et précis, pas de formules vagues
+- Utilise des données chiffrées quand disponibles
+- Détecte les anomalies : surmenage, stagnation, régression, soins en retard
+- Valorise les progressions et bons résultats
+- Recommande des actions concrètes (ex: "Réduire l'intensité de 20% cette semaine" ou "Prévoir vermifuge dans 2 semaines")
+- Ton : professionnel et bienveillant, comme un coach équestre expérimenté
+- Format : JSON avec les champs "summary" (2-3 phrases), "insights" (array de 3-5 points), "alerts" (array d'alertes urgentes), "recommendations" (array d'actions à faire)
+- Réponse en français uniquement`;
+
+export async function generateWeeklyInsight(data: InsightData): Promise<{
+  summary: string;
+  insights: string[];
+  alerts: string[];
+  recommendations: string[];
+}> {
+  const { horse, trainingSessions, healthRecords, competitions, currentScore } = data;
+
+  const last30Sessions = trainingSessions
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, 30);
+
+  const recentHealth = healthRecords
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, 10);
+
+  const recentComps = competitions
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, 5);
+
+  const userMessage = `
+Analyse le cheval suivant et génère un rapport hebdomadaire :
+
+## Informations cheval
+Nom: ${horse.name}
+Race: ${horse.breed || "Non renseignée"}
+Discipline: ${horse.discipline || "Non renseignée"}
+Année de naissance: ${horse.birth_year || "Non renseignée"}
+
+## Horse Index actuel
+Score global: ${currentScore?.score ?? "Non calculé"}/100
+- Régularité: ${currentScore?.score_breakdown?.regularite ?? "N/A"}/25
+- Progression: ${currentScore?.score_breakdown?.progression ?? "N/A"}/25
+- Santé: ${currentScore?.score_breakdown?.sante ?? "N/A"}/20
+- Récupération: ${currentScore?.score_breakdown?.recuperation ?? "N/A"}/20
+
+## Séances des 30 derniers jours (${last30Sessions.length} séances)
+${last30Sessions.map((s) => `- ${formatDate(s.date)}: ${s.type}, ${s.duration_min}min, intensité ${s.intensity}/5, ressenti ${s.feeling}/5${s.notes ? `, note: ${s.notes}` : ""}`).join("\n")}
+
+## Soins récents
+${recentHealth.map((h) => `- ${formatDate(h.date)}: ${h.type}${h.next_date ? `, prochain: ${formatDate(h.next_date)}` : ""}${h.notes ? `, note: ${h.notes}` : ""}`).join("\n")}
+
+## Concours récents
+${recentComps.map((c) => `- ${formatDate(c.date)}: ${c.event_name} (${c.discipline} ${c.level})${c.result_rank && c.total_riders ? `, classé ${c.result_rank}/${c.total_riders}` : ""}${c.score ? `, score: ${c.score}` : ""}`).join("\n") || "Aucun concours récent"}
+
+Génère un rapport JSON selon le format demandé.`;
+
+  const response = await client.messages.create({
+    model: "claude-sonnet-4-20250514",
+    max_tokens: 1500,
+    system: SYSTEM_PROMPT,
+    messages: [{ role: "user", content: userMessage }],
+  });
+
+  const content = response.content[0];
+  if (content.type !== "text") {
+    throw new Error("Unexpected response type from Claude");
+  }
+
+  try {
+    // Extract JSON from the response (may be wrapped in code blocks)
+    const jsonMatch = content.text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error("No JSON found in response");
+    return JSON.parse(jsonMatch[0]);
+  } catch {
+    // Fallback structure if parsing fails
+    return {
+      summary: content.text.substring(0, 200),
+      insights: ["Analyse en cours..."],
+      alerts: [],
+      recommendations: ["Consultez les données détaillées"],
+    };
+  }
+}
+
+export async function generateCompetitionChecklist(data: {
+  horse: Horse;
+  competition: Competition;
+  healthRecords: HealthRecord[];
+}): Promise<{ ok: boolean; item: string; status: string }[]> {
+  const { horse, competition, healthRecords } = data;
+
+  const response = await client.messages.create({
+    model: "claude-sonnet-4-20250514",
+    max_tokens: 800,
+    system: `Tu es un assistant équestre expert. Génère une checklist J-7 avant concours en JSON.
+Format: array d'objets {ok: boolean, item: string, status: string}.
+Vérifie les vaccins FEI (grippe: validité 6 mois + 21 jours minimum depuis dernière injection, rappel annuel).
+Réponse en JSON pur, sans markdown.`,
+    messages: [
+      {
+        role: "user",
+        content: `Cheval: ${horse.name}, Concours: ${competition.event_name} le ${formatDate(competition.date)} (${competition.discipline} ${competition.level})
+
+Soins récents: ${healthRecords
+          .map(
+            (h) =>
+              `${h.type}: ${formatDate(h.date)}${h.next_date ? ` (prochain: ${formatDate(h.next_date)})` : ""}`
+          )
+          .join(", ")}
+
+Génère la checklist.`,
+      },
+    ],
+  });
+
+  const content = response.content[0];
+  if (content.type !== "text") return [];
+
+  try {
+    const jsonMatch = content.text.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) return [];
+    return JSON.parse(jsonMatch[0]);
+  } catch {
+    return [];
+  }
+}

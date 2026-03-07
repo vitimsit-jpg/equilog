@@ -12,7 +12,6 @@ import Button from "@/components/ui/Button";
 
 export default function RegisterPage() {
   const router = useRouter();
-  const supabase = createClient();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -25,6 +24,7 @@ export default function RegisterPage() {
       return;
     }
     setLoading(true);
+    const supabase = createClient();
 
     const { error } = await supabase.auth.signUp({
       email,

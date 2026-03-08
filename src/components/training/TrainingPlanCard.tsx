@@ -64,6 +64,7 @@ interface Props {
 export default function TrainingPlanCard({ horseId, latestPlan }: Props) {
   const [loading, setLoading] = useState(false);
   const [plan, setPlan] = useState<AIInsight | null>(latestPlan);
+  const [error, setError] = useState<string | null>(null);
 
   let parsed: TrainingPlan | null = null;
   if (plan) {
@@ -74,6 +75,7 @@ export default function TrainingPlanCard({ horseId, latestPlan }: Props) {
 
   const generate = async () => {
     setLoading(true);
+    setError(null);
     try {
       const res = await fetch("/api/training-plan", {
         method: "POST",
@@ -81,7 +83,13 @@ export default function TrainingPlanCard({ horseId, latestPlan }: Props) {
         body: JSON.stringify({ horseId }),
       });
       const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || `Erreur ${res.status}`);
+        return;
+      }
       if (data.plan) setPlan(data.plan);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erreur réseau");
     } finally {
       setLoading(false);
     }
@@ -107,6 +115,12 @@ export default function TrainingPlanCard({ horseId, latestPlan }: Props) {
           {plan ? "Régénérer" : "Générer"}
         </button>
       </div>
+
+      {error && (
+        <div className="mb-3 px-3 py-2 bg-red-50 border border-red-100 rounded-lg">
+          <p className="text-xs text-red-600 font-medium">{error}</p>
+        </div>
+      )}
 
       {loading && (
         <div className="flex flex-col items-center justify-center py-10 gap-3">

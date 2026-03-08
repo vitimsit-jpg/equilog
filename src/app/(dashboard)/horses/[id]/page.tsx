@@ -1,12 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Heart, Dumbbell, Trophy, Wallet, Share2, RefreshCw } from "lucide-react";
+import { ArrowLeft, Heart, Dumbbell, Trophy, Wallet } from "lucide-react";
 import HorseIndexGauge from "@/components/horse-index/HorseIndexGauge";
 import ScoreBreakdownComponent from "@/components/horse-index/ScoreBreakdown";
 import ScoreHistory from "@/components/horse-index/ScoreHistory";
-import { formatDate, getScoreLabel } from "@/lib/utils";
+import { formatDate } from "@/lib/utils";
 import RecalculateButton from "@/components/horse-index/RecalculateButton";
+import ShareButton from "@/components/horse/ShareButton";
 
 interface Props {
   params: { id: string };
@@ -78,7 +79,12 @@ export default async function HorsePage({ params }: Props) {
             </p>
           </div>
         </div>
-        <RecalculateButton horseId={horse.id} />
+        <div className="flex items-center gap-2">
+          {horse.share_horse_index && (
+            <ShareButton horseId={horse.id} horseName={horse.name} />
+          )}
+          <RecalculateButton horseId={horse.id} />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

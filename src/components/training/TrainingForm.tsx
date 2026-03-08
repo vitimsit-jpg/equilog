@@ -10,6 +10,7 @@ import Textarea from "@/components/ui/Textarea";
 import Button from "@/components/ui/Button";
 import { TRAINING_TYPE_LABELS, INTENSITY_LABELS, FEELING_LABELS } from "@/lib/utils";
 import type { TrainingSession } from "@/lib/supabase/types";
+import VoiceButton from "./VoiceButton";
 
 const typeOptions = Object.entries(TRAINING_TYPE_LABELS).map(([value, label]) => ({ value, label }));
 
@@ -56,8 +57,20 @@ export default function TrainingForm({ horseId, onSaved, onCancel, defaultValues
     setLoading(false);
   };
 
+  const handleVoiceResult = (data: { type: string; duration_min: number; intensity: number; feeling: number; notes: string | null }) => {
+    setForm((prev) => ({
+      ...prev,
+      type: (data.type as import("@/lib/supabase/types").TrainingType) || prev.type,
+      duration_min: data.duration_min ? String(data.duration_min) : prev.duration_min,
+      intensity: data.intensity ? String(Math.min(5, Math.max(1, data.intensity))) : prev.intensity,
+      feeling: data.feeling ? String(Math.min(5, Math.max(1, data.feeling))) : prev.feeling,
+      notes: data.notes || prev.notes,
+    }));
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {!defaultValues?.id && <VoiceButton onResult={handleVoiceResult} />}
       <div className="grid grid-cols-2 gap-4">
         <Input
           label="Date"

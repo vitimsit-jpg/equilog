@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { formatDate, getScoreColor, getScoreLabel, DISCIPLINE_LABELS } from "@/lib/utils";
+import { getScoreColor, getScoreLabel, DISCIPLINE_LABELS } from "@/lib/utils";
 import { Trophy, Medal } from "lucide-react";
 
 interface SearchParams {
@@ -43,8 +43,8 @@ export default async function ClassementsPage({ searchParams }: Props) {
   });
 
   // Listes uniques pour les filtres
-  const disciplines = [...new Set(scores.map((s) => (s as any).horses?.discipline).filter(Boolean))].sort();
-  const regions = [...new Set(scores.map((s) => (s as any).horses?.region).filter(Boolean))].sort();
+  const disciplines = Array.from(new Set(scores.map((s) => (s as any).horses?.discipline).filter(Boolean))).sort();
+  const regions = Array.from(new Set(scores.map((s) => (s as any).horses?.region).filter(Boolean))).sort();
 
   return (
     <div className="min-h-screen bg-[#FAFAF8]">
@@ -120,7 +120,6 @@ export default async function ClassementsPage({ searchParams }: Props) {
           <div className="grid grid-cols-3 gap-3">
             {[filtered[1], filtered[0], filtered[2]].map((s, podiumIdx) => {
               const horse = (s as any).horses;
-              const rank = podiumIdx === 1 ? 1 : podiumIdx === 0 ? 2 : 3;
               const heights = ["h-24", "h-32", "h-20"];
               const medals = ["🥈", "🥇", "🥉"];
               return (
@@ -151,7 +150,6 @@ export default async function ClassementsPage({ searchParams }: Props) {
             {filtered.map((s, idx) => {
               const horse = (s as any).horses;
               const rank = idx + 1;
-              const isTop3 = rank <= 3 && !discipline && !region;
               return (
                 <Link
                   key={horse.id}

@@ -2,7 +2,6 @@ import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { formatDate, getScoreColor, getScoreLabel, TRAINING_TYPE_LABELS } from "@/lib/utils";
-import HorseIndexGauge from "@/components/horse-index/HorseIndexGauge";
 import { Users, Dumbbell, Trophy, TrendingUp } from "lucide-react";
 
 interface Props {
@@ -46,7 +45,8 @@ export default async function EcuriePage({ params }: Props) {
   ]);
 
   // Latest score per horse
-  const scoreByHorse: Record<string, typeof allScores extends (infer T)[] | null ? T : never> = {};
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const scoreByHorse: Record<string, any> = {};
   (allScores || []).forEach((s) => {
     if (!scoreByHorse[s.horse_id]) scoreByHorse[s.horse_id] = s;
   });

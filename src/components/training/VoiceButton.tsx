@@ -17,41 +17,38 @@ interface Props {
   onResult: (data: VoiceResult) => void;
 }
 
-declare global {
-  interface Window {
-    SpeechRecognition: typeof SpeechRecognition;
-    webkitSpeechRecognition: typeof SpeechRecognition;
-  }
-}
-
 type RecordingState = "idle" | "recording" | "processing";
 
 export default function VoiceButton({ onResult }: Props) {
   const [state, setState] = useState<RecordingState>("idle");
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recognitionRef = useRef<any>(null);
   const transcriptRef = useRef<string>("");
   const [supported, setSupported] = useState(true);
 
   useEffect(() => {
-    const SpeechRecognitionAPI =
-      window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognitionAPI) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const w = window as any;
+    if (!w.SpeechRecognition && !w.webkitSpeechRecognition) {
       setSupported(false);
     }
   }, []);
 
   const startRecording = () => {
-    const SpeechRecognitionAPI =
-      window.SpeechRecognition || window.webkitSpeechRecognition;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const w = window as any;
+    const SpeechRecognitionAPI = w.SpeechRecognition || w.webkitSpeechRecognition;
     if (!SpeechRecognitionAPI) return;
 
-    const recognition = new SpeechRecognitionAPI();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const recognition: any = new SpeechRecognitionAPI();
     recognition.lang = "fr-FR";
     recognition.continuous = true;
     recognition.interimResults = false;
     transcriptRef.current = "";
 
-    recognition.onresult = (event) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    recognition.onresult = (event: any) => {
       for (let i = event.resultIndex; i < event.results.length; i++) {
         transcriptRef.current += event.results[i][0].transcript + " ";
       }
@@ -127,9 +124,9 @@ export default function VoiceButton({ onResult }: Props) {
             ? "Analyse IA en cours..."
             : "Dicter votre séance"}
         </p>
-        <p className="text-2xs text-gray-400 truncate">
+        <p className="text-xs text-gray-400 truncate">
           {state === "idle"
-            ? "Ex : \"Dressage 45 min, intensité moyenne, bon ressenti, travail sur les transitions\""
+            ? "Ex : \"Dressage 45 min, intensité moyenne, bon ressenti, transitions\""
             : state === "recording"
             ? "Parlez naturellement, décrivez la séance..."
             : "Claude structure vos données..."}

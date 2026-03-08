@@ -8,9 +8,9 @@ import type {
 } from "@/lib/supabase/types";
 import { formatDate } from "@/lib/utils";
 
-const client = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
+function getClient() {
+  return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+}
 
 interface InsightData {
   horse: Horse;
@@ -80,7 +80,7 @@ ${recentComps.map((c) => `- ${formatDate(c.date)}: ${c.event_name} (${c.discipli
 
 Génère un rapport JSON selon le format demandé.`;
 
-  const response = await client.messages.create({
+  const response = await getClient().messages.create({
     model: "claude-sonnet-4-20250514",
     max_tokens: 1500,
     system: SYSTEM_PROMPT,
@@ -176,7 +176,7 @@ Génère un JSON avec exactement 7 jours (Lundi à Dimanche) selon ce format:
 }
 Adapte la charge aux concours à venir, à la fatigue récente (ressenti moyen des séances), et aux soins récents. Prévois au moins 2 jours de repos. Réponds uniquement en JSON.`;
 
-  const response = await client.messages.create({
+  const response = await getClient().messages.create({
     model: "claude-sonnet-4-20250514",
     max_tokens: 1500,
     system: `Tu es Equilog AI, coach équestre expert. Tu génères des plans d'entraînement personnalisés basés sur les données réelles du cheval. Réponse en JSON pur uniquement, sans markdown.`,
@@ -214,7 +214,7 @@ export async function generateCompetitionChecklist(data: {
 }): Promise<{ ok: boolean; item: string; status: string }[]> {
   const { horse, competition, healthRecords } = data;
 
-  const response = await client.messages.create({
+  const response = await getClient().messages.create({
     model: "claude-sonnet-4-20250514",
     max_tokens: 800,
     system: `Tu es un assistant équestre expert. Génère une checklist J-7 avant concours en JSON.

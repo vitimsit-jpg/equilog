@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { getScoreColor, getScoreLabel, DISCIPLINE_LABELS } from "@/lib/utils";
 import { Trophy, Medal } from "lucide-react";
+import ClassementsFilters from "@/components/classements/ClassementsFilters";
 
 interface SearchParams {
   discipline?: string;
@@ -74,46 +75,7 @@ export default async function ClassementsPage({ searchParams }: Props) {
         </div>
 
         {/* Filters */}
-        <div className="flex flex-wrap gap-2">
-          <form method="GET" className="flex flex-wrap gap-2">
-            <select
-              name="discipline"
-              defaultValue={discipline}
-              onChange={(e) => {
-                const form = e.target.form;
-                if (form) form.submit();
-              }}
-              className="text-xs border border-gray-200 rounded-lg px-3 py-1.5 bg-white font-medium text-gray-700 focus:outline-none focus:border-orange"
-            >
-              <option value="">Toutes disciplines</option>
-              {disciplines.map((d) => (
-                <option key={d} value={d}>{DISCIPLINE_LABELS[d] || d}</option>
-              ))}
-            </select>
-            <select
-              name="region"
-              defaultValue={region}
-              onChange={(e) => {
-                const form = e.target.form;
-                if (form) form.submit();
-              }}
-              className="text-xs border border-gray-200 rounded-lg px-3 py-1.5 bg-white font-medium text-gray-700 focus:outline-none focus:border-orange"
-            >
-              <option value="">Toutes régions</option>
-              {regions.map((r) => (
-                <option key={r} value={r}>{r}</option>
-              ))}
-            </select>
-            {(discipline || region) && (
-              <a
-                href="/classements"
-                className="text-xs border border-gray-200 rounded-lg px-3 py-1.5 bg-white font-medium text-gray-500 hover:text-black"
-              >
-                Réinitialiser
-              </a>
-            )}
-          </form>
-        </div>
+        <ClassementsFilters disciplines={disciplines} regions={regions} disciplineLabels={DISCIPLINE_LABELS} />
 
         {/* Podium top 3 */}
         {filtered.length >= 3 && !discipline && !region && (

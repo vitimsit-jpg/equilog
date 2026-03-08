@@ -13,6 +13,7 @@ import {
   ChevronDown,
   Plus,
   Star,
+  Medal,
 } from "lucide-react";
 import type { Horse } from "@/lib/supabase/types";
 import { useState } from "react";
@@ -24,6 +25,7 @@ interface SidebarProps {
 
 const mainNav = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+  { href: "/classements", icon: Medal, label: "Classements" },
 ];
 
 const horseNav = [

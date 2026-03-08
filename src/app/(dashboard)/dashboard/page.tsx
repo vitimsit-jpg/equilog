@@ -1,8 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Plus, Heart, Dumbbell, Trophy, TrendingUp, AlertCircle } from "lucide-react";
-import { formatDate, formatCurrency, daysUntil, HEALTH_TYPE_LABELS } from "@/lib/utils";
+import { Plus, Heart, Dumbbell, Trophy, TrendingUp, AlertCircle, Users } from "lucide-react";
+import { formatDate, daysUntil, HEALTH_TYPE_LABELS, getScoreColor } from "@/lib/utils";
 import Badge from "@/components/ui/Badge";
 
 export default async function DashboardPage() {
@@ -17,11 +17,16 @@ export default async function DashboardPage() {
 
   const horseIds = (horses || []).map((h) => h.id);
 
+  // Écuries de l'utilisateur (pour la section communautaire)
+  const userEcuries = Array.from(new Set((horses || []).map((h) => h.ecurie).filter(Boolean))) as string[];
+
   const [
     { data: latestScores },
     { data: upcomingHealth },
     { data: recentSessions },
     { data: recentInsights },
+    { data: ecurieHorses },
+    { data: ecurieScores },
   ] = await Promise.all([
     supabase
       .from("horse_scores")
@@ -48,6 +53,22 @@ export default async function DashboardPage() {
       .eq("type", "weekly")
       .order("generated_at", { ascending: false })
       .limit(3),
+    userEcuries.length
+      ? supabase
+          .from("horses")
+          .select("*")
+          .in("ecurie", userEcuries)
+          .eq("share_horse_index", true)
+          .neq("user_id", authUser.id)
+          .limit(20)
+      : Promise.resolve({ data: [] }),
+    userEcuries.length
+      ? supabase
+          .from("horse_scores")
+          .select("*")
+          .order("computed_at", { ascending: false })
+          .limit(200)
+      : Promise.resolve({ data: [] }),
   ]);
 
   // Get the latest score per horse
@@ -55,6 +76,17 @@ export default async function DashboardPage() {
   (latestScores || []).forEach((s) => {
     if (!scoresByHorse[s.horse_id]) scoresByHorse[s.horse_id] = s.score;
   });
+
+  // Latest score per ecurie horse
+  const ecurieScoreByHorse: Record<string, number> = {};
+  (ecurieScores || []).forEach((s) => {
+    if (!ecurieScoreByHorse[s.horse_id]) ecurieScoreByHorse[s.horse_id] = s.score;
+  });
+
+  // Sort ecurie horses by score
+  const rankedEcurieHorses = [...(ecurieHorses || [])].sort(
+    (a, b) => (ecurieScoreByHorse[b.id] ?? 0) - (ecurieScoreByHorse[a.id] ?? 0)
+  );
 
   const alerts = (upcomingHealth || []).filter((h) => {
     const days = daysUntil(h.next_date!);
@@ -226,6 +258,49 @@ export default async function DashboardPage() {
           </div>
         )}
       </div>
+
+      {/* Mon écurie */}
+      {rankedEcurieHorses.length > 0 && userEcuries[0] && (
+        <div className="card">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4 text-gray-400" />
+              <h2 className="font-bold text-black">Mon écurie</h2>
+              <span className="text-xs text-gray-400 font-normal">— {userEcuries[0]}</span>
+            </div>
+            <Link
+              href={`/ecurie/${encodeURIComponent(userEcuries[0])}`}
+              className="text-xs text-orange font-semibold hover:underline"
+            >
+              Voir tout →
+            </Link>
+          </div>
+          <div className="space-y-2">
+            {rankedEcurieHorses.slice(0, 5).map((horse, idx) => {
+              const score = ecurieScoreByHorse[horse.id];
+              return (
+                <div key={horse.id} className="flex items-center justify-between py-1.5 border-b border-gray-50 last:border-0">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs font-bold text-gray-300 w-4">{idx + 1}</span>
+                    <div className="w-7 h-7 rounded-lg bg-black text-white font-black text-xs flex items-center justify-center flex-shrink-0">
+                      {horse.name[0].toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-black">{horse.name}</p>
+                      <p className="text-xs text-gray-400">{horse.discipline || horse.breed || "—"}</p>
+                    </div>
+                  </div>
+                  {score !== undefined ? (
+                    <p className="text-lg font-black" style={{ color: getScoreColor(score) }}>{score}</p>
+                  ) : (
+                    <p className="text-sm text-gray-300 font-bold">—</p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

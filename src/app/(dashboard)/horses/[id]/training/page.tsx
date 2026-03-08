@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import TrainingDashboard from "@/components/training/TrainingDashboard";
+import TrainingPlanCard from "@/components/training/TrainingPlanCard";
 
 interface Props {
   params: { id: string };
@@ -28,14 +29,24 @@ export default async function TrainingPage({ params }: Props) {
     .eq("horse_id", horse.id)
     .order("date", { ascending: false });
 
-  const { data: latestInsight } = await supabase
-    .from("ai_insights")
-    .select("*")
-    .eq("horse_id", horse.id)
-    .eq("type", "weekly")
-    .order("generated_at", { ascending: false })
-    .limit(1)
-    .single();
+  const [{ data: latestInsight }, { data: latestPlan }] = await Promise.all([
+    supabase
+      .from("ai_insights")
+      .select("*")
+      .eq("horse_id", horse.id)
+      .eq("type", "weekly")
+      .order("generated_at", { ascending: false })
+      .limit(1)
+      .single(),
+    supabase
+      .from("ai_insights")
+      .select("*")
+      .eq("horse_id", horse.id)
+      .eq("type", "training_plan")
+      .order("generated_at", { ascending: false })
+      .limit(1)
+      .single(),
+  ]);
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
@@ -48,6 +59,8 @@ export default async function TrainingPage({ params }: Props) {
           <p className="text-sm text-gray-400">{horse.name}</p>
         </div>
       </div>
+
+      <TrainingPlanCard horseId={horse.id} latestPlan={latestPlan ?? null} />
 
       <TrainingDashboard
         sessions={sessions || []}

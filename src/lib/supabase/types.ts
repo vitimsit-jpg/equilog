@@ -116,7 +116,7 @@ export interface AIInsight {
   horse_id: string;
   content: string;
   generated_at: string;
-  type: "weekly" | "alert" | "milestone";
+  type: "weekly" | "alert" | "milestone" | "training_plan";
   created_at: string;
 }
 

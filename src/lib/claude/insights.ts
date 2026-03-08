@@ -108,6 +108,105 @@ Génère un rapport JSON selon le format demandé.`;
   }
 }
 
+export interface TrainingPlanDay {
+  day: string;
+  type: string | null;
+  duration_min: number | null;
+  intensity: number | null;
+  focus: string;
+  optional: boolean;
+}
+
+export interface TrainingPlan {
+  week_goal: string;
+  load_level: "light" | "moderate" | "intense";
+  days: TrainingPlanDay[];
+  notes: string;
+}
+
+export async function generateTrainingPlan(data: {
+  horse: Horse;
+  recentSessions: TrainingSession[];
+  upcomingCompetitions: Competition[];
+  currentScore: HorseScore | null;
+  healthRecords: HealthRecord[];
+}): Promise<TrainingPlan> {
+  const { horse, recentSessions, upcomingCompetitions, currentScore, healthRecords } = data;
+
+  const last4Weeks = recentSessions
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, 28);
+
+  const nextComps = upcomingCompetitions
+    .filter((c) => new Date(c.date) > new Date())
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .slice(0, 2);
+
+  const recentHealth = healthRecords
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, 5);
+
+  const prompt = `Génère un plan d'entraînement hebdomadaire pour ce cheval.
+
+## Cheval
+Nom: ${horse.name}
+Race: ${horse.breed || "Non renseignée"}
+Discipline: ${horse.discipline || "Non renseignée"}
+Âge: ${horse.birth_year ? new Date().getFullYear() - horse.birth_year : "Inconnu"} ans
+
+## Horse Index actuel: ${currentScore?.score ?? "Non calculé"}/100
+
+## Séances récentes (${last4Weeks.length} séances sur 4 semaines)
+${last4Weeks.map((s) => `- ${formatDate(s.date)}: ${s.type}, ${s.duration_min}min, intensité ${s.intensity}/5, ressenti ${s.feeling}/5`).join("\n") || "Aucune séance enregistrée"}
+
+## Soins récents
+${recentHealth.map((h) => `- ${formatDate(h.date)}: ${h.type}${h.next_date ? `, prochain: ${formatDate(h.next_date)}` : ""}`).join("\n") || "Aucun soin récent"}
+
+## Concours à venir
+${nextComps.map((c) => `- ${formatDate(c.date)}: ${c.event_name} (${c.discipline} ${c.level})`).join("\n") || "Aucun concours planifié"}
+
+Génère un JSON avec exactement 7 jours (Lundi à Dimanche) selon ce format:
+{
+  "week_goal": "objectif principal de la semaine",
+  "load_level": "light" | "moderate" | "intense",
+  "days": [
+    { "day": "Lundi", "type": "dressage" | "saut" | "endurance" | "cso" | "cross" | "travail_a_pied" | "longe" | "galop" | "plat" | "autre" | null, "duration_min": 45 | null, "intensity": 3 | null, "focus": "description courte du travail", "optional": false }
+  ],
+  "notes": "conseils et observations"
+}
+Adapte la charge aux concours à venir, à la fatigue récente (ressenti moyen des séances), et aux soins récents. Prévois au moins 2 jours de repos. Réponds uniquement en JSON.`;
+
+  const response = await client.messages.create({
+    model: "claude-sonnet-4-20250514",
+    max_tokens: 1500,
+    system: `Tu es Equilog AI, coach équestre expert. Tu génères des plans d'entraînement personnalisés basés sur les données réelles du cheval. Réponse en JSON pur uniquement, sans markdown.`,
+    messages: [{ role: "user", content: prompt }],
+  });
+
+  const content = response.content[0];
+  if (content.type !== "text") throw new Error("Unexpected response type");
+
+  try {
+    const jsonMatch = content.text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error("No JSON found");
+    return JSON.parse(jsonMatch[0]);
+  } catch {
+    return {
+      week_goal: "Maintenir la régularité cette semaine",
+      load_level: "moderate",
+      days: ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"].map((day, i) => ({
+        day,
+        type: i === 1 || i === 4 ? null : "plat",
+        duration_min: i === 1 || i === 4 ? null : 45,
+        intensity: i === 1 || i === 4 ? null : 3,
+        focus: i === 1 || i === 4 ? "Repos" : "Séance d'entretien",
+        optional: false,
+      })),
+      notes: "Plan générique — ajoutez des séances pour obtenir des recommandations personnalisées.",
+    };
+  }
+}
+
 export async function generateCompetitionChecklist(data: {
   horse: Horse;
   competition: Competition;

@@ -82,12 +82,14 @@ export default function TrainingPlanCard({ horseId, latestPlan }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ horseId }),
       });
-      const data = await res.json();
+      const text = await res.text();
+      let data: Record<string, unknown> = {};
+      try { data = JSON.parse(text); } catch { /* ignore */ }
       if (!res.ok) {
-        setError(data.error || `Erreur ${res.status}`);
+        setError((data.error as string) || `Erreur ${res.status}`);
         return;
       }
-      if (data.plan) setPlan(data.plan);
+      if (data.plan) setPlan(data.plan as typeof plan);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erreur réseau");
     } finally {

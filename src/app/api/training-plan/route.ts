@@ -50,13 +50,19 @@ export async function POST(request: NextRequest) {
     supabase.from("health_records").select("*").eq("horse_id", horseId).order("date", { ascending: false }).limit(10),
   ]);
 
-  const plan = await generateTrainingPlan({
-    horse,
-    recentSessions: recentSessions || [],
-    upcomingCompetitions: upcomingCompetitions || [],
-    currentScore: scores?.[0] ?? null,
-    healthRecords: healthRecords || [],
-  });
+  let plan;
+  try {
+    plan = await generateTrainingPlan({
+      horse,
+      recentSessions: recentSessions || [],
+      upcomingCompetitions: upcomingCompetitions || [],
+      currentScore: scores?.[0] ?? null,
+      healthRecords: healthRecords || [],
+    });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Erreur Claude API";
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
 
   const { data: savedPlan, error } = await supabase
     .from("ai_insights")

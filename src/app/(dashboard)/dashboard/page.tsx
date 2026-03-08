@@ -25,8 +25,6 @@ export default async function DashboardPage() {
     { data: upcomingHealth },
     { data: recentSessions },
     { data: recentInsights },
-    { data: ecurieHorses },
-    { data: ecurieScores },
   ] = await Promise.all([
     supabase
       .from("horse_scores")
@@ -53,22 +51,6 @@ export default async function DashboardPage() {
       .eq("type", "weekly")
       .order("generated_at", { ascending: false })
       .limit(3),
-    userEcuries.length
-      ? supabase
-          .from("horses")
-          .select("*")
-          .in("ecurie", userEcuries)
-          .eq("share_horse_index", true)
-          .neq("user_id", authUser.id)
-          .limit(20)
-      : Promise.resolve({ data: [] }),
-    userEcuries.length
-      ? supabase
-          .from("horse_scores")
-          .select("*")
-          .order("computed_at", { ascending: false })
-          .limit(200)
-      : Promise.resolve({ data: [] }),
   ]);
 
   // Get the latest score per horse
@@ -77,14 +59,38 @@ export default async function DashboardPage() {
     if (!scoresByHorse[s.horse_id]) scoresByHorse[s.horse_id] = s.score;
   });
 
+  // Écurie community data (separate to avoid ternary type issues)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let ecurieHorses: any[] = [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let ecurieScores: any[] = [];
+  if (userEcuries.length) {
+    const [{ data: eh }, { data: es }] = await Promise.all([
+      supabase
+        .from("horses")
+        .select("*")
+        .in("ecurie", userEcuries)
+        .eq("share_horse_index", true)
+        .neq("user_id", authUser.id)
+        .limit(20),
+      supabase
+        .from("horse_scores")
+        .select("*")
+        .order("computed_at", { ascending: false })
+        .limit(200),
+    ]);
+    ecurieHorses = eh || [];
+    ecurieScores = es || [];
+  }
+
   // Latest score per ecurie horse
   const ecurieScoreByHorse: Record<string, number> = {};
-  (ecurieScores || []).forEach((s) => {
+  ecurieScores.forEach((s) => {
     if (!ecurieScoreByHorse[s.horse_id]) ecurieScoreByHorse[s.horse_id] = s.score;
   });
 
   // Sort ecurie horses by score
-  const rankedEcurieHorses = [...(ecurieHorses || [])].sort(
+  const rankedEcurieHorses = [...ecurieHorses].sort(
     (a, b) => (ecurieScoreByHorse[b.id] ?? 0) - (ecurieScoreByHorse[a.id] ?? 0)
   );
 

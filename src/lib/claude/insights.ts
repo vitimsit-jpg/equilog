@@ -9,6 +9,9 @@ import type {
 import { formatDate } from "@/lib/utils";
 
 function getClient() {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    throw new Error("ANTHROPIC_API_KEY is not configured");
+  }
   return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 }
 

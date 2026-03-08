@@ -29,9 +29,7 @@ export default function VoiceButton({ onResult }: Props) {
   useEffect(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const w = window as any;
-    if (!w.SpeechRecognition && !w.webkitSpeechRecognition) {
-      setSupported(false);
-    }
+    setSupported(!!(w.SpeechRecognition || w.webkitSpeechRecognition));
   }, []);
 
   const startRecording = () => {
@@ -92,7 +90,19 @@ export default function VoiceButton({ onResult }: Props) {
     recognitionRef.current?.stop();
   };
 
-  if (!supported) return null;
+  if (!supported) {
+    return (
+      <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
+        <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
+          <Mic className="h-4 w-4 text-gray-400" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-xs font-semibold text-gray-500">Saisie vocale non disponible</p>
+          <p className="text-xs text-gray-400">Utilisez Chrome ou Safari pour dicter vos séances.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center gap-3 p-3 rounded-xl bg-beige border border-orange/20">

@@ -114,31 +114,43 @@ export default function SettingsForm({ user }: Props) {
             { plan: "starter", label: "Starter", price: "Gratuit", features: ["1 cheval", "Carnet de santé", "Journal de travail"] },
             { plan: "pro", label: "Pro", price: "9€/mois", features: ["Chevaux illimités", "Tous les modules", "IA illimitée", "Export PDF"] },
             { plan: "ecurie", label: "Écurie", price: "29€/mois", features: ["Tout le plan Pro", "Gestion multi-cavaliers", "Dashboard écurie"] },
-          ].map((p) => (
-            <div
-              key={p.plan}
-              className={`p-4 rounded-xl border-2 transition-all ${
-                user?.plan === p.plan
-                  ? "border-orange bg-orange-light"
-                  : "border-gray-100 hover:border-gray-200"
-              }`}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <div>
-                  <span className="font-bold text-black">{p.label}</span>
-                  <span className="ml-2 text-sm text-gray-500">{p.price}</span>
+          ].map((p) => {
+            const isCurrent = user?.plan === p.plan;
+            return (
+              <div
+                key={p.plan}
+                className={`p-4 rounded-xl border-2 transition-all ${
+                  isCurrent
+                    ? "border-orange bg-orange-light"
+                    : "border-gray-100"
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <span className="font-bold text-black">{p.label}</span>
+                    <span className="ml-2 text-sm text-gray-500">{p.price}</span>
+                  </div>
+                  {isCurrent ? (
+                    <Badge variant="orange">Actuel</Badge>
+                  ) : (
+                    <button
+                      onClick={() => toast("Paiement en ligne bientôt disponible — contactez-nous à contact@equilog.fr", { icon: "ℹ️" })}
+                      className="text-xs font-semibold text-orange hover:underline"
+                    >
+                      Choisir ce plan →
+                    </button>
+                  )}
                 </div>
-                {user?.plan === p.plan && <Badge variant="orange">Actuel</Badge>}
+                <ul className="space-y-0.5">
+                  {p.features.map((f) => (
+                    <li key={f} className="text-xs text-gray-500 flex items-center gap-1.5">
+                      <span className="text-success">✓</span> {f}
+                    </li>
+                  ))}
+                </ul>
               </div>
-              <ul className="space-y-0.5">
-                {p.features.map((f) => (
-                  <li key={f} className="text-xs text-gray-500 flex items-center gap-1.5">
-                    <span className="text-success">✓</span> {f}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>

@@ -43,9 +43,14 @@ export default async function ClassementsPage({ searchParams }: Props) {
     return true;
   });
 
-  // Listes uniques pour les filtres
-  const disciplines = Array.from(new Set(scores.map((s) => (s as any).horses?.discipline).filter(Boolean))).sort();
-  const regions = Array.from(new Set(scores.map((s) => (s as any).horses?.region).filter(Boolean))).sort();
+  // Listes prédéfinies pour les filtres
+  const disciplines = Object.keys(DISCIPLINE_LABELS).filter((d) => d !== "Autre");
+  const regions = [
+    "Auvergne-Rhône-Alpes", "Bourgogne-Franche-Comté", "Bretagne",
+    "Centre-Val de Loire", "Corse", "Grand Est", "Hauts-de-France",
+    "Île-de-France", "Normandie", "Nouvelle-Aquitaine", "Occitanie",
+    "Pays de la Loire", "Provence-Alpes-Côte d'Azur",
+  ];
 
   return (
     <div className="min-h-screen bg-[#FAFAF8]">

@@ -66,7 +66,6 @@ export default async function CommunautePage() {
     .select("*")
     .in("ecurie", userEcuries)
     .eq("share_horse_index", true)
-    .neq("user_id", authUser.id)
     .limit(50);
 
   const ecurieHorseIds = (ecurieHorses || []).map((h) => h.id);

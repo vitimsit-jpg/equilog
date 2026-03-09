@@ -44,12 +44,14 @@ export default function FeedReactionButton({ itemType, itemId, initialCount, ini
     <button
       onClick={toggle}
       className={cn(
-        "flex items-center gap-1 text-xs transition-colors",
-        liked ? "text-orange" : "text-gray-300 hover:text-orange"
+        "flex items-center gap-1.5 text-xs px-2 py-1 rounded-full border transition-all",
+        liked
+          ? "border-orange bg-orange-light text-orange"
+          : "border-gray-200 text-gray-400 hover:border-orange hover:text-orange"
       )}
     >
       <Heart className={cn("h-3.5 w-3.5", liked && "fill-orange")} />
-      {count > 0 && <span className={liked ? "text-orange" : "text-gray-400"}>{count}</span>}
+      <span>{liked ? "Aimé" : "J'aime"}{count > 0 ? ` · ${count}` : ""}</span>
     </button>
   );
 }

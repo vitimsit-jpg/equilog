@@ -15,6 +15,7 @@ import {
   Star,
   Medal,
   Users,
+  Building2,
 } from "lucide-react";
 import type { Horse, UserType } from "@/lib/supabase/types";
 import { useState } from "react";
@@ -93,6 +94,17 @@ export default function Sidebar({ horses, currentHorseId, userType }: SidebarPro
             </Link>
           );
         })}
+
+        {/* Mon Écurie — gérants uniquement */}
+        {(userType === "gerant_ecurie" || userType === "gerant_cavalier") && (
+          <Link
+            href="/mon-ecurie"
+            className={cn(pathname === "/mon-ecurie" ? "nav-item-active" : "nav-item")}
+          >
+            <Building2 className="h-4 w-4 flex-shrink-0" />
+            Mon Écurie
+          </Link>
+        )}
 
         {/* Horses section */}
         <div className="pt-4">

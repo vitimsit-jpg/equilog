@@ -1,6 +1,6 @@
 export type UserPlan = "starter" | "pro" | "ecurie";
 export type UserType = "loisir" | "competition" | "pro" | "gerant_cavalier" | "coach" | "gerant_ecurie";
-export type HealthType = "vaccin" | "vermifuge" | "dentiste" | "osteo" | "ferrage" | "autre";
+export type HealthType = "vaccin" | "vermifuge" | "dentiste" | "osteo" | "ferrage" | "veterinaire" | "masseuse" | "autre";
 export type TrainingType = "dressage" | "saut" | "endurance" | "cso" | "cross" | "travail_a_pied" | "longe" | "galop" | "plat" | "autre";
 export type WearableSource = "equisense" | "seaver" | "garmin" | "equilab" | "autre";
 export type BudgetCategory = "pension" | "soins" | "concours" | "equipement" | "maréchalerie" | "alimentation" | "transport" | "autre";
@@ -38,6 +38,10 @@ export interface HealthRecord {
   notes: string | null;
   vet_name: string | null;
   cost: number | null;
+  practitioner_phone: string | null;
+  practitioner_email: string | null;
+  product_name: string | null;
+  urgency: "normal" | "urgent" | "critique" | null;
   created_at: string;
 }
 

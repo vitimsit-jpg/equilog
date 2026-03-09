@@ -51,6 +51,8 @@ export const HEALTH_TYPE_LABELS: Record<string, string> = {
   dentiste: "Dentiste",
   osteo: "Ostéopathie",
   ferrage: "Ferrage",
+  veterinaire: "Vétérinaire",
+  masseuse: "Masseuse",
   autre: "Autre",
 };
 

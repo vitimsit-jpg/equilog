@@ -2,8 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import HealthTimeline from "@/components/health/HealthTimeline";
-import AddHealthEventButton from "@/components/health/AddHealthEventButton";
+import HealthOverview from "@/components/health/HealthOverview";
 import PdfDownloadButton from "@/components/pdf/PdfDownloadButton";
 
 interface Props {
@@ -31,7 +30,7 @@ export default async function HealthPage({ params }: Props) {
     .order("date", { ascending: false });
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6 animate-fade-in">
+    <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Link href={`/horses/${horse.id}`} className="btn-ghost p-2">
@@ -42,13 +41,10 @@ export default async function HealthPage({ params }: Props) {
             <p className="text-sm text-gray-400">{horse.name}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <PdfDownloadButton type="sante" horse={horse} records={records || []} />
-          <AddHealthEventButton horseId={horse.id} />
-        </div>
+        <PdfDownloadButton type="sante" horse={horse} records={records || []} />
       </div>
 
-      <HealthTimeline records={records || []} horseId={horse.id} />
+      <HealthOverview records={records || []} horseId={horse.id} />
     </div>
   );
 }

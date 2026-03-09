@@ -23,6 +23,8 @@ const defaultIntervals: Record<HealthType, number | null> = {
   ferrage: 56,
   dentiste: 365,
   osteo: 180,
+  veterinaire: null,
+  masseuse: 90,
   autre: null,
 };
 
@@ -42,6 +44,8 @@ export default function HealthEventForm({ horseId, onSaved, onCancel, defaultVal
     date: defaultValues?.date || today,
     next_date: defaultValues?.next_date || "",
     vet_name: defaultValues?.vet_name || "",
+    practitioner_phone: defaultValues?.practitioner_phone || "",
+    product_name: defaultValues?.product_name || "",
     cost: defaultValues?.cost ? String(defaultValues.cost) : "",
     notes: defaultValues?.notes || "",
   });
@@ -72,6 +76,8 @@ export default function HealthEventForm({ horseId, onSaved, onCancel, defaultVal
       date: form.date,
       next_date: form.next_date || null,
       vet_name: form.vet_name || null,
+      practitioner_phone: form.practitioner_phone || null,
+      product_name: form.product_name || null,
       cost: form.cost ? parseFloat(form.cost) : null,
       notes: form.notes || null,
     };
@@ -120,6 +126,24 @@ export default function HealthEventForm({ horseId, onSaved, onCancel, defaultVal
           onChange={(e) => setForm({ ...form, vet_name: e.target.value })}
           placeholder="Dr. Martin"
         />
+        <Input
+          label="Téléphone"
+          type="tel"
+          value={form.practitioner_phone}
+          onChange={(e) => setForm({ ...form, practitioner_phone: e.target.value })}
+          placeholder="06 00 00 00 00"
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        {(form.type === "vaccin" || form.type === "vermifuge") && (
+          <Input
+            label="Produit utilisé"
+            value={form.product_name}
+            onChange={(e) => setForm({ ...form, product_name: e.target.value })}
+            placeholder="Equip FHV-1, Equest..."
+          />
+        )}
         <Input
           label="Coût (€)"
           type="number"

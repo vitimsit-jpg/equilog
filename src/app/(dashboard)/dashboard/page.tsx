@@ -360,9 +360,14 @@ export default async function DashboardPage() {
       <div className="card border-2 border-dashed border-gray-200 text-center py-8">
         <Users className="h-6 w-6 text-gray-300 mx-auto mb-2" />
         <p className="text-sm font-semibold text-black mb-1">Aucun pensionnaire visible</p>
-        <p className="text-xs text-gray-400">
+        <p className="text-xs text-gray-400 mb-3">
           Renseignez le nom de votre écurie sur votre fiche cheval pour voir les autres pensionnaires qui partagent leur Horse Index.
         </p>
+        {horseIds[0] && (
+          <Link href={`/horses/${horseIds[0]}`} className="text-xs font-semibold text-orange hover:underline">
+            Renseigner mon écurie →
+          </Link>
+        )}
       </div>
     )
   ) : null;

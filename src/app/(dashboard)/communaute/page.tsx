@@ -6,6 +6,7 @@ import { formatDate, getScoreColor } from "@/lib/utils";
 import Badge from "@/components/ui/Badge";
 import FeedReactionButton from "@/components/community/FeedReactionButton";
 import FeedMediaPreview from "@/components/community/FeedMediaPreview";
+import FeedComments from "@/components/community/FeedComments";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type FeedItem = { date: string; type: "session" | "competition"; data: any; horse: any };
@@ -128,6 +129,23 @@ export default async function CommunautePage() {
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 25);
 
+  // Fetch comments for feed items
+  const feedItemIds = feed.map((item) => item.data.id);
+  const { data: allComments } = feedItemIds.length
+    ? await supabase
+        .from("feed_comments")
+        .select("*")
+        .in("item_id", feedItemIds)
+        .order("created_at", { ascending: true })
+    : { data: [] };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const commentsByItem: Record<string, any[]> = {};
+  (allComments || []).forEach((c) => {
+    if (!commentsByItem[c.item_id]) commentsByItem[c.item_id] = [];
+    commentsByItem[c.item_id].push(c);
+  });
+
   // Rankings
   const rankedHorses = [...(ecurieHorses || [])].sort(
     (a, b) => (latestScoreByHorse[b.id] ?? 0) - (latestScoreByHorse[a.id] ?? 0)
@@ -164,6 +182,7 @@ export default async function CommunautePage() {
                 const reactionKey = `${item.type}:${item.data.id}`;
                 const reactionCount = reactionCountMap[reactionKey] || 0;
                 const hasLiked = myReactionSet.has(reactionKey);
+                const itemComments = commentsByItem[item.data.id] || [];
 
                 return (
                   <div key={idx} className="card flex items-start gap-3 py-3">
@@ -229,8 +248,8 @@ export default async function CommunautePage() {
                         </>
                       )}
 
-                      {/* Reaction button */}
-                      <div className="mt-2">
+                      {/* Reaction + Comments */}
+                      <div className="mt-2 flex items-center gap-2">
                         <FeedReactionButton
                           itemType={item.type}
                           itemId={item.data.id}
@@ -238,6 +257,12 @@ export default async function CommunautePage() {
                           initialLiked={hasLiked}
                         />
                       </div>
+                      <FeedComments
+                        itemType={item.type}
+                        itemId={item.data.id}
+                        currentUserId={authUser.id}
+                        initialComments={itemComments}
+                      />
                     </div>
                   </div>
                 );

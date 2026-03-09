@@ -5,13 +5,13 @@ import { Plus, Heart, Dumbbell, TrendingUp, AlertCircle, Users, Trophy } from "l
 import { formatDate, daysUntil, HEALTH_TYPE_LABELS, getScoreColor } from "@/lib/utils";
 import Badge from "@/components/ui/Badge";
 
-const USER_TYPE_WELCOME: Record<string, { title: string; subtitle: string }> = {
-  loisir: { title: "Bonjour !", subtitle: "Voici l'état de votre cheval aujourd'hui." },
-  competition: { title: "Prêt pour la saison ?", subtitle: "Vos performances et préparations concours." },
-  pro: { title: "Tableau de bord", subtitle: "Vue d'ensemble de tous vos chevaux." },
-  gerant_cavalier: { title: "Tableau de bord", subtitle: "Votre écurie et vos chevaux en un coup d'œil." },
-  coach: { title: "Mes élèves", subtitle: "Suivez la progression de vos couples cavalier–cheval." },
-  gerant_ecurie: { title: "Tableau de bord écurie", subtitle: "Vue d'ensemble de tous vos pensionnaires." },
+const USER_TYPE_WELCOME: Record<string, { title: string; subtitle: string; badge: string }> = {
+  loisir:          { title: "Bonjour !", subtitle: "Voici l'état de votre cheval aujourd'hui.", badge: "Loisir" },
+  competition:     { title: "Prêt pour la saison ?", subtitle: "Vos performances et préparations concours.", badge: "Compétition" },
+  pro:             { title: "Tableau de bord", subtitle: "Vue d'ensemble de tous vos chevaux.", badge: "Pro" },
+  gerant_cavalier: { title: "Tableau de bord", subtitle: "Votre écurie et vos chevaux en un coup d'œil.", badge: "Gérant cavalier" },
+  coach:           { title: "Mes élèves", subtitle: "Suivez la progression de vos couples cavalier–cheval.", badge: "Coach" },
+  gerant_ecurie:   { title: "Tableau de bord écurie", subtitle: "Vue d'ensemble de tous vos pensionnaires.", badge: "Gérant écurie" },
 };
 
 // Widgets shown for each profile (in order)
@@ -265,82 +265,106 @@ export default async function DashboardPage() {
     </div>
   );
 
-  const widgetCompetitions = (recentCompetitions || []).length > 0 ? (
-    <div className="card">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <Trophy className="h-4 w-4 text-orange" />
-          <h2 className="font-bold text-black">Résultats récents</h2>
+  const widgetCompetitions = fetchCompetitions ? (
+    (recentCompetitions || []).length > 0 ? (
+      <div className="card">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Trophy className="h-4 w-4 text-orange" />
+            <h2 className="font-bold text-black">Résultats récents</h2>
+          </div>
+          <Link href={`/horses/${horseIds[0]}/competitions`} className="text-xs text-orange font-semibold hover:underline">
+            Voir tout →
+          </Link>
         </div>
-        <Link href={`/horses/${horseIds[0]}/competitions`} className="text-xs text-orange font-semibold hover:underline">
-          Voir tout →
-        </Link>
-      </div>
-      <div className="space-y-2">
-        {(recentCompetitions || []).map((c) => {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const horseName = (c as any).horses?.name;
-          const hasRank = c.result_rank && c.total_riders;
-          return (
-            <div key={c.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
-              <div>
-                <p className="text-sm font-medium text-black">{c.event_name}</p>
-                <p className="text-xs text-gray-400">{horseName} · {c.discipline} · {formatDate(c.date)}</p>
-              </div>
-              {hasRank ? (
-                <div className="text-right">
-                  <p className="text-lg font-black text-black">{c.result_rank}<span className="text-xs text-gray-400 font-normal">/{c.total_riders}</span></p>
+        <div className="space-y-2">
+          {(recentCompetitions || []).map((c) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const horseName = (c as any).horses?.name;
+            const hasRank = c.result_rank && c.total_riders;
+            return (
+              <div key={c.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+                <div>
+                  <p className="text-sm font-medium text-black">{c.event_name}</p>
+                  <p className="text-xs text-gray-400">{horseName} · {c.discipline} · {formatDate(c.date)}</p>
                 </div>
-              ) : (
-                <span className="text-xs text-gray-300">—</span>
-              )}
-            </div>
-          );
-        })}
+                {hasRank ? (
+                  <div className="text-right">
+                    <p className="text-lg font-black text-black">{c.result_rank}<span className="text-xs text-gray-400 font-normal">/{c.total_riders}</span></p>
+                  </div>
+                ) : (
+                  <span className="text-xs text-gray-300">—</span>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
-    </div>
+    ) : (
+      <div className="card border-2 border-dashed border-gray-200 text-center py-8">
+        <Trophy className="h-6 w-6 text-gray-300 mx-auto mb-2" />
+        <p className="text-sm font-semibold text-black mb-1">Aucun concours enregistré</p>
+        <p className="text-xs text-gray-400 mb-3">Ajoutez vos résultats pour suivre votre palmarès.</p>
+        {horseIds[0] && (
+          <Link href={`/horses/${horseIds[0]}/competitions`} className="text-xs font-semibold text-orange hover:underline">
+            Ajouter un concours →
+          </Link>
+        )}
+      </div>
+    )
   ) : null;
 
-  const widgetEcurie = rankedEcurieHorses.length > 0 && userEcuries[0] ? (
-    <div className="card">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <Users className="h-4 w-4 text-gray-400" />
-          <h2 className="font-bold text-black">Mon écurie</h2>
-          <span className="text-xs text-gray-400 font-normal">— {userEcuries[0]}</span>
+  const showEcurieWidget = ["gerant_ecurie", "gerant_cavalier", "pro", "competition", "loisir"].includes(userType);
+  const widgetEcurie = showEcurieWidget ? (
+    rankedEcurieHorses.length > 0 && userEcuries[0] ? (
+      <div className="card">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-gray-400" />
+            <h2 className="font-bold text-black">Mon écurie</h2>
+            <span className="text-xs text-gray-400 font-normal">— {userEcuries[0]}</span>
+          </div>
+          <Link
+            href={`/ecurie/${encodeURIComponent(userEcuries[0])}`}
+            className="text-xs text-orange font-semibold hover:underline"
+          >
+            Voir tout →
+          </Link>
         </div>
-        <Link
-          href={`/ecurie/${encodeURIComponent(userEcuries[0])}`}
-          className="text-xs text-orange font-semibold hover:underline"
-        >
-          Voir tout →
-        </Link>
-      </div>
-      <div className="space-y-2">
-        {rankedEcurieHorses.slice(0, 5).map((horse, idx) => {
-          const score = ecurieScoreByHorse[horse.id];
-          return (
-            <div key={horse.id} className="flex items-center justify-between py-1.5 border-b border-gray-50 last:border-0">
-              <div className="flex items-center gap-3">
-                <span className="text-xs font-bold text-gray-300 w-4">{idx + 1}</span>
-                <div className="w-7 h-7 rounded-lg bg-black text-white font-black text-xs flex items-center justify-center flex-shrink-0">
-                  {horse.name[0].toUpperCase()}
+        <div className="space-y-2">
+          {rankedEcurieHorses.slice(0, 5).map((horse, idx) => {
+            const score = ecurieScoreByHorse[horse.id];
+            return (
+              <div key={horse.id} className="flex items-center justify-between py-1.5 border-b border-gray-50 last:border-0">
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-bold text-gray-300 w-4">{idx + 1}</span>
+                  <div className="w-7 h-7 rounded-lg bg-black text-white font-black text-xs flex items-center justify-center flex-shrink-0">
+                    {horse.name[0].toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-black">{horse.name}</p>
+                    <p className="text-xs text-gray-400">{horse.discipline || horse.breed || "—"}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-semibold text-black">{horse.name}</p>
-                  <p className="text-xs text-gray-400">{horse.discipline || horse.breed || "—"}</p>
-                </div>
+                {score !== undefined ? (
+                  <p className="text-lg font-black" style={{ color: getScoreColor(score) }}>{score}</p>
+                ) : (
+                  <p className="text-sm text-gray-300 font-bold">—</p>
+                )}
               </div>
-              {score !== undefined ? (
-                <p className="text-lg font-black" style={{ color: getScoreColor(score) }}>{score}</p>
-              ) : (
-                <p className="text-sm text-gray-300 font-bold">—</p>
-              )}
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
-    </div>
+    ) : (
+      <div className="card border-2 border-dashed border-gray-200 text-center py-8">
+        <Users className="h-6 w-6 text-gray-300 mx-auto mb-2" />
+        <p className="text-sm font-semibold text-black mb-1">Aucun pensionnaire visible</p>
+        <p className="text-xs text-gray-400">
+          Renseignez le nom de votre écurie sur votre fiche cheval pour voir les autres pensionnaires qui partagent leur Horse Index.
+        </p>
+      </div>
+    )
   ) : null;
 
   const WIDGETS: Record<string, React.ReactNode> = {
@@ -356,8 +380,13 @@ export default async function DashboardPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-black text-black">{welcome.title}</h1>
-          <p className="text-sm text-gray-400 mt-0.5">{welcome.subtitle}</p>
+          <div className="flex items-center gap-2 mb-1">
+            <h1 className="text-2xl font-black text-black">{welcome.title}</h1>
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-orange-light text-orange border border-orange/20">
+              {welcome.badge}
+            </span>
+          </div>
+          <p className="text-sm text-gray-400">{welcome.subtitle}</p>
         </div>
         <Link href="/horses/new" className="btn-primary">
           <Plus className="h-4 w-4" />

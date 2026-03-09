@@ -5,6 +5,7 @@ import { Dumbbell, Trophy, TrendingUp, Users, Medal } from "lucide-react";
 import { formatDate, getScoreColor } from "@/lib/utils";
 import Badge from "@/components/ui/Badge";
 import FeedReactionButton from "@/components/community/FeedReactionButton";
+import FeedMediaPreview from "@/components/community/FeedMediaPreview";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type FeedItem = { date: string; type: "session" | "competition"; data: any; horse: any };
@@ -198,6 +199,9 @@ export default async function CommunautePage() {
                           {item.data.notes && (
                             <p className="text-xs text-gray-500 mt-1 italic">&ldquo;{item.data.notes}&rdquo;</p>
                           )}
+                          {item.data.media_urls?.length > 0 && (
+                            <FeedMediaPreview mediaUrls={item.data.media_urls} />
+                          )}
                         </>
                       )}
 
@@ -219,6 +223,9 @@ export default async function CommunautePage() {
                             )}
                             <span className="text-xs text-gray-400">{formatDate(item.date)}</span>
                           </div>
+                          {item.data.media_urls?.length > 0 && (
+                            <FeedMediaPreview mediaUrls={item.data.media_urls} />
+                          )}
                         </>
                       )}
 

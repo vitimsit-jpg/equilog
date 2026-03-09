@@ -5,6 +5,7 @@ import type { Competition } from "@/lib/supabase/types";
 import { formatDate, DISCIPLINE_LABELS } from "@/lib/utils";
 import Badge from "@/components/ui/Badge";
 import { Trophy, MapPin, Edit2, Trash2, ClipboardList } from "lucide-react";
+import MediaGallery from "@/components/media/MediaGallery";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
@@ -70,21 +71,31 @@ export default function CompetitionCard({ competition: c, horseId, onChecklist }
         </div>
       </div>
 
-      <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-50">
-        <button
-          onClick={onChecklist}
-          className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-orange transition-colors"
-        >
-          <ClipboardList className="h-3.5 w-3.5" />
-          Checklist J-7
-        </button>
-        <div className="flex gap-1">
-          <button onClick={() => setEditOpen(true)} className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-black transition-colors">
-            <Edit2 className="h-3.5 w-3.5" />
-          </button>
-          <button onClick={handleDelete} className="p-1 rounded hover:bg-red-50 text-gray-400 hover:text-danger transition-colors">
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
+      <div className="mt-3 pt-3 border-t border-gray-50 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={onChecklist}
+              className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-orange transition-colors"
+            >
+              <ClipboardList className="h-3.5 w-3.5" />
+              Checklist J-7
+            </button>
+            <MediaGallery
+              entityType="competition"
+              entityId={c.id}
+              horseId={horseId}
+              initialMediaUrls={c.media_urls ?? []}
+            />
+          </div>
+          <div className="flex gap-1">
+            <button onClick={() => setEditOpen(true)} className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-black transition-colors">
+              <Edit2 className="h-3.5 w-3.5" />
+            </button>
+            <button onClick={handleDelete} className="p-1 rounded hover:bg-red-50 text-gray-400 hover:text-danger transition-colors">
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
         </div>
       </div>
 

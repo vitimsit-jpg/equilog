@@ -51,6 +51,7 @@ export interface TrainingSession {
   feeling: 1 | 2 | 3 | 4 | 5;
   notes: string | null;
   wearable_source: WearableSource | null;
+  media_urls: string[] | null;
   created_at: string;
 }
 
@@ -66,6 +67,7 @@ export interface Competition {
   score: number | null;
   notes: string | null;
   location: string | null;
+  media_urls: string[] | null;
   created_at: string;
 }
 

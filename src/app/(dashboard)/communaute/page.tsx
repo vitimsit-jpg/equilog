@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Dumbbell, Trophy, TrendingUp, Users, Medal } from "lucide-react";
-import { formatDate, getScoreColor, HEALTH_TYPE_LABELS } from "@/lib/utils";
+import { formatDate, getScoreColor } from "@/lib/utils";
 import Badge from "@/components/ui/Badge";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -69,7 +69,8 @@ export default async function CommunautePage() {
     .limit(50);
 
   const ecurieHorseIds = (ecurieHorses || []).map((h) => h.id);
-  const horseById: Record<string, typeof ecurieHorses[0]> = {};
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const horseById: Record<string, any> = {};
   (ecurieHorses || []).forEach((h) => { horseById[h.id] = h; });
 
   // Fetch recent activity

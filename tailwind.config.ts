@@ -19,8 +19,8 @@ const config: Config = {
           600: "#C93A09",
         },
         beige: {
-          DEFAULT: "#F5F0E8",
-          dark: "#EBE4D8",
+          DEFAULT: "#F5F5F5",
+          dark: "#EBEBEB",
         },
         success: "#16A34A",
         warning: "#D97706",

@@ -4,7 +4,7 @@
 @tailwind utilities;
 
 :root {
-  --background: #F5F0E8;
+  --background: #FFFFFF;
   --foreground: #1A1A1A;
 }
 
@@ -21,7 +21,7 @@ html {
 
 body {
   color: #1A1A1A;
-  background: #F5F0E8;
+  background: #FFFFFF;
   font-family: 'Inter', system-ui, sans-serif;
 }
 

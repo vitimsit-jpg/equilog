@@ -1,9 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Heart, Plus } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import HealthTimeline from "@/components/health/HealthTimeline";
 import AddHealthEventButton from "@/components/health/AddHealthEventButton";
+import PdfDownloadButton from "@/components/pdf/PdfDownloadButton";
 
 interface Props {
   params: { id: string };
@@ -41,7 +42,10 @@ export default async function HealthPage({ params }: Props) {
             <p className="text-sm text-gray-400">{horse.name}</p>
           </div>
         </div>
-        <AddHealthEventButton horseId={horse.id} />
+        <div className="flex items-center gap-2">
+          <PdfDownloadButton type="sante" horse={horse} records={records || []} />
+          <AddHealthEventButton horseId={horse.id} />
+        </div>
       </div>
 
       <HealthTimeline records={records || []} horseId={horse.id} />

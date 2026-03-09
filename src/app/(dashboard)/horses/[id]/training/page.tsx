@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import TrainingDashboard from "@/components/training/TrainingDashboard";
 import TrainingPlanCard from "@/components/training/TrainingPlanCard";
+import PdfDownloadButton from "@/components/pdf/PdfDownloadButton";
 
 interface Props {
   params: { id: string };
@@ -50,14 +51,17 @@ export default async function TrainingPage({ params }: Props) {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
-      <div className="flex items-center gap-3">
-        <Link href={`/horses/${horse.id}`} className="btn-ghost p-2">
-          <ArrowLeft className="h-4 w-4" />
-        </Link>
-        <div>
-          <h1 className="text-2xl font-black text-black">Journal de travail</h1>
-          <p className="text-sm text-gray-400">{horse.name}</p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Link href={`/horses/${horse.id}`} className="btn-ghost p-2">
+            <ArrowLeft className="h-4 w-4" />
+          </Link>
+          <div>
+            <h1 className="text-2xl font-black text-black">Journal de travail</h1>
+            <p className="text-sm text-gray-400">{horse.name}</p>
+          </div>
         </div>
+        <PdfDownloadButton type="rapport" horse={horse} sessions={sessions || []} />
       </div>
 
       <TrainingPlanCard horseId={horse.id} latestPlan={latestPlan ?? null} />

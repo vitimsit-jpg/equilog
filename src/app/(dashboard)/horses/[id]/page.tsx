@@ -9,6 +9,7 @@ import { formatDate } from "@/lib/utils";
 import RecalculateButton from "@/components/horse-index/RecalculateButton";
 import ShareButton from "@/components/horse/ShareButton";
 import PremiumNudge from "@/components/ui/PremiumNudge";
+import PdfDownloadButton from "@/components/pdf/PdfDownloadButton";
 
 interface Props {
   params: { id: string };
@@ -87,6 +88,11 @@ export default async function HorsePage({ params }: Props) {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <PdfDownloadButton
+            type="fiche"
+            horse={horse}
+            score={currentScore ? { score: currentScore.score, score_breakdown: currentScore.score_breakdown as Record<string, number> | null, computed_at: currentScore.computed_at } : null}
+          />
           {horse.share_horse_index && (
             <ShareButton horseId={horse.id} horseName={horse.name} />
           )}

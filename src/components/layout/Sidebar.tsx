@@ -43,10 +43,10 @@ const horseNavItems = [
 // Profile-specific nav ordering and visibility
 const HORSE_NAV_BY_PROFILE: Record<string, string[]> = {
   loisir:          ["health", "training", "budget", "competitions"],
-  competition:     ["competitions", "training", "health", "budget"],
-  pro:             ["training", "competitions", "health", "budget"],
+  competition:     ["health", "competitions", "training", "budget"],
+  pro:             ["health", "training", "competitions", "budget"],
   gerant_cavalier: ["health", "training", "competitions", "budget"],
-  coach:           ["training", "health", "competitions", "budget"],
+  coach:           ["health", "training", "competitions", "budget"],
   gerant_ecurie:   ["health", "budget", "training", "competitions"],
 };
 

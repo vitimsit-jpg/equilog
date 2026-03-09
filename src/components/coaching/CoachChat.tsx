@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Send, Loader2, Sparkles, X, MessageSquare } from "lucide-react";
 
 interface Message {
@@ -29,12 +30,15 @@ interface Props {
 }
 
 export default function CoachChat({ horseId, horseName, hasRecentCompetition }: Props) {
+  const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { setMounted(true); }, []);
 
   const suggestions = hasRecentCompetition
     ? [...SUGGESTIONS.after_competition, ...SUGGESTIONS.default.slice(0, 3)]
@@ -100,7 +104,9 @@ export default function CoachChat({ horseId, horseName, hasRecentCompetition }: 
     }
   };
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <>
       {/* Floating button */}
       {!open && (
@@ -229,6 +235,7 @@ export default function CoachChat({ horseId, horseName, hasRecentCompetition }: 
           </div>
         </div>
       )}
-    </>
+    </>,
+    document.body
   );
 }

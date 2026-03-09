@@ -30,6 +30,7 @@
     "react-dom": "^18",
     "react-hot-toast": "^2.6.0",
     "recharts": "^3.8.0",
+    "resend": "^6.9.3",
     "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {

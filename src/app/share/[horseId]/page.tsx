@@ -25,7 +25,7 @@ export default async function PublicHorseProfilePage({ params }: Props) {
     { data: scores },
     { data: competitions },
     { data: recentSessions },
-    { data: allSessionsCount },
+    { count: rawSessionCount },
   ] = await Promise.all([
     supabase.from("horse_scores").select("*").eq("horse_id", horse.id).order("computed_at", { ascending: false }).limit(1),
     supabase.from("competitions").select("*").eq("horse_id", horse.id).order("date", { ascending: false }).limit(50),
@@ -37,7 +37,7 @@ export default async function PublicHorseProfilePage({ params }: Props) {
   const age = horse.birth_year ? new Date().getFullYear() - horse.birth_year : null;
 
   // Stats
-  const totalSessionsAllTime = (allSessionsCount as unknown as { count: number } | null)?.count ?? (recentSessions?.length ?? 0);
+  const sessionCount = rawSessionCount ?? (recentSessions?.length ?? 0);
   const last30Sessions = (recentSessions || []).slice(0, 30);
   const avgIntensity = last30Sessions.length > 0
     ? (last30Sessions.reduce((s, t) => s + t.intensity, 0) / last30Sessions.length).toFixed(1)
@@ -159,17 +159,17 @@ export default async function PublicHorseProfilePage({ params }: Props) {
         )}
 
         {/* Key stats */}
-        {(totalSessionsAllTime > 0 || allComps.length > 0) && (
+        {(sessionCount > 0 || allComps.length > 0) && (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
             <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Statistiques clés</p>
             <div className="grid grid-cols-2 gap-4">
-              {totalSessionsAllTime > 0 && (
+              {sessionCount > 0 && (
                 <div className="flex items-start gap-3">
                   <div className="w-8 h-8 rounded-lg bg-beige flex items-center justify-center flex-shrink-0">
                     <Dumbbell className="h-4 w-4 text-gray-500" />
                   </div>
                   <div>
-                    <p className="text-xl font-black text-black">{totalSessionsAllTime}</p>
+                    <p className="text-xl font-black text-black">{sessionCount}</p>
                     <p className="text-xs text-gray-400">séances enregistrées</p>
                   </div>
                 </div>

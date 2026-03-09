@@ -14,6 +14,7 @@ import {
   Plus,
   Star,
   Medal,
+  Users,
 } from "lucide-react";
 import type { Horse, UserType } from "@/lib/supabase/types";
 import { useState } from "react";
@@ -26,6 +27,7 @@ interface SidebarProps {
 
 const mainNav = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+  { href: "/communaute", icon: Users, label: "Communauté" },
   { href: "/classements", icon: Medal, label: "Classements" },
 ];
 

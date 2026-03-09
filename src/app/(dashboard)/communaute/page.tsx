@@ -4,9 +4,10 @@ import Link from "next/link";
 import { Dumbbell, Trophy, TrendingUp, Users, Medal } from "lucide-react";
 import { formatDate, getScoreColor } from "@/lib/utils";
 import Badge from "@/components/ui/Badge";
+import FeedReactionButton from "@/components/community/FeedReactionButton";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type FeedItem = { date: string; type: "session" | "competition" | "score"; data: any; horse: any };
+type FeedItem = { date: string; type: "session" | "competition"; data: any; horse: any };
 
 const TRAINING_TYPE_LABELS: Record<string, string> = {
   dressage: "Dressage", saut: "Saut", endurance: "Endurance", cso: "CSO",
@@ -73,37 +74,34 @@ export default async function CommunautePage() {
   const horseById: Record<string, any> = {};
   (ecurieHorses || []).forEach((h) => { horseById[h.id] = h; });
 
-  // Fetch recent activity
+  // Fetch recent activity + reactions
   const [
     { data: recentSessions },
     { data: recentCompetitions },
     { data: recentScores },
+    { data: allReactions },
+    { data: myReactions },
   ] = await Promise.all([
     ecurieHorseIds.length
-      ? supabase
-          .from("training_sessions")
-          .select("*")
-          .in("horse_id", ecurieHorseIds)
-          .order("date", { ascending: false })
-          .limit(30)
+      ? supabase.from("training_sessions").select("*").in("horse_id", ecurieHorseIds).order("date", { ascending: false }).limit(30)
       : Promise.resolve({ data: [] }),
     ecurieHorseIds.length
-      ? supabase
-          .from("competitions")
-          .select("*")
-          .in("horse_id", ecurieHorseIds)
-          .order("date", { ascending: false })
-          .limit(20)
+      ? supabase.from("competitions").select("*").in("horse_id", ecurieHorseIds).order("date", { ascending: false }).limit(20)
       : Promise.resolve({ data: [] }),
     ecurieHorseIds.length
-      ? supabase
-          .from("horse_scores")
-          .select("*")
-          .in("horse_id", ecurieHorseIds)
-          .order("computed_at", { ascending: false })
-          .limit(ecurieHorseIds.length * 2)
+      ? supabase.from("horse_scores").select("*").in("horse_id", ecurieHorseIds).order("computed_at", { ascending: false }).limit(ecurieHorseIds.length * 2)
       : Promise.resolve({ data: [] }),
+    supabase.from("feed_reactions").select("item_type, item_id"),
+    supabase.from("feed_reactions").select("item_type, item_id").eq("user_id", authUser.id),
   ]);
+
+  // Build reaction maps
+  const reactionCountMap: Record<string, number> = {};
+  (allReactions || []).forEach((r) => {
+    const key = `${r.item_type}:${r.item_id}`;
+    reactionCountMap[key] = (reactionCountMap[key] || 0) + 1;
+  });
+  const myReactionSet = new Set((myReactions || []).map((r) => `${r.item_type}:${r.item_id}`));
 
   // Latest score per ecurie horse
   const latestScoreByHorse: Record<string, number> = {};
@@ -162,66 +160,82 @@ export default async function CommunautePage() {
             </div>
           ) : (
             <div className="space-y-2">
-              {feed.map((item, idx) => (
-                <div key={idx} className="card flex items-start gap-3 py-3">
-                  {/* Horse avatar */}
-                  <div className="w-8 h-8 rounded-full bg-black text-white font-black text-sm flex items-center justify-center flex-shrink-0">
-                    {item.horse.name[0].toUpperCase()}
-                  </div>
+              {feed.map((item, idx) => {
+                const reactionKey = `${item.type}:${item.data.id}`;
+                const reactionCount = reactionCountMap[reactionKey] || 0;
+                const hasLiked = myReactionSet.has(reactionKey);
 
-                  <div className="flex-1 min-w-0">
-                    {item.type === "session" && (
-                      <>
-                        <p className="text-sm font-semibold text-black">
-                          {item.horse.name}
-                          <span className="font-normal text-gray-500">
-                            {" "}a travaillé · {TRAINING_TYPE_LABELS[item.data.type] || item.data.type}
-                          </span>
-                        </p>
-                        <div className="flex items-center gap-3 mt-1">
-                          <span className="text-xs text-gray-400">
-                            <Dumbbell className="h-3 w-3 inline mr-1" />
-                            {item.data.duration_min}min
-                          </span>
-                          <div className="flex gap-0.5">
-                            {Array.from({ length: 5 }).map((_, i) => (
-                              <div
-                                key={i}
-                                className={`w-1.5 h-2.5 rounded-full ${i < item.data.intensity ? "bg-orange" : "bg-gray-200"}`}
-                              />
-                            ))}
+                return (
+                  <div key={idx} className="card flex items-start gap-3 py-3">
+                    {/* Horse avatar */}
+                    <div className="w-8 h-8 rounded-full bg-black text-white font-black text-sm flex items-center justify-center flex-shrink-0">
+                      {item.horse.name[0].toUpperCase()}
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      {item.type === "session" && (
+                        <>
+                          <p className="text-sm font-semibold text-black">
+                            {item.horse.name}
+                            <span className="font-normal text-gray-500">
+                              {" "}a travaillé · {TRAINING_TYPE_LABELS[item.data.type] || item.data.type}
+                            </span>
+                          </p>
+                          <div className="flex items-center gap-3 mt-1">
+                            <span className="text-xs text-gray-400">
+                              <Dumbbell className="h-3 w-3 inline mr-1" />
+                              {item.data.duration_min}min
+                            </span>
+                            <div className="flex gap-0.5">
+                              {Array.from({ length: 5 }).map((_, i) => (
+                                <div
+                                  key={i}
+                                  className={`w-1.5 h-2.5 rounded-full ${i < item.data.intensity ? "bg-orange" : "bg-gray-200"}`}
+                                />
+                              ))}
+                            </div>
+                            <span className="text-xs text-gray-400">{formatDate(item.date)}</span>
                           </div>
-                          <span className="text-xs text-gray-400">{formatDate(item.date)}</span>
-                        </div>
-                        {item.data.notes && (
-                          <p className="text-xs text-gray-500 mt-1 italic">&ldquo;{item.data.notes}&rdquo;</p>
-                        )}
-                      </>
-                    )}
-
-                    {item.type === "competition" && (
-                      <>
-                        <p className="text-sm font-semibold text-black">
-                          {item.horse.name}
-                          <span className="font-normal text-gray-500"> en concours · {item.data.event_name}</span>
-                        </p>
-                        <div className="flex items-center gap-3 mt-1">
-                          <span className="text-xs text-gray-400">
-                            <Trophy className="h-3 w-3 inline mr-1" />
-                            {item.data.discipline} {item.data.level}
-                          </span>
-                          {item.data.result_rank && item.data.total_riders && (
-                            <Badge variant={item.data.result_rank <= 3 ? "orange" : "gray"}>
-                              {item.data.result_rank}/{item.data.total_riders}
-                            </Badge>
+                          {item.data.notes && (
+                            <p className="text-xs text-gray-500 mt-1 italic">&ldquo;{item.data.notes}&rdquo;</p>
                           )}
-                          <span className="text-xs text-gray-400">{formatDate(item.date)}</span>
-                        </div>
-                      </>
-                    )}
+                        </>
+                      )}
+
+                      {item.type === "competition" && (
+                        <>
+                          <p className="text-sm font-semibold text-black">
+                            {item.horse.name}
+                            <span className="font-normal text-gray-500"> en concours · {item.data.event_name}</span>
+                          </p>
+                          <div className="flex items-center gap-3 mt-1">
+                            <span className="text-xs text-gray-400">
+                              <Trophy className="h-3 w-3 inline mr-1" />
+                              {item.data.discipline} {item.data.level}
+                            </span>
+                            {item.data.result_rank && item.data.total_riders && (
+                              <Badge variant={item.data.result_rank <= 3 ? "orange" : "gray"}>
+                                {item.data.result_rank}/{item.data.total_riders}
+                              </Badge>
+                            )}
+                            <span className="text-xs text-gray-400">{formatDate(item.date)}</span>
+                          </div>
+                        </>
+                      )}
+
+                      {/* Reaction button */}
+                      <div className="mt-2">
+                        <FeedReactionButton
+                          itemType={item.type}
+                          itemId={item.data.id}
+                          initialCount={reactionCount}
+                          initialLiked={hasLiked}
+                        />
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

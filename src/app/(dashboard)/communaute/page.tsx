@@ -7,6 +7,7 @@ import Badge from "@/components/ui/Badge";
 import FeedReactionButton from "@/components/community/FeedReactionButton";
 import FeedMediaPreview from "@/components/community/FeedMediaPreview";
 import FeedComments from "@/components/community/FeedComments";
+import FeedShareButton from "@/components/community/FeedShareButton";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type FeedItem = { date: string; type: "session" | "competition"; data: any; horse: any };
@@ -248,13 +249,20 @@ export default async function CommunautePage() {
                         </>
                       )}
 
-                      {/* Reaction + Comments */}
+                      {/* Reaction + Share */}
                       <div className="mt-2 flex items-center gap-2">
                         <FeedReactionButton
                           itemType={item.type}
                           itemId={item.data.id}
                           initialCount={reactionCount}
                           initialLiked={hasLiked}
+                        />
+                        <FeedShareButton
+                          horseName={item.horse.name}
+                          horseId={item.horse.id}
+                          shareHorseIndex={item.horse.share_horse_index}
+                          itemType={item.type}
+                          itemData={item.data}
                         />
                       </div>
                       <FeedComments

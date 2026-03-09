@@ -469,3 +469,202 @@ export function generateRapportPdf(
   drawFooter(doc, pageNum, pageNum);
   doc.save(`${horse.name.replace(/\s+/g, "_")}_rapport.pdf`);
 }
+
+// ──────────────────────────────────────────────
+// BILAN ANNUEL
+// ──────────────────────────────────────────────
+export function generateBilanAnnuelPdf(
+  horse: { name: string; breed?: string | null; discipline?: string | null },
+  sessions: Array<{ id: string; date: string; type: string; duration_min: number; intensity: number; feeling?: number | null }>,
+  healthRecords: Array<{ id: string; type: string; date: string; cost?: number | null }>,
+  competitions: Array<{ id: string; date: string; event_name: string; discipline: string; result_rank?: number | null; total_riders?: number | null }>
+) {
+  const TRAINING_LABELS: Record<string, string> = {
+    dressage: "Dressage", saut: "Saut", endurance: "Endurance",
+    cso: "CSO", cross: "Cross", travail_a_pied: "Pied",
+    longe: "Longe", galop: "Galop", plat: "Plat", autre: "Autre",
+  };
+  const HEALTH_LABELS: Record<string, string> = {
+    vaccin: "Vaccin", vermifuge: "Vermifuge", dentiste: "Dentiste",
+    osteo: "Ostéo", ferrage: "Ferrage", autre: "Autre",
+  };
+  const MONTH_LABELS = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Aoû", "Sep", "Oct", "Nov", "Déc"];
+
+  const year = new Date().getFullYear();
+  const cutoff = `${year}-01-01`;
+
+  const yearSessions = sessions.filter((s) => s.date >= cutoff);
+  const yearHealth = healthRecords.filter((r) => r.date >= cutoff);
+  const yearCompetitions = competitions.filter((c) => c.date >= cutoff);
+
+  const doc = new jsPDF({ unit: "mm", format: "a4" });
+  drawHeader(doc, horse.name, `Bilan ${year}`);
+  let y = 32;
+
+  // Title
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(20);
+  doc.setTextColor(0, 0, 0);
+  doc.text(`Bilan ${year}`, MARGIN, y);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.setTextColor(107, 114, 128);
+  doc.text(`${horse.name}${horse.discipline ? "  ·  " + horse.discipline : ""}`, MARGIN, y + 7);
+  y += 18;
+
+  // Stats globales
+  const totalMin = yearSessions.reduce((s, r) => s + r.duration_min, 0);
+  const hours = Math.floor(totalMin / 60);
+  const mins = totalMin % 60;
+  const avgIntensity = yearSessions.length > 0
+    ? (yearSessions.reduce((s, r) => s + r.intensity, 0) / yearSessions.length).toFixed(1)
+    : "—";
+  const totalHealthCost = yearHealth.reduce((s, r) => s + (r.cost || 0), 0);
+
+  const stats: [string, string][] = [
+    [String(yearSessions.length), "Séances"],
+    [`${hours}h${mins > 0 ? String(mins).padStart(2, "0") : ""}`, "Travail total"],
+    [String(yearCompetitions.length), "Concours"],
+    [totalHealthCost > 0 ? `${totalHealthCost}€` : String(yearHealth.length), totalHealthCost > 0 ? "Soins (€)" : "Soins"],
+  ];
+  const statW = (CONTENT_W - 6) / 4;
+  stats.forEach(([val, lbl], i) => {
+    const x = MARGIN + i * (statW + 2);
+    doc.setFillColor(243, 244, 246);
+    doc.rect(x, y, statW, 16, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(15);
+    doc.setTextColor(232, 68, 10);
+    doc.text(val, x + statW / 2, y + 9, { align: "center" });
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(6.5);
+    doc.setTextColor(107, 114, 128);
+    doc.text(lbl, x + statW / 2, y + 14.5, { align: "center" });
+  });
+  y += 22;
+
+  // Activité par mois
+  if (yearSessions.length > 0) {
+    y = sectionTitle(doc, "Activité mensuelle", y);
+    const byMonth: number[] = new Array(12).fill(0);
+    yearSessions.forEach((s) => {
+      const m = parseInt(s.date.split("-")[1]) - 1;
+      if (m >= 0 && m < 12) byMonth[m]++;
+    });
+    const maxM = Math.max(...byMonth, 1);
+    const colW = CONTENT_W / 12;
+    const maxBarH = 18;
+
+    byMonth.forEach((count, m) => {
+      const x = MARGIN + m * colW;
+      if (count > 0) {
+        const barH = (count / maxM) * maxBarH;
+        doc.setFillColor(232, 68, 10);
+        doc.rect(x + 1, y + maxBarH - barH, colW - 2, barH, "F");
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(6);
+        doc.setTextColor(0, 0, 0);
+        doc.text(String(count), x + colW / 2, y + maxBarH - barH - 1, { align: "center" });
+      } else {
+        doc.setFillColor(243, 244, 246);
+        doc.rect(x + 1, y + maxBarH - 1, colW - 2, 1, "F");
+      }
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(5.5);
+      doc.setTextColor(107, 114, 128);
+      doc.text(MONTH_LABELS[m], x + colW / 2, y + maxBarH + 4, { align: "center" });
+    });
+    y += maxBarH + 10;
+  }
+
+  // Répartition par type
+  if (yearSessions.length > 0) {
+    y = sectionTitle(doc, `Répartition des séances  ·  intensité moy. ${avgIntensity}/5`, y);
+    const byType: Record<string, number> = {};
+    yearSessions.forEach((s) => { byType[s.type] = (byType[s.type] || 0) + 1; });
+    const typeEntries = Object.entries(byType).sort((a, b) => b[1] - a[1]);
+    const maxCount = typeEntries[0]?.[1] ?? 1;
+    const half = Math.ceil(typeEntries.length / 2);
+    const colHalf = (CONTENT_W - 8) / 2;
+
+    typeEntries.forEach(([type, count], i) => {
+      const col = i < half ? 0 : 1;
+      const row = i < half ? i : i - half;
+      const x = MARGIN + col * (colHalf + 8);
+      const rowY = y + row * 7;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7.5);
+      doc.setTextColor(0, 0, 0);
+      doc.text(TRAINING_LABELS[type] || type, x, rowY + 4);
+      const barW = (count / maxCount) * (colHalf - 32);
+      doc.setFillColor(232, 68, 10);
+      doc.rect(x + 28, rowY, barW, 4, "F");
+      doc.setFontSize(6.5);
+      doc.setTextColor(107, 114, 128);
+      doc.text(`${count}`, x + 28 + barW + 2, rowY + 4);
+    });
+    y += Math.ceil(typeEntries.length / 2) * 7 + 4;
+  }
+
+  // Palmarès
+  if (yearCompetitions.length > 0) {
+    y = sectionTitle(doc, "Palmarès", y);
+    const cols = [26, 60, 30, 62];
+    const headers = ["Date", "Concours", "Discipline", "Résultat"];
+    doc.setFillColor(0, 0, 0);
+    doc.rect(MARGIN, y, CONTENT_W, 7, "F");
+    let cx = MARGIN + 2;
+    headers.forEach((h, i) => {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(7);
+      doc.setTextColor(255, 255, 255);
+      doc.text(h, cx, y + 5);
+      cx += cols[i];
+    });
+    y += 7;
+
+    yearCompetitions.forEach((comp, idx) => {
+      if (y > 272) {
+        drawFooter(doc, 1, 1);
+        doc.addPage();
+        drawHeader(doc, horse.name, `Bilan ${year}`);
+        y = 30;
+      }
+      const rowH = 7;
+      doc.setFillColor(idx % 2 === 0 ? 255 : 250, idx % 2 === 0 ? 255 : 250, idx % 2 === 0 ? 255 : 250);
+      doc.rect(MARGIN, y, CONTENT_W, rowH, "F");
+      const dateStr = new Date(comp.date + "T00:00:00").toLocaleDateString("fr-FR");
+      const rankStr = comp.result_rank && comp.total_riders
+        ? `${comp.result_rank}e / ${comp.total_riders}`
+        : comp.result_rank ? `${comp.result_rank}e` : "—";
+      const eventName = comp.event_name.length > 28 ? comp.event_name.substring(0, 26) + "…" : comp.event_name;
+      cx = MARGIN + 2;
+      [dateStr, eventName, comp.discipline, rankStr].forEach((val, i) => {
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(7.5);
+        doc.setTextColor(0, 0, 0);
+        doc.text(val, cx, y + 5);
+        cx += cols[i];
+      });
+      doc.setDrawColor(235, 235, 235);
+      doc.line(MARGIN, y + rowH, MARGIN + CONTENT_W, y + rowH);
+      y += rowH;
+    });
+    y += 4;
+  }
+
+  // Soins
+  if (yearHealth.length > 0) {
+    y = sectionTitle(doc, "Soins de l'année", y);
+    const byType: Record<string, number> = {};
+    yearHealth.forEach((r) => { byType[r.type] = (byType[r.type] || 0) + 1; });
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(0, 0, 0);
+    const parts = Object.entries(byType).map(([t, n]) => `${HEALTH_LABELS[t] || t} ×${n}`).join("  ·  ");
+    doc.text(parts, MARGIN, y + 5);
+  }
+
+  drawFooter(doc, 1, 1);
+  doc.save(`${horse.name.replace(/\s+/g, "_")}_bilan_${year}.pdf`);
+}

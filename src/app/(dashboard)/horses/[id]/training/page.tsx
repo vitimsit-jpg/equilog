@@ -24,11 +24,13 @@ export default async function TrainingPage({ params }: Props) {
 
   if (!horse) return notFound();
 
-  const { data: sessions } = await supabase
-    .from("training_sessions")
-    .select("*")
-    .eq("horse_id", horse.id)
-    .order("date", { ascending: false });
+  const yearStart = `${new Date().getFullYear()}-01-01`;
+
+  const [{ data: sessions }, { data: yearHealth }, { data: yearCompetitions }] = await Promise.all([
+    supabase.from("training_sessions").select("*").eq("horse_id", horse.id).order("date", { ascending: false }),
+    supabase.from("health_records").select("id, type, date, cost").eq("horse_id", horse.id).gte("date", yearStart),
+    supabase.from("competitions").select("id, date, event_name, discipline, result_rank, total_riders").eq("horse_id", horse.id).gte("date", yearStart),
+  ]);
 
   const [{ data: latestInsight }, { data: latestPlan }] = await Promise.all([
     supabase
@@ -61,7 +63,16 @@ export default async function TrainingPage({ params }: Props) {
             <p className="text-sm text-gray-400">{horse.name}</p>
           </div>
         </div>
-        <PdfDownloadButton type="rapport" horse={horse} sessions={sessions || []} />
+        <div className="flex items-center gap-2">
+          <PdfDownloadButton type="rapport" horse={horse} sessions={sessions || []} />
+          <PdfDownloadButton
+            type="bilan"
+            horse={horse}
+            sessions={sessions || []}
+            records={yearHealth || []}
+            competitions={yearCompetitions || []}
+          />
+        </div>
       </div>
 
       <TrainingPlanCard horseId={horse.id} latestPlan={latestPlan ?? null} />

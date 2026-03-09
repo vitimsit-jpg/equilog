@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Download } from "lucide-react";
 
-type PdfType = "fiche" | "sante" | "rapport";
+type PdfType = "fiche" | "sante" | "rapport" | "bilan";
 
 interface Horse {
   name: string;
@@ -39,27 +39,39 @@ interface TrainingSession {
   notes?: string | null;
 }
 
+interface Competition {
+  id: string;
+  date: string;
+  event_name: string;
+  discipline: string;
+  result_rank?: number | null;
+  total_riders?: number | null;
+}
+
 interface Props {
   type: PdfType;
   horse: Horse;
   score?: Score | null;
   records?: HealthRecord[];
   sessions?: TrainingSession[];
+  competitions?: Competition[];
 }
 
-export default function PdfDownloadButton({ type, horse, score, records, sessions }: Props) {
+export default function PdfDownloadButton({ type, horse, score, records, sessions, competitions }: Props) {
   const [loading, setLoading] = useState(false);
 
   const handleDownload = async () => {
     setLoading(true);
     try {
-      const { generateFichePdf, generateSantePdf, generateRapportPdf } = await import("@/lib/pdf/generatePdf");
+      const { generateFichePdf, generateSantePdf, generateRapportPdf, generateBilanAnnuelPdf } = await import("@/lib/pdf/generatePdf");
       if (type === "fiche") {
         generateFichePdf(horse, score ?? null);
       } else if (type === "sante") {
         generateSantePdf(horse, records ?? []);
       } else if (type === "rapport") {
         generateRapportPdf(horse, sessions ?? []);
+      } else if (type === "bilan") {
+        generateBilanAnnuelPdf(horse, sessions ?? [], records ?? [], competitions ?? []);
       }
     } finally {
       setLoading(false);
@@ -70,6 +82,7 @@ export default function PdfDownloadButton({ type, horse, score, records, session
     fiche: "Fiche PDF",
     sante: "Exporter PDF",
     rapport: "Rapport PDF",
+    bilan: "Bilan annuel",
   };
 
   return (

@@ -1,4 +1,5 @@
 export type UserPlan = "starter" | "pro" | "ecurie";
+export type UserType = "loisir" | "competition" | "pro" | "gerant_cavalier" | "coach" | "gerant_ecurie";
 export type HealthType = "vaccin" | "vermifuge" | "dentiste" | "osteo" | "ferrage" | "autre";
 export type TrainingType = "dressage" | "saut" | "endurance" | "cso" | "cross" | "travail_a_pied" | "longe" | "galop" | "plat" | "autre";
 export type WearableSource = "equisense" | "seaver" | "garmin" | "equilab" | "autre";
@@ -10,6 +11,7 @@ export interface User {
   email: string;
   name: string;
   plan: UserPlan;
+  user_type: UserType | null;
   created_at: string;
 }
 

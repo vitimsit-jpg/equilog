@@ -1,14 +1,32 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Plus, Heart, Dumbbell, Trophy, TrendingUp, AlertCircle, Users } from "lucide-react";
+import { Plus, Heart, Dumbbell, TrendingUp, AlertCircle, Users } from "lucide-react";
 import { formatDate, daysUntil, HEALTH_TYPE_LABELS, getScoreColor } from "@/lib/utils";
 import Badge from "@/components/ui/Badge";
+
+const USER_TYPE_WELCOME: Record<string, { title: string; subtitle: string }> = {
+  loisir: { title: "Bonjour !", subtitle: "Voici l'état de votre cheval aujourd'hui." },
+  competition: { title: "Prêt pour la saison ?", subtitle: "Vos performances et préparations concours." },
+  pro: { title: "Tableau de bord", subtitle: "Vue d'ensemble de tous vos chevaux." },
+  gerant_cavalier: { title: "Tableau de bord", subtitle: "Votre écurie et vos chevaux en un coup d'œil." },
+  coach: { title: "Mes élèves", subtitle: "Suivez la progression de vos couples cavalier–cheval." },
+  gerant_ecurie: { title: "Tableau de bord écurie", subtitle: "Vue d'ensemble de tous vos pensionnaires." },
+};
 
 export default async function DashboardPage() {
   const supabase = createClient();
   const { data: { user: authUser } } = await supabase.auth.getUser();
   if (!authUser) redirect("/login");
+
+  const { data: userProfile } = await supabase
+    .from("users")
+    .select("user_type")
+    .eq("id", authUser.id)
+    .single();
+
+  const userType = userProfile?.user_type || "loisir";
+  const welcome = USER_TYPE_WELCOME[userType] || USER_TYPE_WELCOME.loisir;
 
   const { data: horses } = await supabase
     .from("horses")
@@ -104,8 +122,8 @@ export default async function DashboardPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-black text-black">Dashboard</h1>
-          <p className="text-sm text-gray-400 mt-0.5">Vue d&apos;ensemble de vos chevaux</p>
+          <h1 className="text-2xl font-black text-black">{welcome.title}</h1>
+          <p className="text-sm text-gray-400 mt-0.5">{welcome.subtitle}</p>
         </div>
         <Link href="/horses/new" className="btn-primary">
           <Plus className="h-4 w-4" />

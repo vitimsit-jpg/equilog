@@ -48,8 +48,8 @@ export default function RegisterPage() {
           plan: "starter",
         });
       }
-      toast.success("Compte créé ! Vérifiez votre email.");
-      router.push("/dashboard");
+      toast.success("Compte créé ! Bienvenue sur Equilog.");
+      router.push("/onboarding");
       router.refresh();
     }
     setLoading(false);

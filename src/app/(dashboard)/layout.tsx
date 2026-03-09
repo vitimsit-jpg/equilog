@@ -23,6 +23,10 @@ export default async function DashboardLayout({
     .eq("id", authUser.id)
     .single();
 
+  if (userProfile && !userProfile.user_type) {
+    redirect("/onboarding");
+  }
+
   const { data: horses } = await supabase
     .from("horses")
     .select("*")

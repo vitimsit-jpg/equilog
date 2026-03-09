@@ -35,7 +35,7 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex h-screen bg-beige overflow-hidden">
-      <Sidebar horses={horses || []} />
+      <Sidebar horses={horses || []} userType={userProfile?.user_type ?? null} />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header user={userProfile} />
         <main className="flex-1 overflow-y-auto p-6">{children}</main>

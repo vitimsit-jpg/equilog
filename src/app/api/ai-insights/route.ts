@@ -29,12 +29,13 @@ export async function POST(request: NextRequest) {
   const { horseId } = await request.json();
   if (!horseId) return NextResponse.json({ error: "Missing horseId" }, { status: 400 });
 
-  const { data: horse } = await supabase
-    .from("horses")
-    .select("*")
-    .eq("id", horseId)
-    .eq("user_id", user.id)
-    .single();
+  const [
+    { data: horse },
+    { data: userProfile },
+  ] = await Promise.all([
+    supabase.from("horses").select("*").eq("id", horseId).eq("user_id", user.id).single(),
+    supabase.from("users").select("user_type").eq("id", user.id).single(),
+  ]);
 
   if (!horse) return NextResponse.json({ error: "Horse not found" }, { status: 404 });
 
@@ -56,6 +57,7 @@ export async function POST(request: NextRequest) {
     healthRecords: healthRecords || [],
     competitions: competitions || [],
     currentScore: scores?.[0] ?? null,
+    userType: userProfile?.user_type ?? null,
   });
 
   const { data: savedInsight, error } = await supabase

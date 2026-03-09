@@ -15,12 +15,13 @@ import {
   Star,
   Medal,
 } from "lucide-react";
-import type { Horse } from "@/lib/supabase/types";
+import type { Horse, UserType } from "@/lib/supabase/types";
 import { useState } from "react";
 
 interface SidebarProps {
   horses: Horse[];
   currentHorseId?: string;
+  userType?: UserType | null;
 }
 
 const mainNav = [
@@ -28,16 +29,40 @@ const mainNav = [
   { href: "/classements", icon: Medal, label: "Classements" },
 ];
 
-const horseNav = [
+const horseNavItems = [
   { href: "health", icon: Heart, label: "Carnet de santé" },
   { href: "training", icon: Dumbbell, label: "Journal de travail" },
   { href: "competitions", icon: Trophy, label: "Concours" },
   { href: "budget", icon: Wallet, label: "Budget" },
 ];
 
-export default function Sidebar({ horses, currentHorseId }: SidebarProps) {
+// Profile-specific nav ordering and visibility
+const HORSE_NAV_BY_PROFILE: Record<string, string[]> = {
+  loisir:          ["health", "training", "budget", "competitions"],
+  competition:     ["competitions", "training", "health", "budget"],
+  pro:             ["training", "competitions", "health", "budget"],
+  gerant_cavalier: ["health", "training", "competitions", "budget"],
+  coach:           ["training", "health", "competitions", "budget"],
+  gerant_ecurie:   ["health", "budget", "training", "competitions"],
+};
+
+// Items hidden (secondary) for certain profiles
+const HIDDEN_ITEMS: Record<string, string[]> = {
+  gerant_ecurie: ["competitions"],
+  coach: [],
+};
+
+export default function Sidebar({ horses, currentHorseId, userType }: SidebarProps) {
   const pathname = usePathname();
   const [expanded, setExpanded] = useState<string | null>(currentHorseId || null);
+
+  const profileKey = userType || "loisir";
+  const navOrder = HORSE_NAV_BY_PROFILE[profileKey] || HORSE_NAV_BY_PROFILE.loisir;
+  const hiddenItems = HIDDEN_ITEMS[profileKey] || [];
+
+  const orderedHorseNav = navOrder
+    .map((href) => horseNavItems.find((item) => item.href === href)!)
+    .filter((item) => item && !hiddenItems.includes(item.href));
 
   return (
     <aside className="w-64 min-h-screen bg-white border-r border-gray-100 flex flex-col">
@@ -127,7 +152,7 @@ export default function Sidebar({ horses, currentHorseId }: SidebarProps) {
                       <Star className="h-3.5 w-3.5" />
                       Horse Index
                     </Link>
-                    {horseNav.map((item) => {
+                    {orderedHorseNav.map((item) => {
                       const href = `/horses/${horse.id}/${item.href}`;
                       const active = pathname === href;
                       return (

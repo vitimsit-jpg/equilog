@@ -5,6 +5,7 @@ import type {
   HealthRecord,
   Competition,
   HorseScore,
+  UserType,
 } from "@/lib/supabase/types";
 import { formatDate } from "@/lib/utils";
 
@@ -21,10 +22,43 @@ interface InsightData {
   healthRecords: HealthRecord[];
   competitions: Competition[];
   currentScore: HorseScore | null;
+  userType?: UserType | null;
 }
 
-const SYSTEM_PROMPT = `Tu es Equilog AI, un assistant expert en performance et santé équine.
-Tu analyses les données croisées d'un cheval (entraînement, santé, concours, wearables) pour fournir des insights actionnables à son propriétaire.
+const PROFILE_INSTRUCTIONS: Record<string, string> = {
+  loisir: `L'utilisateur est un cavalier loisir. Adopte un ton chaleureux, encourageant et rassurant.
+Mets en avant le bien-être du cheval et les petites victoires du quotidien.
+Évite le jargon technique, préfère des formulations simples.
+Focus prioritaire : santé, régularité, plaisir de monter.`,
+
+  competition: `L'utilisateur est un cavalier compétiteur amateur. Adopte un ton analytique et orienté performance.
+Mets en avant les données chiffrées, les tendances de progression et les résultats concours.
+Sois précis sur les axes d'amélioration technique et la préparation aux prochaines épreuves.
+Focus prioritaire : progression, préparation concours, optimisation de la charge d'entraînement.`,
+
+  pro: `L'utilisateur est un cavalier professionnel ou haut niveau. Adopte un ton expert et synthétique.
+Va droit au but, utilise le vocabulaire technique sans le définir.
+Met en avant les indicateurs de performance avancés et les signaux faibles à surveiller.
+Focus prioritaire : optimisation de la performance, gestion de la charge, prévention des blessures.`,
+
+  gerant_cavalier: `L'utilisateur est gérant d'écurie et cavalier. Adopte un ton professionnel et structuré.
+Équilibre les recommandations entre gestion (santé, soins programmés) et performance personnelle.
+Sois synthétique car son temps est limité.
+Focus prioritaire : anticipation des soins, efficacité des séances, gestion du calendrier.`,
+
+  coach: `L'utilisateur est un coach indépendant. Adopte un ton pédagogique et observateur.
+Analyse la progression du cheval dans une logique d'enseignement — quels exercices seraient bénéfiques, quels patterns observer.
+Met en avant ce qui peut informer les prochaines séances de coaching.
+Focus prioritaire : progression technique, points à travailler, cohérence du programme.`,
+
+  gerant_ecurie: `L'utilisateur est gérant d'écurie (sans chevaux propres). Adopte un ton professionnel et efficace.
+Focus exclusif sur la santé, les soins et la gestion — pas de recommandations de performance sportive.
+Identifie les risques sanitaires à anticiper et les rappels de soins à planifier.
+Focus prioritaire : alertes santé, soins à programmer, état général du cheval.`,
+};
+
+const BASE_SYSTEM_PROMPT = `Tu es Equilog AI, un assistant expert en performance et santé équine.
+Tu analyses les données croisées d'un cheval (entraînement, santé, concours, wearables) pour fournir des insights actionnables.
 
 Règles de réponse :
 - Sois direct et précis, pas de formules vagues
@@ -32,9 +66,15 @@ Règles de réponse :
 - Détecte les anomalies : surmenage, stagnation, régression, soins en retard
 - Valorise les progressions et bons résultats
 - Recommande des actions concrètes (ex: "Réduire l'intensité de 20% cette semaine" ou "Prévoir vermifuge dans 2 semaines")
-- Ton : professionnel et bienveillant, comme un coach équestre expérimenté
 - Format : JSON avec les champs "summary" (2-3 phrases), "insights" (array de 3-5 points), "alerts" (array d'alertes urgentes), "recommendations" (array d'actions à faire)
 - Réponse en français uniquement`;
+
+function buildSystemPrompt(userType?: UserType | null): string {
+  const profileInstructions = userType && PROFILE_INSTRUCTIONS[userType]
+    ? `\n\n## Adaptation au profil utilisateur\n${PROFILE_INSTRUCTIONS[userType]}`
+    : "";
+  return BASE_SYSTEM_PROMPT + profileInstructions;
+}
 
 export async function generateWeeklyInsight(data: InsightData): Promise<{
   summary: string;
@@ -42,7 +82,7 @@ export async function generateWeeklyInsight(data: InsightData): Promise<{
   alerts: string[];
   recommendations: string[];
 }> {
-  const { horse, trainingSessions, healthRecords, competitions, currentScore } = data;
+  const { horse, trainingSessions, healthRecords, competitions, currentScore, userType } = data;
 
   const last30Sessions = trainingSessions
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -86,7 +126,7 @@ Génère un rapport JSON selon le format demandé.`;
   const response = await getClient().messages.create({
     model: "claude-sonnet-4-20250514",
     max_tokens: 1500,
-    system: SYSTEM_PROMPT,
+    system: buildSystemPrompt(userType),
     messages: [{ role: "user", content: userMessage }],
   });
 
@@ -96,12 +136,10 @@ Génère un rapport JSON selon le format demandé.`;
   }
 
   try {
-    // Extract JSON from the response (may be wrapped in code blocks)
     const jsonMatch = content.text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error("No JSON found in response");
     return JSON.parse(jsonMatch[0]);
   } catch {
-    // Fallback structure if parsing fails
     return {
       summary: content.text.substring(0, 200),
       insights: ["Analyse en cours..."],

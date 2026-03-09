@@ -8,6 +8,7 @@ import ScoreHistory from "@/components/horse-index/ScoreHistory";
 import { formatDate } from "@/lib/utils";
 import RecalculateButton from "@/components/horse-index/RecalculateButton";
 import ShareButton from "@/components/horse/ShareButton";
+import PremiumNudge from "@/components/ui/PremiumNudge";
 
 interface Props {
   params: { id: string };
@@ -26,6 +27,12 @@ export default async function HorsePage({ params }: Props) {
     .single();
 
   if (!horse) return notFound();
+
+  const { data: userProfile } = await supabase
+    .from("users")
+    .select("plan, user_type")
+    .eq("id", authUser.id)
+    .single();
 
   const [
     { data: scores },
@@ -168,6 +175,13 @@ export default async function HorsePage({ params }: Props) {
           </Link>
         ))}
       </div>
+
+      {/* Premium nudge — AI insights */}
+      <PremiumNudge
+        userPlan={userProfile?.plan ?? "starter"}
+        userType={userProfile?.user_type ?? null}
+        context="ai_insights"
+      />
 
       {/* AI Insight */}
       {parsedInsight.summary && (

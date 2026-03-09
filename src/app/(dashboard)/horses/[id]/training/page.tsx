@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import TrainingDashboard from "@/components/training/TrainingDashboard";
 import TrainingPlanCard from "@/components/training/TrainingPlanCard";
 import PdfDownloadButton from "@/components/pdf/PdfDownloadButton";
+import CoachChat from "@/components/coaching/CoachChat";
 
 interface Props {
   params: { id: string };
@@ -81,6 +82,12 @@ export default async function TrainingPage({ params }: Props) {
         sessions={sessions || []}
         horseId={horse.id}
         latestInsight={latestInsight ?? null}
+      />
+
+      <CoachChat
+        horseId={horse.id}
+        horseName={horse.name}
+        hasRecentCompetition={(yearCompetitions || []).length > 0}
       />
     </div>
   );

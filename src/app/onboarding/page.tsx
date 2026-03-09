@@ -21,7 +21,7 @@ const DISCIPLINES = ["CSO", "Dressage", "CCE", "Endurance", "Attelage", "Voltige
 export default function OnboardingPage() {
   const router = useRouter();
   const [step, setStep] = useState<1 | 2 | 3>(1);
-  const [selectedProfile, setSelectedProfile] = useState<UserType | null>(null);
+  const [selectedProfile, setSelectedProfile] = useState<UserType | null>("loisir");
   const [horseName, setHorseName] = useState("");
   const [discipline, setDiscipline] = useState("");
   const [loading, setLoading] = useState(false);

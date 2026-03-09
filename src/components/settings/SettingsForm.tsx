@@ -79,6 +79,23 @@ export default function SettingsForm({ user }: Props) {
           <h2 className="font-bold text-black">Mon profil utilisateur</h2>
           {savingType && <span className="text-xs text-gray-400">Enregistrement...</span>}
         </div>
+
+        {/* Current profile banner */}
+        {userType && (() => {
+          const current = USER_TYPE_OPTIONS.find((p) => p.type === userType);
+          return current ? (
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-orange-light border border-orange/20 mb-4">
+              <span className="text-2xl">{current.emoji}</span>
+              <div>
+                <p className="text-xs font-bold text-orange uppercase tracking-wide">Profil actuel</p>
+                <p className="text-sm font-bold text-black">{current.label}</p>
+                <p className="text-xs text-gray-500">{current.subtitle}</p>
+              </div>
+            </div>
+          ) : null;
+        })()}
+
+        <p className="text-xs text-gray-400 mb-3">Cliquez sur un profil pour le modifier :</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {USER_TYPE_OPTIONS.map((p) => (
             <button

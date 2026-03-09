@@ -33,9 +33,25 @@ export default async function DashboardLayout({
     .eq("user_id", authUser.id)
     .order("created_at", { ascending: true });
 
+  const horseIds = (horses || []).map((h) => h.id);
+  const today = new Date().toISOString().split("T")[0];
+  const { data: overdueRecords } = horseIds.length
+    ? await supabase
+        .from("health_records")
+        .select("horse_id")
+        .in("horse_id", horseIds)
+        .not("next_date", "is", null)
+        .lt("next_date", today)
+    : { data: [] };
+
+  const overdueByHorse: Record<string, number> = {};
+  (overdueRecords || []).forEach((r) => {
+    overdueByHorse[r.horse_id] = (overdueByHorse[r.horse_id] || 0) + 1;
+  });
+
   return (
     <div className="flex h-screen bg-beige overflow-hidden">
-      <Sidebar horses={horses || []} userType={userProfile?.user_type ?? null} />
+      <Sidebar horses={horses || []} userType={userProfile?.user_type ?? null} overdueByHorse={overdueByHorse} />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header user={userProfile} />
         <main className="flex-1 overflow-y-auto p-6">{children}</main>

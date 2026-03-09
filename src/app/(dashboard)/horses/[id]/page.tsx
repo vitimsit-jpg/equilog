@@ -10,6 +10,7 @@ import RecalculateButton from "@/components/horse-index/RecalculateButton";
 import ShareButton from "@/components/horse/ShareButton";
 import PremiumNudge from "@/components/ui/PremiumNudge";
 import PdfDownloadButton from "@/components/pdf/PdfDownloadButton";
+import AvatarUpload from "@/components/horse/AvatarUpload";
 
 interface Props {
   params: { id: string };
@@ -78,6 +79,11 @@ export default async function HorsePage({ params }: Props) {
           <Link href="/dashboard" className="btn-ghost p-2">
             <ArrowLeft className="h-4 w-4" />
           </Link>
+          <AvatarUpload
+            horseId={horse.id}
+            horseName={horse.name}
+            currentAvatarUrl={(horse as any).avatar_url ?? null}
+          />
           <div>
             <h1 className="text-2xl font-black text-black">{horse.name}</h1>
             <p className="text-sm text-gray-400">

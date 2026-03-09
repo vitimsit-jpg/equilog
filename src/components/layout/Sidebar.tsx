@@ -24,6 +24,7 @@ interface SidebarProps {
   horses: Horse[];
   currentHorseId?: string;
   userType?: UserType | null;
+  overdueByHorse?: Record<string, number>;
 }
 
 const mainNav = [
@@ -55,7 +56,7 @@ const HIDDEN_ITEMS: Record<string, string[]> = {
   coach: [],
 };
 
-export default function Sidebar({ horses, currentHorseId, userType }: SidebarProps) {
+export default function Sidebar({ horses, currentHorseId, userType, overdueByHorse = {} }: SidebarProps) {
   const pathname = usePathname();
   const [expanded, setExpanded] = useState<string | null>(currentHorseId || null);
 
@@ -140,12 +141,17 @@ export default function Sidebar({ horses, currentHorseId, userType }: SidebarPro
                       : "text-gray-600 hover:bg-black/5 hover:text-black"
                   )}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
                     <div className="w-5 h-5 rounded-full bg-black text-white text-xs flex items-center justify-center font-bold flex-shrink-0">
                       {horse.name[0].toUpperCase()}
                     </div>
                     <span className="truncate">{horse.name}</span>
                   </div>
+                  {overdueByHorse[horse.id] > 0 && (
+                    <span className="ml-1 flex-shrink-0 w-4 h-4 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-bold">
+                      {overdueByHorse[horse.id]}
+                    </span>
+                  )}
                   <ChevronDown
                     className={cn(
                       "h-3.5 w-3.5 text-gray-400 transition-transform",
@@ -169,6 +175,7 @@ export default function Sidebar({ horses, currentHorseId, userType }: SidebarPro
                     {orderedHorseNav.map((item) => {
                       const href = `/horses/${horse.id}/${item.href}`;
                       const active = pathname === href;
+                      const showAlert = item.href === "health" && overdueByHorse[horse.id] > 0;
                       return (
                         <Link
                           key={href}
@@ -178,8 +185,13 @@ export default function Sidebar({ horses, currentHorseId, userType }: SidebarPro
                             "text-xs py-2"
                           )}
                         >
-                          <item.icon className="h-3.5 w-3.5" />
-                          {item.label}
+                          <item.icon className="h-3.5 w-3.5 flex-shrink-0" />
+                          <span className="flex-1">{item.label}</span>
+                          {showAlert && (
+                            <span className="w-4 h-4 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-bold flex-shrink-0">
+                              {overdueByHorse[horse.id]}
+                            </span>
+                          )}
                         </Link>
                       );
                     })}

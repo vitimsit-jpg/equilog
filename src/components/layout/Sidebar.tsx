@@ -160,43 +160,46 @@ export default function Sidebar({ horses, currentHorseId, userType, overdueByHor
                   />
                 </button>
 
-                {isExpanded && (
-                  <div className="ml-3 pl-3 border-l border-gray-100 mt-1 space-y-0.5">
-                    <Link
-                      href={`/horses/${horse.id}`}
-                      className={cn(
-                        pathname === `/horses/${horse.id}` ? "nav-item-active" : "nav-item",
-                        "text-xs py-2"
-                      )}
-                    >
-                      <Star className="h-3.5 w-3.5" />
-                      Horse Index
-                    </Link>
-                    {orderedHorseNav.map((item) => {
-                      const href = `/horses/${horse.id}/${item.href}`;
-                      const active = pathname === href;
-                      const showAlert = item.href === "health" && overdueByHorse[horse.id] > 0;
-                      return (
-                        <Link
-                          key={href}
-                          href={href}
-                          className={cn(
-                            active ? "nav-item-active" : "nav-item",
-                            "text-xs py-2"
-                          )}
-                        >
-                          <item.icon className="h-3.5 w-3.5 flex-shrink-0" />
-                          <span className="flex-1">{item.label}</span>
-                          {showAlert && (
-                            <span className="w-4 h-4 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-bold flex-shrink-0">
-                              {overdueByHorse[horse.id]}
-                            </span>
-                          )}
-                        </Link>
-                      );
-                    })}
-                  </div>
-                )}
+                {isExpanded && (() => {
+                  const healthItem = orderedHorseNav.find((i) => i.href === "health");
+                  const restItems = orderedHorseNav.filter((i) => i.href !== "health");
+                  const renderNavItem = (item: (typeof orderedHorseNav)[number]) => {
+                    const href = `/horses/${horse.id}/${item.href}`;
+                    const active = pathname === href;
+                    const showAlert = item.href === "health" && overdueByHorse[horse.id] > 0;
+                    return (
+                      <Link
+                        key={href}
+                        href={href}
+                        className={cn(active ? "nav-item-active" : "nav-item", "text-xs py-2")}
+                      >
+                        <item.icon className="h-3.5 w-3.5 flex-shrink-0" />
+                        <span className="flex-1">{item.label}</span>
+                        {showAlert && (
+                          <span className="w-4 h-4 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-bold flex-shrink-0">
+                            {overdueByHorse[horse.id]}
+                          </span>
+                        )}
+                      </Link>
+                    );
+                  };
+                  return (
+                    <div className="ml-3 pl-3 border-l border-gray-100 mt-1 space-y-0.5">
+                      {healthItem && renderNavItem(healthItem)}
+                      <Link
+                        href={`/horses/${horse.id}`}
+                        className={cn(
+                          pathname === `/horses/${horse.id}` ? "nav-item-active" : "nav-item",
+                          "text-xs py-2"
+                        )}
+                      >
+                        <Star className="h-3.5 w-3.5" />
+                        Horse Index
+                      </Link>
+                      {restItems.map(renderNavItem)}
+                    </div>
+                  );
+                })()}
               </div>
             );
           })}

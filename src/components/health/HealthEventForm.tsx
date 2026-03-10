@@ -20,7 +20,7 @@ const typeOptions = Object.entries(HEALTH_TYPE_LABELS).map(([value, label]) => (
 const defaultIntervals: Record<HealthType, number | null> = {
   vaccin: 180,
   vermifuge: 90,
-  ferrage: 56,
+  ferrage: 35,
   dentiste: 365,
   osteo: 180,
   veterinaire: null,

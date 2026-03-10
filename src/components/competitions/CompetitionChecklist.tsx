@@ -66,20 +66,20 @@ function generateLocalChecklist(healthRecords: HealthRecord[], competition: Comp
     });
   }
 
-  // Ferrage
+  // Parage
   const ferrages = healthRecords
     .filter((r) => r.type === "ferrage")
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   if (ferrages.length === 0) {
-    checks.push({ ok: false, item: "Ferrage", status: "Aucun ferrage enregistré" });
+    checks.push({ ok: false, item: "Parage", status: "Aucun parage enregistré" });
   } else {
     const lastF = ferrages[0];
     const daysSince = Math.floor((today.getTime() - new Date(lastF.date).getTime()) / (1000 * 60 * 60 * 24));
     checks.push({
-      ok: daysSince <= 56,
-      item: "Ferrage",
-      status: daysSince <= 56 ? `À jour — ${formatDate(lastF.date)}` : `En retard — il y a ${daysSince} jours`,
+      ok: daysSince <= 35,
+      item: "Parage",
+      status: daysSince <= 35 ? `À jour — ${formatDate(lastF.date)}` : `En retard — il y a ${daysSince} jours`,
     });
   }
 

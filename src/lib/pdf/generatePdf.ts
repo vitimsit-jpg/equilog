@@ -194,7 +194,7 @@ export function generateSantePdf(
 ) {
   const HEALTH_LABELS: Record<string, string> = {
     vaccin: "Vaccin", vermifuge: "Vermifuge", dentiste: "Dentiste",
-    osteo: "Ostéopathie", ferrage: "Ferrage", autre: "Autre",
+    osteo: "Ostéopathie", ferrage: "Parage", autre: "Autre",
   };
 
   const doc = new jsPDF({ unit: "mm", format: "a4" });
@@ -486,7 +486,7 @@ export function generateBilanAnnuelPdf(
   };
   const HEALTH_LABELS: Record<string, string> = {
     vaccin: "Vaccin", vermifuge: "Vermifuge", dentiste: "Dentiste",
-    osteo: "Ostéo", ferrage: "Ferrage", autre: "Autre",
+    osteo: "Ostéo", ferrage: "Parage", autre: "Autre",
   };
   const MONTH_LABELS = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Aoû", "Sep", "Oct", "Nov", "Déc"];
 

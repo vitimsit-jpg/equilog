@@ -31,7 +31,7 @@ const HEALTH_TYPE_LABELS: Record<string, string> = {
   vermifuge: "Vermifuge",
   dentiste: "Dentiste",
   osteo: "Ostéopathie",
-  ferrage: "Ferrage",
+  ferrage: "Parage",
   autre: "Soin",
 };
 

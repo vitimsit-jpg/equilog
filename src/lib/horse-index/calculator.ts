@@ -160,7 +160,7 @@ function calculateSante(healthRecords: HealthRecord[], now: Date): number {
   const checks = [
     { type: "vaccin", maxDays: 180, weight: 5 },
     { type: "vermifuge", maxDays: 90, weight: 4 },
-    { type: "ferrage", maxDays: 56, weight: 4 },
+    { type: "ferrage", maxDays: 35, weight: 4 },
     { type: "dentiste", maxDays: 365, weight: 4 },
     { type: "osteo", maxDays: 180, weight: 3, optional: true },
   ];

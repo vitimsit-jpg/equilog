@@ -13,7 +13,7 @@ const CATEGORIES: CategoryConfig[] = [
   { type: "veterinaire", label: "Vétérinaire", emoji: "🩺", defaultInterval: null },
   { type: "vaccin", label: "Vaccin", emoji: "💉", defaultInterval: 180 },
   { type: "vermifuge", label: "Vermifuge", emoji: "🌿", defaultInterval: 90 },
-  { type: "ferrage", label: "Ferrage", emoji: "🔨", defaultInterval: 56 },
+  { type: "ferrage", label: "Parage", emoji: "🔨", defaultInterval: 35 },
   { type: "dentiste", label: "Dentiste", emoji: "🦷", defaultInterval: 365 },
   { type: "osteo", label: "Ostéopathie", emoji: "🤲", defaultInterval: 180 },
   { type: "masseuse", label: "Masseuse", emoji: "💆", defaultInterval: 90 },

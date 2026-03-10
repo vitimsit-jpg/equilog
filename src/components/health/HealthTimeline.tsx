@@ -55,7 +55,7 @@ export default function HealthTimeline({ records }: HealthTimelineProps) {
         <EmptyState
           icon={Heart}
           title="Aucun soin enregistré"
-          description="Ajoutez vos vaccins, vermifuges, ferrages et autres soins pour suivre la santé de votre cheval."
+          description="Ajoutez vos vaccins, vermifuges, parages et autres soins pour suivre la santé de votre cheval."
         />
       </div>
     );

@@ -1,7 +1,9 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM = "Equilog <onboarding@resend.dev>";
+function getResend() {
+  return new Resend(process.env.RESEND_API_KEY);
+}
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://equilog-i3nr-vitimsit-jpgs-projects.vercel.app";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -102,7 +104,7 @@ export async function sendHealthReminder(p: HealthReminderParams) {
     ${btn(`${APP_URL}/horses`, "Voir le carnet de santé")}
   `);
 
-  return resend.emails.send({
+  return getResend().emails.send({
     from: FROM,
     to: p.to,
     subject: `🗓️ Rappel : ${p.careType} de ${p.horseName} dans 7 jours`,
@@ -130,7 +132,7 @@ export async function sendScoreAlert(p: ScoreAlertParams) {
     ${btn(`${APP_URL}/horses/${p.horseId}`, "Voir le Horse Index")}
   `);
 
-  return resend.emails.send({
+  return getResend().emails.send({
     from: FROM,
     to: p.to,
     subject: `📉 Horse Index de ${p.horseName} en baisse (−${p.drop} pts)`,
@@ -197,7 +199,7 @@ export async function sendWeeklySummary(p: WeeklySummaryParams) {
     ${btn(`${APP_URL}/dashboard`, "Voir mon tableau de bord")}
   `);
 
-  return resend.emails.send({
+  return getResend().emails.send({
     from: FROM,
     to: p.to,
     subject: `📊 Résumé Equilog — ${totalSessions} séance${totalSessions > 1 ? "s" : ""} cette semaine`,

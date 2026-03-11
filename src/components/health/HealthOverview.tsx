@@ -7,6 +7,7 @@ import { daysUntil } from "@/lib/utils";
 import type { HealthRecord } from "@/lib/supabase/types";
 import HealthCategoryCard, { type CategoryConfig } from "./HealthCategoryCard";
 import HealthTimeline from "./HealthTimeline";
+import HealthTimeline30 from "./HealthTimeline30";
 import HealthEventModal from "./HealthEventModal";
 
 const CATEGORIES: CategoryConfig[] = [
@@ -143,15 +144,18 @@ export default function HealthOverview({ records, horseId }: Props) {
 
       {/* Content */}
       {tab === "overview" ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {CATEGORIES.map((cat) => (
-            <HealthCategoryCard
-              key={cat.type}
-              config={cat}
-              records={records.filter((r) => r.type === cat.type)}
-              horseId={horseId}
-            />
-          ))}
+        <div className="space-y-3">
+          <HealthTimeline30 records={records} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {CATEGORIES.map((cat) => (
+              <HealthCategoryCard
+                key={cat.type}
+                config={cat}
+                records={records.filter((r) => r.type === cat.type)}
+                horseId={horseId}
+              />
+            ))}
+          </div>
         </div>
       ) : (
         <HealthTimeline records={records} horseId={horseId} />

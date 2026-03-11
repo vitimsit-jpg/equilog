@@ -31,6 +31,7 @@ export interface Horse {
   conditions_vie: "box" | "paddock" | "pre" | "box_paddock" | null;
   objectif_saison: string | null;
   niveau: string | null;
+  maladies_chroniques: string | null;
   created_at: string;
 }
 

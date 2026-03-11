@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 import Modal from "@/components/ui/Modal";
 import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
+import Textarea from "@/components/ui/Textarea";
 import Button from "@/components/ui/Button";
 import { Edit2 } from "lucide-react";
 import type { Horse, Discipline } from "@/lib/supabase/types";
@@ -53,6 +54,7 @@ export default function HorseEditModal({ horse }: Props) {
     conditions_vie: horse.conditions_vie || "",
     niveau: horse.niveau || "",
     objectif_saison: horse.objectif_saison || "",
+    maladies_chroniques: horse.maladies_chroniques || "",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -73,6 +75,7 @@ export default function HorseEditModal({ horse }: Props) {
         conditions_vie: (form.conditions_vie as Horse["conditions_vie"]) || null,
         niveau: form.niveau || null,
         objectif_saison: form.objectif_saison || null,
+        maladies_chroniques: form.maladies_chroniques || null,
       })
       .eq("id", horse.id);
 
@@ -175,6 +178,14 @@ export default function HorseEditModal({ horse }: Props) {
               placeholder="Écurie du Val"
             />
           </div>
+
+          <Textarea
+            label="Maladies chroniques / antécédents"
+            value={form.maladies_chroniques}
+            onChange={(e) => setForm({ ...form, maladies_chroniques: e.target.value })}
+            placeholder="Ex : PPID (Cushing), arthrose, fourbure récurrente..."
+            rows={2}
+          />
 
           <div className="flex gap-3 pt-1">
             <Button type="button" variant="secondary" onClick={() => setOpen(false)} className="flex-1">

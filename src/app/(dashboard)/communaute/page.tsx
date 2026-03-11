@@ -189,7 +189,7 @@ export default async function CommunautePage() {
                 return (
                   <div key={idx} className="card flex items-start gap-3 py-3">
                     {/* Horse avatar */}
-                    <HorseAvatar name={item.horse.name} photoUrl={item.horse.photo_url} size="sm" rounded="full" />
+                    <HorseAvatar name={item.horse.name} photoUrl={item.horse.avatar_url} size="sm" rounded="full" />
 
                     <div className="flex-1 min-w-0">
                       {item.type === "session" && (
@@ -300,7 +300,7 @@ export default async function CommunautePage() {
                           <span className={`text-xs font-black w-5 ${idx === 0 ? "text-yellow-500" : idx === 1 ? "text-gray-400" : idx === 2 ? "text-orange-400" : "text-gray-300"}`}>
                             {idx + 1}
                           </span>
-                          <HorseAvatar name={horse.name} photoUrl={horse.photo_url} size="xs" rounded="full" />
+                          <HorseAvatar name={horse.name} photoUrl={horse.avatar_url} size="xs" rounded="full" />
                           <div>
                             <p className="text-xs font-semibold text-black">{horse.name}</p>
                             <p className="text-2xs text-gray-400">{horse.discipline || "—"}</p>

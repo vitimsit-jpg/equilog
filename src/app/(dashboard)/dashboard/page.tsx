@@ -145,7 +145,7 @@ export default async function DashboardPage() {
         return (
           <Link key={horse.id} href={`/horses/${horse.id}`} className="card-hover group">
             <div className="flex items-start justify-between mb-3">
-              <HorseAvatar name={horse.name} photoUrl={horse.photo_url} size="lg" />
+              <HorseAvatar name={horse.name} photoUrl={horse.avatar_url} size="lg" />
               {score !== undefined && (
                 <div className="text-right">
                   <div className="text-2xl font-black text-black">{score}</div>
@@ -339,7 +339,7 @@ export default async function DashboardPage() {
               <div key={horse.id} className="flex items-center justify-between py-1.5 border-b border-gray-50 last:border-0">
                 <div className="flex items-center gap-3">
                   <span className="text-xs font-bold text-gray-300 w-4">{idx + 1}</span>
-                  <HorseAvatar name={horse.name} photoUrl={horse.photo_url} size="xs" rounded="lg" />
+                  <HorseAvatar name={horse.name} photoUrl={horse.avatar_url} size="xs" rounded="lg" />
                   <div>
                     <p className="text-sm font-semibold text-black">{horse.name}</p>
                     <p className="text-xs text-gray-400">{horse.discipline || horse.breed || "—"}</p>

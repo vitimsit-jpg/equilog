@@ -19,7 +19,7 @@ export default async function ClassementsPage({ searchParams }: Props) {
 
   const { data: rawScores } = await supabase
     .from("horse_scores")
-    .select("*, horses!inner(id, name, breed, discipline, ecurie, region, share_horse_index, photo_url)")
+    .select("*, horses!inner(id, name, breed, discipline, ecurie, region, share_horse_index, avatar_url)")
     .eq("horses.share_horse_index", true)
     .order("score", { ascending: false })
     .limit(300);
@@ -97,7 +97,7 @@ export default async function ClassementsPage({ searchParams }: Props) {
                   className={`bg-white rounded-2xl border border-gray-100 flex flex-col items-center justify-end pb-4 ${heights[podiumIdx]} hover:shadow-md transition-shadow`}
                 >
                   <span className="text-xl mb-1">{medals[podiumIdx]}</span>
-                  <HorseAvatar name={horse.name} photoUrl={horse.photo_url} size="sm" rounded="full" className="mb-1" />
+                  <HorseAvatar name={horse.name} photoUrl={horse.avatar_url} size="sm" rounded="full" className="mb-1" />
                   <p className="text-xs font-bold text-black truncate px-2 text-center">{horse.name}</p>
                   <p className="text-lg font-black" style={{ color: getScoreColor(s.score) }}>{s.score}</p>
                 </Link>
@@ -133,7 +133,7 @@ export default async function ClassementsPage({ searchParams }: Props) {
                   </div>
 
                   {/* Horse avatar */}
-                  <HorseAvatar name={horse.name} photoUrl={horse.photo_url} size="md" />
+                  <HorseAvatar name={horse.name} photoUrl={horse.avatar_url} size="md" />
 
                   {/* Info */}
                   <div className="flex-1 min-w-0">

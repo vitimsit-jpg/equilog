@@ -5,7 +5,8 @@ import type { TrainingSession, AIInsight } from "@/lib/supabase/types";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
-import { format, parseISO, subDays } from "date-fns";
+import { format, parseISO, subDays, startOfWeek } from "date-fns";
+import { fr } from "date-fns/locale";
 import { Plus, Sparkles } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
@@ -52,6 +53,14 @@ export default function TrainingDashboard({ sessions, horseId, latestInsight }: 
     }))
     .slice(-30);
 
+  // Weekly recap (Mon–today)
+  const weekStart = startOfWeek(new Date(), { locale: fr });
+  const weekSessions = sessions.filter((s) => new Date(s.date) >= weekStart);
+  const weekMinutes = weekSessions.reduce((s, t) => s + t.duration_min, 0);
+  const weekAvgFeeling = weekSessions.length
+    ? (weekSessions.reduce((s, t) => s + t.feeling, 0) / weekSessions.length).toFixed(1)
+    : null;
+
   // Stats
   const totalSessions = filtered.length;
   const avgIntensity = filtered.length
@@ -87,6 +96,20 @@ export default function TrainingDashboard({ sessions, horseId, latestInsight }: 
 
   return (
     <div className="space-y-4">
+      {/* Weekly recap banner */}
+      {weekSessions.length > 0 && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-beige border border-gray-100">
+          <div className="text-lg">📅</div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-bold text-black">Cette semaine</p>
+            <p className="text-xs text-gray-500 mt-0.5">
+              {weekSessions.length} séance{weekSessions.length > 1 ? "s" : ""} · {weekMinutes >= 60 ? `${Math.floor(weekMinutes / 60)}h${weekMinutes % 60 > 0 ? `${weekMinutes % 60}min` : ""}` : `${weekMinutes}min`}
+              {weekAvgFeeling && ` · Ressenti ${weekAvgFeeling}/5`}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Header stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[

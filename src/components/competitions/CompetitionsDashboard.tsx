@@ -35,29 +35,36 @@ export default function CompetitionsDashboard({ competitions, healthRecords, hor
       event: c.event_name,
     }));
 
-  const avgPercentile = withRank.length
-    ? Math.round(withRank.reduce((s, c) => s + ((c.total_riders! - c.result_rank!) / c.total_riders!) * 100, 0) / withRank.length)
+  const victories = withRank.filter((c) => c.result_rank === 1).length;
+  const podiums = withRank.filter((c) => c.result_rank! <= 3).length;
+  const bestResult = withRank.length
+    ? withRank.reduce((best, c) => {
+        const pct = ((c.total_riders! - c.result_rank!) / c.total_riders!) * 100;
+        return pct > ((best.total_riders! - best.result_rank!) / best.total_riders!) * 100 ? c : best;
+      })
     : null;
 
   return (
     <div className="space-y-4">
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="stat-card">
           <span className="text-2xl font-black text-black">{competitions.length}</span>
           <span className="section-title mt-1">Concours</span>
         </div>
         <div className="stat-card">
-          <span className="text-2xl font-black text-black">
-            {avgPercentile !== null ? `Top ${100 - avgPercentile}%` : "—"}
-          </span>
-          <span className="section-title mt-1">Classement moyen</span>
+          <span className="text-2xl font-black text-black">{victories}</span>
+          <span className="section-title mt-1">Victoires 🥇</span>
+        </div>
+        <div className="stat-card">
+          <span className="text-2xl font-black text-black">{podiums}</span>
+          <span className="section-title mt-1">Podiums 🏆</span>
         </div>
         <div className="stat-card">
           <span className="text-2xl font-black text-black">
-            {withRank.filter((c) => c.result_rank === 1).length}
+            {bestResult ? `${bestResult.result_rank}/${bestResult.total_riders}` : "—"}
           </span>
-          <span className="section-title mt-1">Victoires</span>
+          <span className="section-title mt-1">Meilleur résultat</span>
         </div>
       </div>
 

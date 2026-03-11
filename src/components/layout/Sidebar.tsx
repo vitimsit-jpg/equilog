@@ -76,7 +76,7 @@ export default function Sidebar({ horses, currentHorseId, userType, overdueByHor
           <div className="w-8 h-8 rounded-lg bg-black flex items-center justify-center">
             <span className="text-white font-black text-sm">E</span>
           </div>
-          <span className="font-black text-black text-lg tracking-tight">EQUILOG</span>
+          <span className="font-black text-black text-lg tracking-tight">EQUISTRA</span>
         </Link>
       </div>
 

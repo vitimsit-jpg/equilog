@@ -91,11 +91,13 @@ export default function CreateListingForm() {
         status: "active",
       });
 
-      if (error) throw error;
+      if (error) throw new Error(error.message || "Erreur base de données");
       toast.success("Annonce publiée !");
       router.push("/marketplace");
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : "Erreur lors de la publication");
+      const msg = e instanceof Error ? e.message : String(e);
+      console.error("[marketplace]", msg);
+      toast.error(msg || "Erreur lors de la publication");
     } finally {
       setLoading(false);
     }

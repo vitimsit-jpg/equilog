@@ -134,6 +134,31 @@ export interface ScoreBreakdown {
   has_wearables: boolean;
 }
 
+export type ListingCategory = "cheval" | "materiel" | "service";
+export type ListingCondition = "neuf" | "bon_etat" | "usage";
+export type ListingStatus = "active" | "sold" | "expired";
+
+export interface Listing {
+  id: string;
+  user_id: string;
+  title: string;
+  description: string | null;
+  price: number | null;
+  price_negotiable: boolean;
+  category: ListingCategory;
+  subcategory: string | null;
+  condition: ListingCondition | null;
+  image_url: string | null;
+  location: string | null;
+  contact_phone: string | null;
+  status: ListingStatus;
+  breed: string | null;
+  birth_year: number | null;
+  sexe: "hongre" | "jument" | "etalon" | null;
+  created_at: string;
+  users?: { name: string };
+}
+
 export interface AIInsight {
   id: string;
   horse_id: string;
@@ -163,6 +188,7 @@ export interface Database {
       wearable_data: T<WearableData>;
       horse_scores: T<HorseScore>;
       ai_insights: T<AIInsight>;
+      listings: T<Listing>;
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

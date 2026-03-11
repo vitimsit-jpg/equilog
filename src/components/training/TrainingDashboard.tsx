@@ -8,6 +8,7 @@ import {
 import { format, parseISO, subDays, startOfWeek } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Plus, Sparkles } from "lucide-react";
+import { TRAINING_TYPE_LABELS } from "@/lib/utils";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import TrainingForm from "./TrainingForm";
@@ -71,6 +72,16 @@ export default function TrainingDashboard({ sessions, horseId, latestInsight }: 
     : "—";
   const totalMinutes = filtered.reduce((s, t) => s + t.duration_min, 0);
   const totalHours = Math.floor(totalMinutes / 60);
+
+  // Type breakdown
+  const typeBreakdown = filtered.reduce((acc: Record<string, number>, s) => {
+    acc[s.type] = (acc[s.type] || 0) + 1;
+    return acc;
+  }, {});
+  const typeBreakdownSorted = Object.entries(typeBreakdown)
+    .map(([type, count]) => ({ type, count, pct: Math.round((count / filtered.length) * 100) }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5);
 
   const generateInsight = async () => {
     setGeneratingInsight(true);
@@ -188,6 +199,24 @@ export default function TrainingDashboard({ sessions, horseId, latestInsight }: 
           </div>
         )}
       </div>
+
+      {/* Type breakdown */}
+      {typeBreakdownSorted.length > 0 && (
+        <div className="card">
+          <h3 className="font-bold text-black text-sm mb-3">Répartition par type</h3>
+          <div className="space-y-2">
+            {typeBreakdownSorted.map(({ type, count, pct }) => (
+              <div key={type} className="flex items-center gap-3">
+                <span className="text-xs text-gray-500 w-28 flex-shrink-0 truncate">{TRAINING_TYPE_LABELS[type] || type}</span>
+                <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-full bg-orange rounded-full transition-all" style={{ width: `${pct}%` }} />
+                </div>
+                <span className="text-xs font-semibold text-gray-600 w-12 text-right flex-shrink-0">{count} · {pct}%</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* AI Insight card */}
       {parsedInsight.summary && (

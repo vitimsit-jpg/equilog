@@ -11,8 +11,9 @@ import CompetitionChecklist from "./CompetitionChecklist";
 import { useRouter } from "next/navigation";
 import EmptyState from "@/components/ui/EmptyState";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, differenceInDays, isAfter, startOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
+import { Calendar } from "lucide-react";
 
 interface Props {
   competitions: Competition[];
@@ -34,6 +35,12 @@ export default function CompetitionsDashboard({ competitions, healthRecords, hor
       percentile: Math.round(((c.total_riders! - c.result_rank!) / c.total_riders!) * 100),
       event: c.event_name,
     }));
+
+  const today = startOfDay(new Date());
+  const upcoming = competitions.filter((c) => isAfter(startOfDay(parseISO(c.date)), today))
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const past = competitions.filter((c) => !isAfter(startOfDay(parseISO(c.date)), today))
+    .sort((a, b) => b.date.localeCompare(a.date));
 
   const victories = withRank.filter((c) => c.result_rank === 1).length;
   const podiums = withRank.filter((c) => c.result_rank! <= 3).length;
@@ -101,15 +108,44 @@ export default function CompetitionsDashboard({ competitions, healthRecords, hor
           <EmptyState icon={Trophy} title="Aucun concours enregistré" description="Ajoutez vos résultats pour suivre votre progression." />
         </div>
       ) : (
-        <div className="space-y-3">
-          {competitions.map((c) => (
-            <CompetitionCard
-              key={c.id}
-              competition={c}
-              horseId={horse.id}
-              onChecklist={() => setChecklistComp(c)}
-            />
-          ))}
+        <div className="space-y-4">
+          {/* Upcoming */}
+          {upcoming.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-3.5 w-3.5 text-orange" />
+                <span className="text-xs font-bold text-orange uppercase tracking-wide">À venir ({upcoming.length})</span>
+              </div>
+              {upcoming.map((c) => {
+                const daysLeft = differenceInDays(startOfDay(parseISO(c.date)), today);
+                return (
+                  <div key={c.id} className="relative">
+                    <div className="absolute -top-1.5 right-3 z-10">
+                      <span className={`text-2xs font-bold px-2 py-0.5 rounded-full ${daysLeft <= 7 ? "bg-orange text-white" : "bg-gray-100 text-gray-600"}`}>
+                        J-{daysLeft}
+                      </span>
+                    </div>
+                    <CompetitionCard competition={c} horseId={horse.id} onChecklist={() => setChecklistComp(c)} />
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Past */}
+          {past.length > 0 && (
+            <div className="space-y-2">
+              {upcoming.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <Trophy className="h-3.5 w-3.5 text-gray-400" />
+                  <span className="text-xs font-bold text-gray-400 uppercase tracking-wide">Résultats ({past.length})</span>
+                </div>
+              )}
+              {past.map((c) => (
+                <CompetitionCard key={c.id} competition={c} horseId={horse.id} onChecklist={() => setChecklistComp(c)} />
+              ))}
+            </div>
+          )}
         </div>
       )}
 

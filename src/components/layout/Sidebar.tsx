@@ -16,6 +16,7 @@ import {
   Medal,
   Users,
   Building2,
+  Video,
 } from "lucide-react";
 import type { Horse, UserType } from "@/lib/supabase/types";
 import { useState } from "react";
@@ -39,15 +40,16 @@ const horseNavItems = [
   { href: "training", icon: Dumbbell, label: "Journal de travail" },
   { href: "competitions", icon: Trophy, label: "Concours" },
   { href: "budget", icon: Wallet, label: "Budget" },
+  { href: "video", icon: Video, label: "Analyse Vidéo" },
 ];
 
 // Profile-specific nav ordering and visibility
 const HORSE_NAV_BY_PROFILE: Record<string, string[]> = {
-  loisir:          ["health", "training", "budget", "competitions"],
-  competition:     ["health", "competitions", "training", "budget"],
-  pro:             ["health", "training", "competitions", "budget"],
-  gerant_cavalier: ["health", "training", "competitions", "budget"],
-  coach:           ["health", "training", "competitions", "budget"],
+  loisir:          ["health", "training", "video", "budget", "competitions"],
+  competition:     ["health", "competitions", "training", "video", "budget"],
+  pro:             ["health", "training", "video", "competitions", "budget"],
+  gerant_cavalier: ["health", "training", "video", "competitions", "budget"],
+  coach:           ["health", "training", "video", "competitions", "budget"],
   gerant_ecurie:   ["health", "budget", "training", "competitions"],
 };
 

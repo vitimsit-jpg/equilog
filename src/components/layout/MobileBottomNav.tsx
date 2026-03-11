@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Users, Medal, Settings,
-  Heart, Dumbbell, Trophy, Wallet, Star, Plus, X,
+  Heart, Dumbbell, Trophy, Wallet, Star, Plus, X, Video,
 } from "lucide-react";
 import type { Horse } from "@/lib/supabase/types";
 import HorseAvatar from "@/components/ui/HorseAvatar";
@@ -22,6 +22,7 @@ const HORSE_SUB_NAV = [
   { href: "training", icon: Dumbbell, label: "Travail" },
   { href: "competitions", icon: Trophy, label: "Concours" },
   { href: "budget", icon: Wallet, label: "Budget" },
+  { href: "video", icon: Video, label: "Vidéo" },
 ];
 
 export default function MobileBottomNav({ horses, overdueByHorse = {} }: Props) {
@@ -114,7 +115,7 @@ export default function MobileBottomNav({ horses, overdueByHorse = {} }: Props) 
                       )}
                     </Link>
                     {/* Sub-nav */}
-                    <div className="grid grid-cols-5 divide-x divide-gray-100 border-t border-gray-100">
+                    <div className="grid grid-cols-6 divide-x divide-gray-100 border-t border-gray-100">
                       {HORSE_SUB_NAV.map((item) => {
                         const href = item.href ? `/horses/${horse.id}/${item.href}` : `/horses/${horse.id}`;
                         const active = pathname === href;

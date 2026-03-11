@@ -7,6 +7,7 @@ export const maxDuration = 60;
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 export async function POST(request: NextRequest) {
+  try {
   const supabase = createClient();
   const {
     data: { user },
@@ -29,7 +30,7 @@ export async function POST(request: NextRequest) {
   }));
 
   const response = await client.messages.create({
-    model: "claude-sonnet-4-6",
+    model: "claude-sonnet-4-20250514",
     max_tokens: 1500,
     messages: [
       {
@@ -67,5 +68,10 @@ Réponds uniquement avec le JSON, sans texte avant ou après.`,
     return NextResponse.json(JSON.parse(jsonMatch[0]));
   } catch {
     return NextResponse.json({ error: "Parse error", raw: content.text }, { status: 500 });
+  }
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : "Unknown error";
+    console.error("[video-analysis]", msg);
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

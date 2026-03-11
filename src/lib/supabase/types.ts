@@ -149,6 +149,7 @@ export interface Listing {
   subcategory: string | null;
   condition: ListingCondition | null;
   image_url: string | null;
+  images: string[];
   location: string | null;
   contact_phone: string | null;
   status: ListingStatus;

@@ -45,15 +45,31 @@ export default async function ListingDetailPage({ params }: Props) {
       </div>
 
       {/* Image */}
-      {l.image_url ? (
-        <div className="w-full h-64 rounded-2xl overflow-hidden bg-gray-100">
-          <img src={l.image_url} alt={l.title} className="w-full h-full object-cover" />
-        </div>
-      ) : (
-        <div className="w-full h-40 rounded-2xl bg-gray-100 flex items-center justify-center">
-          <Tag className="h-10 w-10 text-gray-300" />
-        </div>
-      )}
+      {/* Image gallery */}
+      {(() => {
+        const allImages = (l.images?.length ? l.images : l.image_url ? [l.image_url] : []);
+        if (allImages.length === 0) return (
+          <div className="w-full h-40 rounded-2xl bg-gray-100 flex items-center justify-center">
+            <Tag className="h-10 w-10 text-gray-300" />
+          </div>
+        );
+        return (
+          <div className="space-y-2">
+            <div className="w-full h-64 rounded-2xl overflow-hidden bg-gray-100">
+              <img src={allImages[0]} alt={l.title} className="w-full h-full object-cover" />
+            </div>
+            {allImages.length > 1 && (
+              <div className="grid grid-cols-4 gap-2">
+                {allImages.slice(1).map((url, i) => (
+                  <div key={i} className="aspect-square rounded-xl overflow-hidden bg-gray-100">
+                    <img src={url} alt="" className="w-full h-full object-cover" />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Main info */}
       <div className="card space-y-4">

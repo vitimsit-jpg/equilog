@@ -31,9 +31,9 @@ export default function ListingCard({ listing }: Props) {
     <Link href={`/marketplace/${listing.id}`} className="card card-hover flex flex-col gap-3 group">
       {/* Image */}
       <div className="w-full h-40 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0">
-        {listing.image_url ? (
+        {(listing.images?.[0] || listing.image_url) ? (
           <img
-            src={listing.image_url}
+            src={listing.images?.[0] || listing.image_url!}
             alt={listing.title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />

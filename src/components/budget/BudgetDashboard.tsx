@@ -2,15 +2,15 @@
 
 import { useState } from "react";
 import type { BudgetEntry } from "@/lib/supabase/types";
-import { Plus, Wallet } from "lucide-react";
+import { Plus } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import BudgetForm from "./BudgetForm";
 import BudgetList from "./BudgetList";
 import { useRouter } from "next/navigation";
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import { formatCurrency, BUDGET_CATEGORY_LABELS } from "@/lib/utils";
-import { format, startOfMonth, endOfMonth, startOfYear, endOfYear } from "date-fns";
+import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths } from "date-fns";
 import { fr } from "date-fns/locale";
 
 type Period = "month" | "year" | "all";
@@ -57,6 +57,17 @@ export default function BudgetDashboard({ entries, horseId }: Props) {
   const annualProjection = monthsWithData > 0
     ? Math.round((thisYearEntries.reduce((s, e) => s + e.amount, 0) / monthsWithData) * 12)
     : null;
+
+  // Monthly bar chart data — last 12 months
+  const monthlyData = Array.from({ length: 12 }, (_, i) => {
+    const d = subMonths(now, 11 - i);
+    const key = format(d, "yyyy-MM");
+    const total = entries
+      .filter((e) => e.date.startsWith(key))
+      .reduce((s, e) => s + e.amount, 0);
+    return { month: format(d, "MMM", { locale: fr }), total };
+  });
+  const hasMonthlyData = monthlyData.some((m) => m.total > 0);
 
   return (
     <div className="space-y-4">
@@ -133,6 +144,26 @@ export default function BudgetDashboard({ entries, horseId }: Props) {
               ))}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Monthly trend bar chart */}
+      {hasMonthlyData && (
+        <div className="card">
+          <h3 className="font-bold text-black text-sm mb-4">Dépenses mensuelles — 12 derniers mois</h3>
+          <ResponsiveContainer width="100%" height={140}>
+            <BarChart data={monthlyData} barSize={16}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" vertical={false} />
+              <XAxis dataKey="month" tick={{ fontSize: 10, fill: "#9CA3AF" }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 10, fill: "#9CA3AF" }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}€`} width={40} />
+              <Tooltip
+                contentStyle={{ background: "#1A1A1A", border: "none", borderRadius: 8, fontSize: 12 }}
+                formatter={(value) => [formatCurrency(Number(value) || 0), "Dépenses"]}
+                cursor={{ fill: "#F9FAFB" }}
+              />
+              <Bar dataKey="total" fill="#E8440A" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
         </div>
       )}
 

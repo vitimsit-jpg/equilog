@@ -28,6 +28,17 @@ const defaultIntervals: Record<HealthType, number | null> = {
   autre: null,
 };
 
+// Vaccin subtypes with their interval in days
+const vaccinSubtypes = [
+  { value: "", label: "Sélectionner un vaccin" },
+  { value: "Grippe équine", label: "Grippe équine (12 mois)", interval: 365 },
+  { value: "Rhinopneumonie", label: "Rhinopneumonie (6 mois)", interval: 180 },
+  { value: "Grippe + Rhinopneumonie", label: "Grippe + Rhinopneumonie (6 mois)", interval: 180 },
+  { value: "Tétanos", label: "Tétanos (2 ans)", interval: 730 },
+  { value: "West Nile", label: "West Nile (12 mois)", interval: 365 },
+  { value: "Autre vaccin", label: "Autre vaccin", interval: null },
+];
+
 interface Props {
   horseId: string;
   onSaved: () => void;
@@ -62,6 +73,7 @@ export default function HealthEventForm({ horseId, onSaved, onCancel, defaultVal
     vet_name: defaultValues?.vet_name || initialPract.vet_name,
     practitioner_phone: defaultValues?.practitioner_phone || initialPract.practitioner_phone,
     product_name: defaultValues?.product_name || "",
+    vaccin_subtype: "",
     cost: defaultValues?.cost ? String(defaultValues.cost) : "",
     notes: defaultValues?.notes || "",
   });
@@ -82,7 +94,16 @@ export default function HealthEventForm({ horseId, onSaved, onCancel, defaultVal
       ? format(addDays(new Date(form.date), interval), "yyyy-MM-dd")
       : "";
     const pract = isNew ? loadPractitioner(type) : { vet_name: form.vet_name, practitioner_phone: form.practitioner_phone };
-    setForm({ ...form, type, next_date: nextDate, vet_name: pract.vet_name, practitioner_phone: pract.practitioner_phone });
+    setForm({ ...form, type, next_date: nextDate, vaccin_subtype: "", vet_name: pract.vet_name, practitioner_phone: pract.practitioner_phone });
+  };
+
+  const handleVaccinSubtypeChange = (subtype: string) => {
+    const found = vaccinSubtypes.find((v) => v.value === subtype);
+    const interval = found && "interval" in found ? found.interval : null;
+    const nextDate = interval
+      ? format(addDays(new Date(form.date), interval), "yyyy-MM-dd")
+      : form.next_date;
+    setForm({ ...form, vaccin_subtype: subtype, product_name: subtype, next_date: nextDate });
   };
 
   const handleDateChange = (date: string) => {
@@ -130,6 +151,16 @@ export default function HealthEventForm({ horseId, onSaved, onCancel, defaultVal
         onChange={(e) => handleTypeChange(e.target.value as HealthType)}
         options={typeOptions}
       />
+
+      {form.type === "vaccin" && (
+        <Select
+          label="Vaccin"
+          value={form.vaccin_subtype}
+          onChange={(e) => handleVaccinSubtypeChange(e.target.value)}
+          options={vaccinSubtypes}
+          placeholder="Sélectionner un vaccin"
+        />
+      )}
 
       <div className="grid grid-cols-2 gap-4">
         <Input

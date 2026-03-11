@@ -103,6 +103,13 @@ export default async function HorsePage({ params }: Props) {
                 {(horse as any).objectif_saison && `🎯 ${(horse as any).objectif_saison}`}
               </p>
             )}
+            {((horse as any).sire_number || (horse as any).fei_number) && (
+              <p className="text-xs text-gray-300 mt-0.5">
+                {(horse as any).sire_number && `SIRE ${(horse as any).sire_number}`}
+                {(horse as any).sire_number && (horse as any).fei_number && " · "}
+                {(horse as any).fei_number && `FEI ${(horse as any).fei_number}`}
+              </p>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2">

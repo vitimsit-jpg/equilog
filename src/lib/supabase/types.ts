@@ -33,6 +33,8 @@ export interface Horse {
   niveau: string | null;
   maladies_chroniques: string | null;
   assurance: string | null;
+  sire_number: string | null;
+  fei_number: string | null;
   created_at: string;
 }
 

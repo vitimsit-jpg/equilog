@@ -56,6 +56,8 @@ export default function HorseEditModal({ horse }: Props) {
     objectif_saison: horse.objectif_saison || "",
     maladies_chroniques: horse.maladies_chroniques || "",
     assurance: horse.assurance || "",
+    sire_number: horse.sire_number || "",
+    fei_number: horse.fei_number || "",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -78,6 +80,8 @@ export default function HorseEditModal({ horse }: Props) {
         objectif_saison: form.objectif_saison || null,
         maladies_chroniques: form.maladies_chroniques || null,
         assurance: form.assurance || null,
+        sire_number: form.sire_number || null,
+        fei_number: form.fei_number || null,
       })
       .eq("id", horse.id);
 
@@ -195,6 +199,21 @@ export default function HorseEditModal({ horse }: Props) {
             onChange={(e) => setForm({ ...form, assurance: e.target.value })}
             placeholder="Ex : MAIF, GMF, Groupama..."
           />
+
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="N° SIRE"
+              value={form.sire_number}
+              onChange={(e) => setForm({ ...form, sire_number: e.target.value })}
+              placeholder="Ex : 12345678901"
+            />
+            <Input
+              label="N° FEI"
+              value={form.fei_number}
+              onChange={(e) => setForm({ ...form, fei_number: e.target.value })}
+              placeholder="Ex : FRA12345"
+            />
+          </div>
 
           <div className="flex gap-3 pt-1">
             <Button type="button" variant="secondary" onClick={() => setOpen(false)} className="flex-1">

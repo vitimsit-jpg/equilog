@@ -11,6 +11,16 @@ import Button from "@/components/ui/Button";
 import { TRAINING_TYPE_LABELS, INTENSITY_LABELS, FEELING_LABELS } from "@/lib/utils";
 import type { TrainingSession } from "@/lib/supabase/types";
 import VoiceButton from "./VoiceButton";
+import { AlertTriangle } from "lucide-react";
+
+const ALERT_KEYWORDS = ["boiterie", "boite", "douleur", "blessure", "blessé", "blessée", "chute", "plaie", "enflé", "enfle", "gonflement", "gonflé", "gonflée", "abcès", "abces", "colique", "fièvre", "fievre", "fatigue excessive", "refuse", "refus de sauter", "coup", "coupure", "contusion"];
+
+function detectHealthAlert(notes: string): string | null {
+  if (!notes.trim()) return null;
+  const lower = notes.toLowerCase();
+  const found = ALERT_KEYWORDS.find((kw) => lower.includes(kw));
+  return found || null;
+}
 
 const typeOptions = Object.entries(TRAINING_TYPE_LABELS).map(([value, label]) => ({ value, label }));
 
@@ -185,6 +195,15 @@ export default function TrainingForm({ horseId, onSaved, onCancel, defaultValues
         placeholder="Observations, points travaillés, comportement..."
         rows={3}
       />
+
+      {detectHealthAlert(form.notes) && (
+        <div className="flex items-start gap-2.5 px-3 py-2.5 rounded-xl bg-orange-light border border-orange/20">
+          <AlertTriangle className="h-4 w-4 text-orange flex-shrink-0 mt-0.5" />
+          <p className="text-xs text-orange font-medium leading-snug">
+            Vous mentionnez <strong>&ldquo;{detectHealthAlert(form.notes)}&rdquo;</strong> — pensez à ajouter un soin vétérinaire dans le carnet de santé.
+          </p>
+        </div>
+      )}
 
       <div className="flex gap-3 pt-1">
         <Button type="button" variant="secondary" onClick={onCancel} className="flex-1">Annuler</Button>

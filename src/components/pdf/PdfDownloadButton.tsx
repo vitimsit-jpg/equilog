@@ -12,6 +12,8 @@ interface Horse {
   birth_year?: number | null;
   ecurie?: string | null;
   region?: string | null;
+  sire_number?: string | null;
+  fei_number?: string | null;
 }
 
 interface Score {

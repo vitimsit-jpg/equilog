@@ -63,6 +63,8 @@ export function generateFichePdf(
     birth_year?: number | null;
     ecurie?: string | null;
     region?: string | null;
+    sire_number?: string | null;
+    fei_number?: string | null;
   },
   score: { score: number; score_breakdown?: Record<string, number> | null; computed_at: string } | null
 ) {
@@ -97,7 +99,16 @@ export function generateFichePdf(
 
   labelValue(doc, "Écurie", horse.ecurie || "—", MARGIN, y);
   labelValue(doc, "Région", horse.region || "—", MARGIN + colW, y);
-  y += 16;
+  if (horse.sire_number || horse.fei_number) {
+    labelValue(doc, "N° SIRE", horse.sire_number || "—", MARGIN + colW * 2, y);
+    y += 14;
+    if (horse.fei_number) {
+      labelValue(doc, "N° FEI", horse.fei_number, MARGIN, y);
+    }
+    y += 16;
+  } else {
+    y += 16;
+  }
 
   if (score) {
     y = sectionTitle(doc, "Horse Index", y);

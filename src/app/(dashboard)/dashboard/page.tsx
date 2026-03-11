@@ -133,6 +133,8 @@ export default async function DashboardPage() {
     return days <= 30;
   });
 
+  const overdueRecords = alerts.filter((h) => daysUntil(h.next_date!) < 0);
+
   // --- Widget JSX ---
 
   const widgetHorses = (horses || []).length > 0 ? (
@@ -398,6 +400,21 @@ export default async function DashboardPage() {
           Nouveau cheval
         </Link>
       </div>
+
+      {/* Overdue health banner */}
+      {overdueRecords.length > 0 && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-red-50 border border-red-200">
+          <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0" />
+          <p className="text-sm font-semibold text-red-700 flex-1">
+            {overdueRecords.length} soin{overdueRecords.length > 1 ? "s" : ""} en retard —{" "}
+            {overdueRecords.map((h) => {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const horseName = (h as any).horses?.name;
+              return `${HEALTH_TYPE_LABELS[h.type]} (${horseName})`;
+            }).join(", ")}
+          </p>
+        </div>
+      )}
 
       {/* No horses CTA */}
       {(horses || []).length === 0 && (

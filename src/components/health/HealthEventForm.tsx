@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import toast from "react-hot-toast";
 import Input from "@/components/ui/Input";
@@ -35,27 +35,54 @@ interface Props {
   defaultValues?: Partial<HealthRecord>;
 }
 
+function loadPractitioner(type: HealthType): { vet_name: string; practitioner_phone: string } {
+  try {
+    const stored = localStorage.getItem(`equilog_pract_${type}`);
+    return stored ? JSON.parse(stored) : { vet_name: "", practitioner_phone: "" };
+  } catch { return { vet_name: "", practitioner_phone: "" }; }
+}
+
+function savePractitioner(type: HealthType, vet_name: string, practitioner_phone: string) {
+  if (!vet_name) return;
+  try { localStorage.setItem(`equilog_pract_${type}`, JSON.stringify({ vet_name, practitioner_phone })); } catch {}
+}
+
 export default function HealthEventForm({ horseId, onSaved, onCancel, defaultValues }: Props) {
   const supabase = createClient();
   const today = format(new Date(), "yyyy-MM-dd");
   const [loading, setLoading] = useState(false);
+  const isNew = !defaultValues?.id;
+
+  const initialPract = isNew ? loadPractitioner(defaultValues?.type || "vaccin") : { vet_name: "", practitioner_phone: "" };
+
   const [form, setForm] = useState({
     type: defaultValues?.type || ("vaccin" as HealthType),
     date: defaultValues?.date || today,
     next_date: defaultValues?.next_date || "",
-    vet_name: defaultValues?.vet_name || "",
-    practitioner_phone: defaultValues?.practitioner_phone || "",
+    vet_name: defaultValues?.vet_name || initialPract.vet_name,
+    practitioner_phone: defaultValues?.practitioner_phone || initialPract.practitioner_phone,
     product_name: defaultValues?.product_name || "",
     cost: defaultValues?.cost ? String(defaultValues.cost) : "",
     notes: defaultValues?.notes || "",
   });
+
+  // Hydrate practitioner from localStorage on mount (client only)
+  useEffect(() => {
+    if (!isNew) return;
+    const pract = loadPractitioner(form.type);
+    if (pract.vet_name && !form.vet_name) {
+      setForm((prev) => ({ ...prev, vet_name: pract.vet_name, practitioner_phone: pract.practitioner_phone }));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleTypeChange = (type: HealthType) => {
     const interval = defaultIntervals[type];
     const nextDate = interval
       ? format(addDays(new Date(form.date), interval), "yyyy-MM-dd")
       : "";
-    setForm({ ...form, type, next_date: nextDate });
+    const pract = isNew ? loadPractitioner(type) : { vet_name: form.vet_name, practitioner_phone: form.practitioner_phone };
+    setForm({ ...form, type, next_date: nextDate, vet_name: pract.vet_name, practitioner_phone: pract.practitioner_phone });
   };
 
   const handleDateChange = (date: string) => {
@@ -88,6 +115,7 @@ export default function HealthEventForm({ horseId, onSaved, onCancel, defaultVal
 
     if (error) toast.error("Erreur lors de l'enregistrement");
     else {
+      savePractitioner(form.type, form.vet_name, form.practitioner_phone);
       toast.success("Soin enregistré !");
       onSaved();
     }

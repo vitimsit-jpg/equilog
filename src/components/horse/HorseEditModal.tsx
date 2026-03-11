@@ -55,6 +55,7 @@ export default function HorseEditModal({ horse }: Props) {
     niveau: horse.niveau || "",
     objectif_saison: horse.objectif_saison || "",
     maladies_chroniques: horse.maladies_chroniques || "",
+    assurance: horse.assurance || "",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -76,6 +77,7 @@ export default function HorseEditModal({ horse }: Props) {
         niveau: form.niveau || null,
         objectif_saison: form.objectif_saison || null,
         maladies_chroniques: form.maladies_chroniques || null,
+        assurance: form.assurance || null,
       })
       .eq("id", horse.id);
 
@@ -185,6 +187,13 @@ export default function HorseEditModal({ horse }: Props) {
             onChange={(e) => setForm({ ...form, maladies_chroniques: e.target.value })}
             placeholder="Ex : PPID (Cushing), arthrose, fourbure récurrente..."
             rows={2}
+          />
+
+          <Input
+            label="Assurance"
+            value={form.assurance}
+            onChange={(e) => setForm({ ...form, assurance: e.target.value })}
+            placeholder="Ex : MAIF, GMF, Groupama..."
           />
 
           <div className="flex gap-3 pt-1">

@@ -33,6 +33,7 @@ export default function TrainingForm({ horseId, onSaved, onCancel, defaultValues
     objectif: defaultValues?.objectif || "",
     lieu: defaultValues?.lieu || "",
     coach_present: defaultValues?.coach_present ?? false,
+    equipement_recuperation: defaultValues?.equipement_recuperation || "",
     notes: defaultValues?.notes || "",
   });
 
@@ -50,6 +51,7 @@ export default function TrainingForm({ horseId, onSaved, onCancel, defaultValues
       objectif: form.objectif || null,
       lieu: form.lieu || null,
       coach_present: form.coach_present,
+      equipement_recuperation: form.equipement_recuperation || null,
       notes: form.notes || null,
       wearable_source: null,
     };
@@ -157,6 +159,13 @@ export default function TrainingForm({ horseId, onSaved, onCancel, defaultValues
         value={form.lieu}
         onChange={(e) => setForm({ ...form, lieu: e.target.value })}
         placeholder="Ex : carrière couverte, extérieur..."
+      />
+
+      <Input
+        label="Équipement de récupération"
+        value={form.equipement_recuperation}
+        onChange={(e) => setForm({ ...form, equipement_recuperation: e.target.value })}
+        placeholder="Ex : massage, eau froide, bonnets de glace..."
       />
 
       <label className="flex items-center gap-3 cursor-pointer select-none">

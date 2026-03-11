@@ -32,6 +32,7 @@ export interface Horse {
   objectif_saison: string | null;
   niveau: string | null;
   maladies_chroniques: string | null;
+  assurance: string | null;
   created_at: string;
 }
 
@@ -63,6 +64,7 @@ export interface TrainingSession {
   objectif: string | null;
   lieu: string | null;
   coach_present: boolean | null;
+  equipement_recuperation: string | null;
   wearable_source: WearableSource | null;
   media_urls: string[] | null;
   created_at: string;

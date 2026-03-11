@@ -77,18 +77,20 @@ export default function CreateListingForm() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Non connecté");
 
-      // Upload all images
+      // Upload all images to horse-avatars bucket under marketplace/ prefix
       const uploadedUrls: string[] = [];
       for (const entry of images) {
         const ext = entry.file.name.split(".").pop();
-        const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const path = `marketplace/${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
         const { error: uploadErr } = await supabase.storage
-          .from("marketplace")
+          .from("horse-avatars")
           .upload(path, entry.file, { contentType: entry.file.type });
-        if (!uploadErr) {
-          const { data } = supabase.storage.from("marketplace").getPublicUrl(path);
-          uploadedUrls.push(data.publicUrl);
+        if (uploadErr) {
+          console.error("Upload error:", uploadErr.message);
+          throw new Error(`Erreur upload photo : ${uploadErr.message}`);
         }
+        const { data } = supabase.storage.from("horse-avatars").getPublicUrl(path);
+        uploadedUrls.push(data.publicUrl);
       }
 
       const { error } = await supabase.from("listings").insert({

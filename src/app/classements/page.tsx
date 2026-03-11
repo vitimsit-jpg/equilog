@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getScoreColor, getScoreLabel, DISCIPLINE_LABELS } from "@/lib/utils";
 import { Trophy, Medal } from "lucide-react";
 import ClassementsFilters from "@/components/classements/ClassementsFilters";
+import HorseAvatar from "@/components/ui/HorseAvatar";
 
 interface SearchParams {
   discipline?: string;
@@ -18,7 +19,7 @@ export default async function ClassementsPage({ searchParams }: Props) {
 
   const { data: rawScores } = await supabase
     .from("horse_scores")
-    .select("*, horses!inner(id, name, breed, discipline, ecurie, region, share_horse_index)")
+    .select("*, horses!inner(id, name, breed, discipline, ecurie, region, share_horse_index, photo_url)")
     .eq("horses.share_horse_index", true)
     .order("score", { ascending: false })
     .limit(300);
@@ -96,9 +97,7 @@ export default async function ClassementsPage({ searchParams }: Props) {
                   className={`bg-white rounded-2xl border border-gray-100 flex flex-col items-center justify-end pb-4 ${heights[podiumIdx]} hover:shadow-md transition-shadow`}
                 >
                   <span className="text-xl mb-1">{medals[podiumIdx]}</span>
-                  <div className="w-8 h-8 rounded-full bg-black text-white font-black text-sm flex items-center justify-center mb-1">
-                    {horse.name[0].toUpperCase()}
-                  </div>
+                  <HorseAvatar name={horse.name} photoUrl={horse.photo_url} size="sm" rounded="full" className="mb-1" />
                   <p className="text-xs font-bold text-black truncate px-2 text-center">{horse.name}</p>
                   <p className="text-lg font-black" style={{ color: getScoreColor(s.score) }}>{s.score}</p>
                 </Link>
@@ -134,9 +133,7 @@ export default async function ClassementsPage({ searchParams }: Props) {
                   </div>
 
                   {/* Horse avatar */}
-                  <div className="w-9 h-9 rounded-xl bg-black text-white font-black text-sm flex items-center justify-center flex-shrink-0">
-                    {horse.name[0].toUpperCase()}
-                  </div>
+                  <HorseAvatar name={horse.name} photoUrl={horse.photo_url} size="md" />
 
                   {/* Info */}
                   <div className="flex-1 min-w-0">

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Plus, Heart, Dumbbell, TrendingUp, AlertCircle, Users, Trophy } from "lucide-react";
 import { formatDate, daysUntil, HEALTH_TYPE_LABELS, getScoreColor } from "@/lib/utils";
 import Badge from "@/components/ui/Badge";
+import HorseAvatar from "@/components/ui/HorseAvatar";
 
 const USER_TYPE_WELCOME: Record<string, { title: string; subtitle: string; badge: string }> = {
   loisir:          { title: "Bonjour !", subtitle: "Voici l'état de votre cheval aujourd'hui.", badge: "Loisir" },
@@ -144,9 +145,7 @@ export default async function DashboardPage() {
         return (
           <Link key={horse.id} href={`/horses/${horse.id}`} className="card-hover group">
             <div className="flex items-start justify-between mb-3">
-              <div className="w-10 h-10 rounded-xl bg-black text-white font-black text-lg flex items-center justify-center">
-                {horse.name[0].toUpperCase()}
-              </div>
+              <HorseAvatar name={horse.name} photoUrl={horse.photo_url} size="lg" />
               {score !== undefined && (
                 <div className="text-right">
                   <div className="text-2xl font-black text-black">{score}</div>
@@ -340,9 +339,7 @@ export default async function DashboardPage() {
               <div key={horse.id} className="flex items-center justify-between py-1.5 border-b border-gray-50 last:border-0">
                 <div className="flex items-center gap-3">
                   <span className="text-xs font-bold text-gray-300 w-4">{idx + 1}</span>
-                  <div className="w-7 h-7 rounded-lg bg-black text-white font-black text-xs flex items-center justify-center flex-shrink-0">
-                    {horse.name[0].toUpperCase()}
-                  </div>
+                  <HorseAvatar name={horse.name} photoUrl={horse.photo_url} size="xs" rounded="lg" />
                   <div>
                     <p className="text-sm font-semibold text-black">{horse.name}</p>
                     <p className="text-xs text-gray-400">{horse.discipline || horse.breed || "—"}</p>

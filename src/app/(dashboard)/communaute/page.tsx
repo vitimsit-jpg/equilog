@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Dumbbell, Trophy, TrendingUp, Users, Medal } from "lucide-react";
 import { formatDate, getScoreColor } from "@/lib/utils";
 import Badge from "@/components/ui/Badge";
+import HorseAvatar from "@/components/ui/HorseAvatar";
 import FeedReactionButton from "@/components/community/FeedReactionButton";
 import FeedMediaPreview from "@/components/community/FeedMediaPreview";
 import FeedComments from "@/components/community/FeedComments";
@@ -188,9 +189,7 @@ export default async function CommunautePage() {
                 return (
                   <div key={idx} className="card flex items-start gap-3 py-3">
                     {/* Horse avatar */}
-                    <div className="w-8 h-8 rounded-full bg-black text-white font-black text-sm flex items-center justify-center flex-shrink-0">
-                      {item.horse.name[0].toUpperCase()}
-                    </div>
+                    <HorseAvatar name={item.horse.name} photoUrl={item.horse.photo_url} size="sm" rounded="full" />
 
                     <div className="flex-1 min-w-0">
                       {item.type === "session" && (
@@ -301,9 +300,7 @@ export default async function CommunautePage() {
                           <span className={`text-xs font-black w-5 ${idx === 0 ? "text-yellow-500" : idx === 1 ? "text-gray-400" : idx === 2 ? "text-orange-400" : "text-gray-300"}`}>
                             {idx + 1}
                           </span>
-                          <div className="w-6 h-6 rounded-full bg-black text-white font-black text-xs flex items-center justify-center">
-                            {horse.name[0].toUpperCase()}
-                          </div>
+                          <HorseAvatar name={horse.name} photoUrl={horse.photo_url} size="xs" rounded="full" />
                           <div>
                             <p className="text-xs font-semibold text-black">{horse.name}</p>
                             <p className="text-2xs text-gray-400">{horse.discipline || "—"}</p>

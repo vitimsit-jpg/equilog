@@ -62,6 +62,9 @@ export default function TrainingList({ sessions, horseId }: Props) {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-gray-400">{formatDate(s.date)}</span>
+                    {(s as any).coach_present && (
+                      <span className="text-2xs font-semibold bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">Coach</span>
+                    )}
                     {(s as any).objectif && (
                       <span className="text-xs text-gray-500 italic">— {(s as any).objectif}</span>
                     )}

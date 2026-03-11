@@ -61,6 +61,7 @@ export interface TrainingSession {
   notes: string | null;
   objectif: string | null;
   lieu: string | null;
+  coach_present: boolean | null;
   wearable_source: WearableSource | null;
   media_urls: string[] | null;
   created_at: string;

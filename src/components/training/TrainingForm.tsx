@@ -32,6 +32,7 @@ export default function TrainingForm({ horseId, onSaved, onCancel, defaultValues
     feeling: defaultValues?.feeling ? String(defaultValues.feeling) : "3",
     objectif: defaultValues?.objectif || "",
     lieu: defaultValues?.lieu || "",
+    coach_present: defaultValues?.coach_present ?? false,
     notes: defaultValues?.notes || "",
   });
 
@@ -48,6 +49,7 @@ export default function TrainingForm({ horseId, onSaved, onCancel, defaultValues
       feeling: parseInt(form.feeling) as any,
       objectif: form.objectif || null,
       lieu: form.lieu || null,
+      coach_present: form.coach_present,
       notes: form.notes || null,
       wearable_source: null,
     };
@@ -156,6 +158,16 @@ export default function TrainingForm({ horseId, onSaved, onCancel, defaultValues
         onChange={(e) => setForm({ ...form, lieu: e.target.value })}
         placeholder="Ex : carrière couverte, extérieur..."
       />
+
+      <label className="flex items-center gap-3 cursor-pointer select-none">
+        <input
+          type="checkbox"
+          checked={form.coach_present}
+          onChange={(e) => setForm({ ...form, coach_present: e.target.checked })}
+          className="w-4 h-4 rounded accent-black"
+        />
+        <span className="text-sm font-medium text-black">Coach présent</span>
+      </label>
 
       <Textarea
         label="Notes libres"

@@ -65,8 +65,23 @@ export default function HealthOverview({ records, horseId }: Props) {
     ? records.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]
     : null;
 
+  // Global health status
+  const healthStatus = overdue > 0
+    ? { label: `${overdue} soin${overdue > 1 ? "s" : ""} en retard`, color: "bg-red-50 border-red-200 text-red-700", dot: "bg-red-500" }
+    : soon > 0
+    ? { label: `${soon} soin${soon > 1 ? "s" : ""} à venir cette semaine`, color: "bg-orange-light border-orange/20 text-orange", dot: "bg-orange" }
+    : records.length === 0
+    ? { label: "Aucun soin enregistré", color: "bg-gray-50 border-gray-200 text-gray-500", dot: "bg-gray-400" }
+    : { label: "Tous les soins sont à jour", color: "bg-green-50 border-green-200 text-green-700", dot: "bg-green-500" };
+
   return (
     <div className="space-y-4">
+      {/* Global health status badge */}
+      <div className={`flex items-center gap-2.5 px-4 py-3 rounded-xl border ${healthStatus.color}`}>
+        <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${healthStatus.dot}`} />
+        <span className="text-sm font-semibold">{healthStatus.label}</span>
+      </div>
+
       {/* Summary banner */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className={`card p-3 flex items-center gap-2 ${overdue > 0 ? "bg-red-50 border-red-100" : ""}`}>

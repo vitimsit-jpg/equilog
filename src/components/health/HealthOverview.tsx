@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, AlertCircle, Clock, Calendar, CheckCircle2 } from "lucide-react";
-import { daysUntil } from "@/lib/utils";
+import { daysUntil, formatCurrency, HEALTH_TYPE_LABELS } from "@/lib/utils";
 import type { HealthRecord } from "@/lib/supabase/types";
 import HealthCategoryCard, { type CategoryConfig } from "./HealthCategoryCard";
 import HealthTimeline from "./HealthTimeline";
@@ -65,6 +65,16 @@ export default function HealthOverview({ records, horseId }: Props) {
   const lastCare = records.length > 0
     ? records.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]
     : null;
+
+  // Cost breakdown by type
+  const costByType = records
+    .filter((r) => r.cost && r.cost > 0)
+    .reduce((acc: Record<string, number>, r) => {
+      acc[r.type] = (acc[r.type] || 0) + r.cost!;
+      return acc;
+    }, {});
+  const totalCost = Object.values(costByType).reduce((s, v) => s + v, 0);
+  const costEntries = Object.entries(costByType).sort((a, b) => b[1] - a[1]);
 
   // Global health status
   const healthStatus = overdue > 0
@@ -146,6 +156,30 @@ export default function HealthOverview({ records, horseId }: Props) {
       {tab === "overview" ? (
         <div className="space-y-3">
           <HealthTimeline30 records={records} />
+
+          {/* Budget santé */}
+          {costEntries.length > 0 && (
+            <div className="card">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-bold text-black text-sm">Budget santé</h3>
+                <span className="text-sm font-black text-black">{formatCurrency(totalCost)}</span>
+              </div>
+              <div className="space-y-2">
+                {costEntries.map(([type, amount]) => (
+                  <div key={type} className="flex items-center justify-between">
+                    <span className="text-xs text-gray-500">{HEALTH_TYPE_LABELS[type] || type}</span>
+                    <div className="flex items-center gap-3">
+                      <div className="w-24 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                        <div className="h-full bg-orange rounded-full" style={{ width: `${Math.round((amount / totalCost) * 100)}%` }} />
+                      </div>
+                      <span className="text-xs font-semibold text-black w-14 text-right">{formatCurrency(amount)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {CATEGORIES.map((cat) => (
               <HealthCategoryCard

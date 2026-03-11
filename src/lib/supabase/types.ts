@@ -12,6 +12,8 @@ export interface User {
   name: string;
   plan: UserPlan;
   user_type: UserType | null;
+  notify_health_reminders: boolean;
+  notify_weekly_summary: boolean;
   created_at: string;
 }
 

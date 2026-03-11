@@ -8,6 +8,7 @@ import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import type { User, UserType } from "@/lib/supabase/types";
 import Badge from "@/components/ui/Badge";
+import { Bell } from "lucide-react";
 
 interface Props {
   user: User | null;
@@ -35,6 +36,18 @@ export default function SettingsForm({ user }: Props) {
   const [name, setName] = useState(user?.name || "");
   const [userType, setUserType] = useState<UserType | null>(user?.user_type || null);
   const [savingType, setSavingType] = useState(false);
+  const [notifHealth, setNotifHealth] = useState(user?.notify_health_reminders ?? true);
+  const [notifWeekly, setNotifWeekly] = useState(user?.notify_weekly_summary ?? true);
+  const [savingNotif, setSavingNotif] = useState(false);
+
+  const handleNotifToggle = async (field: "notify_health_reminders" | "notify_weekly_summary", value: boolean) => {
+    if (field === "notify_health_reminders") setNotifHealth(value);
+    else setNotifWeekly(value);
+    setSavingNotif(true);
+    const { error } = await supabase.from("users").update({ [field]: value }).eq("id", user!.id);
+    if (error) toast.error("Erreur lors de la sauvegarde");
+    setSavingNotif(false);
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -115,6 +128,35 @@ export default function SettingsForm({ user }: Props) {
                 </div>
               </div>
             </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-bold text-black flex items-center gap-2">
+            <Bell className="h-4 w-4" />
+            Notifications email
+          </h2>
+          {savingNotif && <span className="text-xs text-gray-400">Enregistrement...</span>}
+        </div>
+        <div className="space-y-3">
+          {[
+            { field: "notify_health_reminders" as const, label: "Rappels de soins", desc: "Email J-7 avant chaque soin prévu", value: notifHealth },
+            { field: "notify_weekly_summary" as const, label: "Résumé hebdomadaire", desc: "Bilan de la semaine chaque lundi matin", value: notifWeekly },
+          ].map(({ field, label, desc, value }) => (
+            <label key={field} className="flex items-center justify-between cursor-pointer py-2 border-b border-gray-50 last:border-0">
+              <div>
+                <p className="text-sm font-semibold text-black">{label}</p>
+                <p className="text-xs text-gray-400">{desc}</p>
+              </div>
+              <div
+                onClick={() => handleNotifToggle(field, !value)}
+                className={`relative w-10 h-6 rounded-full transition-colors flex-shrink-0 cursor-pointer ${value ? "bg-black" : "bg-gray-200"}`}
+              >
+                <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${value ? "translate-x-5" : "translate-x-1"}`} />
+              </div>
+            </label>
           ))}
         </div>
       </div>

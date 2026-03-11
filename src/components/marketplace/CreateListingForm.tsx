@@ -130,7 +130,7 @@ export default function CreateListingForm() {
 
       {/* Title */}
       <div className="space-y-1">
-        <label className="label">Titre de l'annonce *</label>
+        <label className="label">Titre de l&apos;annonce *</label>
         <input
           type="text"
           value={form.title}

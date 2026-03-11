@@ -29,7 +29,7 @@ export async function sendHealthReminder(params: {
             <div style="width:28px;height:28px;background:black;border-radius:8px;display:flex;align-items:center;justify-content:center">
               <span style="color:white;font-weight:900;font-size:12px">E</span>
             </div>
-            <span style="font-weight:900;font-size:16px;color:black">EQUILOG</span>
+            <span style="font-weight:900;font-size:16px;color:black">EQUISTRA</span>
           </div>
           <h2 style="font-size:20px;font-weight:900;color:black;margin:0 0 8px">Rappel soins J-7</h2>
           <p style="color:#6b7280;margin:0 0 24px">Bonjour ${userName},</p>
@@ -75,7 +75,7 @@ export async function sendScoreAlert(params: {
             <div style="width:28px;height:28px;background:black;border-radius:8px;display:flex;align-items:center;justify-content:center">
               <span style="color:white;font-weight:900;font-size:12px">E</span>
             </div>
-            <span style="font-weight:900;font-size:16px;color:black">EQUILOG</span>
+            <span style="font-weight:900;font-size:16px;color:black">EQUISTRA</span>
           </div>
           <h2 style="font-size:20px;font-weight:900;color:black;margin:0 0 8px">Alerte Horse Index</h2>
           <p style="color:#6b7280;margin:0 0 24px">Bonjour ${userName},</p>
@@ -148,7 +148,7 @@ export async function sendWeeklySummary(params: {
             <div style="width:28px;height:28px;background:black;border-radius:8px;display:flex;align-items:center;justify-content:center">
               <span style="color:white;font-weight:900;font-size:12px">E</span>
             </div>
-            <span style="font-weight:900;font-size:16px;color:black">EQUILOG</span>
+            <span style="font-weight:900;font-size:16px;color:black">EQUISTRA</span>
           </div>
           <h2 style="font-size:20px;font-weight:900;color:black;margin:0 0 4px">Résumé de la semaine</h2>
           <p style="color:#6b7280;margin:0 0 24px">Bonjour ${userName}, voici l'activité de cette semaine.</p>

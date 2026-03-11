@@ -11,7 +11,7 @@ function drawHeader(doc: jsPDF, horseName: string, docType: string) {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
   doc.setTextColor(255, 255, 255);
-  doc.text("EQUILOG", MARGIN, 14);
+  doc.text("EQUISTRA", MARGIN, 14);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor(180, 180, 180);

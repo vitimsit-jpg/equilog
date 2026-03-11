@@ -100,7 +100,7 @@ export default function OnboardingPage() {
             <div className="w-10 h-10 rounded-xl bg-black flex items-center justify-center">
               <span className="text-white font-black text-lg">E</span>
             </div>
-            <span className="font-black text-black text-2xl tracking-tight">EQUILOG</span>
+            <span className="font-black text-black text-2xl tracking-tight">EQUISTRA</span>
           </div>
 
           {/* Steps indicator */}

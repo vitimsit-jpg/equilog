@@ -73,7 +73,7 @@ export default async function EcuriePage({ params }: Props) {
           <div className="w-7 h-7 rounded-lg bg-black flex items-center justify-center">
             <span className="text-white font-black text-xs">E</span>
           </div>
-          <span className="font-black text-black text-base tracking-tight">EQUILOG</span>
+          <span className="font-black text-black text-base tracking-tight">EQUISTRA</span>
         </Link>
         <a href="/register" className="text-xs font-semibold text-orange hover:underline">
           Rejoindre l&apos;écurie

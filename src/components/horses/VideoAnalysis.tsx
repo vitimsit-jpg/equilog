@@ -43,8 +43,8 @@ async function extractFrames(file: File): Promise<string[]> {
       }
 
       const canvas = document.createElement("canvas");
-      canvas.width = 640;
-      canvas.height = 360;
+      canvas.width = 480;
+      canvas.height = 270;
       const ctx = canvas.getContext("2d")!;
       const frames: string[] = [];
 
@@ -54,8 +54,8 @@ async function extractFrames(file: File): Promise<string[]> {
         await new Promise<void>((res) => {
           video.addEventListener("seeked", () => res(), { once: true });
         });
-        ctx.drawImage(video, 0, 0, 640, 360);
-        const dataUrl = canvas.toDataURL("image/jpeg", 0.78);
+        ctx.drawImage(video, 0, 0, 480, 270);
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.6);
         frames.push(dataUrl.split(",")[1]);
       }
 
@@ -136,8 +136,12 @@ export default function VideoAnalysis({ horse }: Props) {
       });
 
       if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Erreur serveur");
+        let errMsg = `Erreur serveur (${res.status})`;
+        try {
+          const err = await res.json();
+          errMsg = err.error || errMsg;
+        } catch {}
+        throw new Error(errMsg);
       }
 
       const data = await res.json();

@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import type { Horse, UserType } from "@/lib/supabase/types";
 import { useState } from "react";
+import HorseAvatar from "@/components/ui/HorseAvatar";
 
 interface SidebarProps {
   horses: Horse[];
@@ -142,9 +143,7 @@ export default function Sidebar({ horses, currentHorseId, userType, overdueByHor
                   )}
                 >
                   <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className="w-5 h-5 rounded-full bg-black text-white text-xs flex items-center justify-center font-bold flex-shrink-0">
-                      {horse.name[0].toUpperCase()}
-                    </div>
+                    <HorseAvatar name={horse.name} photoUrl={horse.avatar_url} size="xs" rounded="full" />
                     <span className="truncate">{horse.name}</span>
                   </div>
                   {overdueByHorse[horse.id] > 0 && (

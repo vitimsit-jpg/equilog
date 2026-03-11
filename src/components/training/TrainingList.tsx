@@ -56,8 +56,16 @@ export default function TrainingList({ sessions, horseId }: Props) {
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold text-black">{TRAINING_TYPE_LABELS[s.type]}</span>
                     <span className="text-xs text-gray-400">{s.duration_min}min</span>
+                    {(s as any).lieu && (
+                      <span className="text-xs text-gray-400">· {(s as any).lieu}</span>
+                    )}
                   </div>
-                  <span className="text-xs text-gray-400">{formatDate(s.date)}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-400">{formatDate(s.date)}</span>
+                    {(s as any).objectif && (
+                      <span className="text-xs text-gray-500 italic">— {(s as any).objectif}</span>
+                    )}
+                  </div>
                 </div>
               </div>
               <div className="flex items-center gap-3">

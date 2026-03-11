@@ -131,32 +131,40 @@ export default function TrainingDashboard({ sessions, horseId, latestInsight }: 
       </div>
 
       {/* Chart */}
-      {chartPoints.length >= 3 && (
-        <div className="card">
-          <h3 className="font-bold text-black text-sm mb-4">Intensité & ressenti</h3>
-          <ResponsiveContainer width="100%" height={160}>
-            <LineChart data={chartPoints} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F0" vertical={false} />
-              <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#9CA3AF" }} tickLine={false} axisLine={false} />
-              <YAxis domain={[1, 5]} ticks={[1, 3, 5]} tick={{ fontSize: 10, fill: "#9CA3AF" }} tickLine={false} axisLine={false} />
-              <Tooltip
-                contentStyle={{ background: "#1A1A1A", border: "none", borderRadius: 8, fontSize: 12 }}
-                labelStyle={{ color: "#9CA3AF" }}
-              />
-              <Line type="monotone" dataKey="intensity" stroke="#E8440A" strokeWidth={2} dot={false} name="Intensité" />
-              <Line type="monotone" dataKey="feeling" stroke="#16A34A" strokeWidth={2} dot={false} name="Ressenti" />
-            </LineChart>
-          </ResponsiveContainer>
-          <div className="flex gap-4 mt-2 justify-center">
-            <div className="flex items-center gap-1.5 text-xs text-gray-500">
-              <div className="w-3 h-0.5 rounded bg-orange" /> Intensité
+      <div className="card">
+        <h3 className="font-bold text-black text-sm mb-4">Intensité & ressenti</h3>
+        {chartPoints.length >= 3 ? (
+          <>
+            <ResponsiveContainer width="100%" height={160}>
+              <LineChart data={chartPoints} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F0" vertical={false} />
+                <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#9CA3AF" }} tickLine={false} axisLine={false} />
+                <YAxis domain={[1, 5]} ticks={[1, 3, 5]} tick={{ fontSize: 10, fill: "#9CA3AF" }} tickLine={false} axisLine={false} />
+                <Tooltip
+                  contentStyle={{ background: "#1A1A1A", border: "none", borderRadius: 8, fontSize: 12 }}
+                  labelStyle={{ color: "#9CA3AF" }}
+                />
+                <Line type="monotone" dataKey="intensity" stroke="#E8440A" strokeWidth={2} dot={false} name="Intensité" />
+                <Line type="monotone" dataKey="feeling" stroke="#16A34A" strokeWidth={2} dot={false} name="Ressenti" />
+              </LineChart>
+            </ResponsiveContainer>
+            <div className="flex gap-4 mt-2 justify-center">
+              <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                <div className="w-3 h-0.5 rounded bg-orange" /> Intensité
+              </div>
+              <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                <div className="w-3 h-0.5 rounded bg-success" /> Ressenti
+              </div>
             </div>
-            <div className="flex items-center gap-1.5 text-xs text-gray-500">
-              <div className="w-3 h-0.5 rounded bg-success" /> Ressenti
-            </div>
+          </>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <div className="text-3xl mb-2">📈</div>
+            <p className="text-sm font-semibold text-gray-400">Pas encore assez de données</p>
+            <p className="text-xs text-gray-300 mt-1">Le graphique apparaîtra après 3 séances enregistrées sur cette période.</p>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* AI Insight card */}
       {parsedInsight.summary && (

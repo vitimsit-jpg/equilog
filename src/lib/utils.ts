@@ -66,6 +66,7 @@ export const TRAINING_TYPE_LABELS: Record<string, string> = {
   longe: "Longe",
   galop: "Galop",
   plat: "Plat",
+  marcheur: "Marcheur",
   autre: "Autre",
 };
 

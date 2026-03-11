@@ -1,7 +1,7 @@
 export type UserPlan = "starter" | "pro" | "ecurie";
 export type UserType = "loisir" | "competition" | "pro" | "gerant_cavalier" | "coach" | "gerant_ecurie";
 export type HealthType = "vaccin" | "vermifuge" | "dentiste" | "osteo" | "ferrage" | "veterinaire" | "masseuse" | "autre";
-export type TrainingType = "dressage" | "saut" | "endurance" | "cso" | "cross" | "travail_a_pied" | "longe" | "galop" | "plat" | "autre";
+export type TrainingType = "dressage" | "saut" | "endurance" | "cso" | "cross" | "travail_a_pied" | "longe" | "galop" | "plat" | "marcheur" | "autre";
 export type WearableSource = "equisense" | "seaver" | "garmin" | "equilab" | "autre";
 export type BudgetCategory = "pension" | "soins" | "concours" | "equipement" | "maréchalerie" | "alimentation" | "transport" | "autre";
 export type Discipline = "CSO" | "Dressage" | "CCE" | "Endurance" | "Attelage" | "Voltige" | "TREC" | "Hunter" | "Equitation_Western" | "Autre";
@@ -54,6 +54,8 @@ export interface TrainingSession {
   intensity: 1 | 2 | 3 | 4 | 5;
   feeling: 1 | 2 | 3 | 4 | 5;
   notes: string | null;
+  objectif: string | null;
+  lieu: string | null;
   wearable_source: WearableSource | null;
   media_urls: string[] | null;
   created_at: string;

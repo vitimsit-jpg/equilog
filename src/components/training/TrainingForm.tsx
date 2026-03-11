@@ -30,6 +30,8 @@ export default function TrainingForm({ horseId, onSaved, onCancel, defaultValues
     duration_min: defaultValues?.duration_min ? String(defaultValues.duration_min) : "45",
     intensity: defaultValues?.intensity ? String(defaultValues.intensity) : "3",
     feeling: defaultValues?.feeling ? String(defaultValues.feeling) : "3",
+    objectif: defaultValues?.objectif || "",
+    lieu: defaultValues?.lieu || "",
     notes: defaultValues?.notes || "",
   });
 
@@ -44,6 +46,8 @@ export default function TrainingForm({ horseId, onSaved, onCancel, defaultValues
       duration_min: parseInt(form.duration_min),
       intensity: parseInt(form.intensity) as any,
       feeling: parseInt(form.feeling) as any,
+      objectif: form.objectif || null,
+      lieu: form.lieu || null,
       notes: form.notes || null,
       wearable_source: null,
     };
@@ -57,13 +61,15 @@ export default function TrainingForm({ horseId, onSaved, onCancel, defaultValues
     setLoading(false);
   };
 
-  const handleVoiceResult = (data: { type: string; duration_min: number; intensity: number; feeling: number; notes: string | null }) => {
+  const handleVoiceResult = (data: { type: string; duration_min: number; intensity: number; feeling: number; notes: string | null; objectif?: string | null; lieu?: string | null }) => {
     setForm((prev) => ({
       ...prev,
       type: (data.type as import("@/lib/supabase/types").TrainingType) || prev.type,
       duration_min: data.duration_min ? String(data.duration_min) : prev.duration_min,
       intensity: data.intensity ? String(Math.min(5, Math.max(1, data.intensity))) : prev.intensity,
       feeling: data.feeling ? String(Math.min(5, Math.max(1, data.feeling))) : prev.feeling,
+      objectif: data.objectif || prev.objectif,
+      lieu: data.lieu || prev.lieu,
       notes: data.notes || prev.notes,
     }));
   };
@@ -136,6 +142,20 @@ export default function TrainingForm({ horseId, onSaved, onCancel, defaultValues
           ))}
         </div>
       </div>
+
+      <Input
+        label="Objectif de séance"
+        value={form.objectif}
+        onChange={(e) => setForm({ ...form, objectif: e.target.value })}
+        placeholder="Ex : travail du rassembler, extensions..."
+      />
+
+      <Input
+        label="Lieu"
+        value={form.lieu}
+        onChange={(e) => setForm({ ...form, lieu: e.target.value })}
+        placeholder="Ex : carrière couverte, extérieur..."
+      />
 
       <Textarea
         label="Notes libres"

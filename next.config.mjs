@@ -5,6 +5,15 @@ const nextConfig = {
       { source: "/", destination: "/dashboard", permanent: false },
     ];
   },
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "thvxjsvyazkcyuwecqhu.supabase.co",
+        pathname: "/storage/v1/object/public/**",
+      },
+    ],
+  },
 };
 
 export default nextConfig;

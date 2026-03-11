@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Upload, Video, Play, Loader2, CheckCircle2, TrendingUp, TrendingDown, Lightbulb, ChevronRight } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Upload, Camera, FolderOpen, Play, Loader2, CheckCircle2, TrendingUp, TrendingDown, Lightbulb, ChevronRight } from "lucide-react";
 
 interface Horse {
   id: string;
@@ -32,6 +31,7 @@ async function extractFrames(file: File): Promise<string[]> {
     const video = document.createElement("video");
     video.src = url;
     video.muted = true;
+    video.playsInline = true;
     video.preload = "metadata";
 
     video.addEventListener("loadedmetadata", async () => {
@@ -42,9 +42,25 @@ async function extractFrames(file: File): Promise<string[]> {
         return;
       }
 
+      // Detect actual display dimensions (after iOS rotation metadata is applied)
+      const vw = video.videoWidth;
+      const vh = video.videoHeight;
+      const isPortrait = vh > vw;
+
+      // Keep longest side at 480px max, preserve aspect ratio
+      const MAX = 480;
+      let cw: number, ch: number;
+      if (isPortrait) {
+        ch = MAX;
+        cw = Math.round((vw / vh) * MAX);
+      } else {
+        cw = MAX;
+        ch = Math.round((vh / vw) * MAX);
+      }
+
       const canvas = document.createElement("canvas");
-      canvas.width = 480;
-      canvas.height = 270;
+      canvas.width = cw;
+      canvas.height = ch;
       const ctx = canvas.getContext("2d")!;
       const frames: string[] = [];
 
@@ -54,8 +70,8 @@ async function extractFrames(file: File): Promise<string[]> {
         await new Promise<void>((res) => {
           video.addEventListener("seeked", () => res(), { once: true });
         });
-        ctx.drawImage(video, 0, 0, 480, 270);
-        const dataUrl = canvas.toDataURL("image/jpeg", 0.6);
+        ctx.drawImage(video, 0, 0, cw, ch);
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.65);
         frames.push(dataUrl.split(",")[1]);
       }
 
@@ -65,34 +81,31 @@ async function extractFrames(file: File): Promise<string[]> {
 
     video.addEventListener("error", () => {
       URL.revokeObjectURL(url);
-      reject(new Error("Erreur de lecture vidéo"));
+      // Hint for HEVC on non-Safari browsers
+      reject(new Error("Format vidéo non supporté par ce navigateur. Sur iPhone, utilisez Safari ou convertissez en MP4."));
     });
   });
 }
 
 function ScoreGauge({ score }: { score: number }) {
-  const pct = (score / 10) * 100;
   const color = score >= 8 ? "#22c55e" : score >= 6 ? "#E8440A" : "#ef4444";
   const r = 40;
   const circ = 2 * Math.PI * r;
-  const dash = (pct / 100) * circ * 0.75;
+  const dash = ((score / 10) * circ * 0.75);
   const gap = circ - dash;
-  const rotation = -225;
 
   return (
-    <div className="flex flex-col items-center gap-1">
-      <div className="relative w-24 h-24">
-        <svg viewBox="0 0 100 100" className="w-full h-full -rotate-[225deg]">
-          <circle cx="50" cy="50" r={r} fill="none" stroke="#f3f4f6" strokeWidth="10"
-            strokeDasharray={`${circ * 0.75} ${circ * 0.25}`} strokeLinecap="round" />
-          <circle cx="50" cy="50" r={r} fill="none" stroke={color} strokeWidth="10"
-            strokeDasharray={`${dash} ${gap + circ * 0.25}`} strokeLinecap="round"
-            style={{ transition: "stroke-dasharray 0.8s ease" }} />
-        </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ transform: `rotate(${-rotation}deg)` }}>
-          <span className="text-2xl font-black text-black leading-none">{score}</span>
-          <span className="text-xs text-gray-400 font-medium">/10</span>
-        </div>
+    <div className="relative w-24 h-24 flex-shrink-0">
+      <svg viewBox="0 0 100 100" className="w-full h-full -rotate-[225deg]">
+        <circle cx="50" cy="50" r={r} fill="none" stroke="#f3f4f6" strokeWidth="10"
+          strokeDasharray={`${circ * 0.75} ${circ * 0.25}`} strokeLinecap="round" />
+        <circle cx="50" cy="50" r={r} fill="none" stroke={color} strokeWidth="10"
+          strokeDasharray={`${dash} ${gap + circ * 0.25}`} strokeLinecap="round"
+          style={{ transition: "stroke-dasharray 0.8s ease" }} />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center rotate-0">
+        <span className="text-2xl font-black text-black leading-none">{score}</span>
+        <span className="text-xs text-gray-400 font-medium">/10</span>
       </div>
     </div>
   );
@@ -104,11 +117,13 @@ export default function VideoAnalysis({ horse }: Props) {
   const [step, setStep] = useState<"idle" | "extracting" | "analyzing" | "done" | "error">("idle");
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const handleFile = (f: File) => {
     if (!f.type.startsWith("video/")) return;
     setFile(f);
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPreviewUrl(URL.createObjectURL(f));
     setResult(null);
     setError(null);
@@ -153,6 +168,15 @@ export default function VideoAnalysis({ horse }: Props) {
     }
   };
 
+  const reset = () => {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setFile(null);
+    setPreviewUrl(null);
+    setResult(null);
+    setError(null);
+    setStep("idle");
+  };
+
   const isLoading = step === "extracting" || step === "analyzing";
 
   return (
@@ -161,69 +185,96 @@ export default function VideoAnalysis({ horse }: Props) {
       <div>
         <h1 className="text-xl font-black text-black">Analyse Vidéo</h1>
         <p className="text-sm text-gray-500 mt-0.5">
-          Filmez une séance de {horse.name} et obtenez une analyse IA de sa gestuelle et de votre position.
+          Filmez {horse.name} et obtenez une analyse IA de sa gestuelle et de votre position.
         </p>
       </div>
 
-      {/* Upload zone */}
-      <div
-        onDrop={handleDrop}
-        onDragOver={(e) => e.preventDefault()}
-        onClick={() => !file && inputRef.current?.click()}
-        className={cn(
-          "relative rounded-2xl border-2 border-dashed transition-colors overflow-hidden",
-          file ? "border-gray-200 cursor-default" : "border-gray-200 hover:border-orange cursor-pointer"
-        )}
-      >
-        <input
-          ref={inputRef}
-          type="file"
-          accept="video/*"
-          capture="environment"
-          className="hidden"
-          onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
-        />
+      {/* Hidden inputs */}
+      {/* Camera input — no capture attr on desktop, triggers camera on mobile */}
+      <input
+        ref={cameraRef}
+        type="file"
+        accept="video/mp4,video/quicktime,video/x-m4v,video/*"
+        capture="environment"
+        className="hidden"
+        onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
+      />
+      {/* File picker — no capture, opens gallery/files on mobile */}
+      <input
+        ref={fileRef}
+        type="file"
+        accept="video/mp4,video/quicktime,video/x-m4v,video/*"
+        className="hidden"
+        onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
+      />
 
-        {previewUrl ? (
-          <div className="relative">
-            <video
-              src={previewUrl}
-              className="w-full max-h-64 object-contain bg-black"
-              controls
-            />
+      {/* Video preview or upload zone */}
+      {previewUrl ? (
+        <div
+          className="relative rounded-2xl overflow-hidden border border-gray-100 bg-black"
+          onDrop={handleDrop}
+          onDragOver={(e) => e.preventDefault()}
+        >
+          <video
+            src={previewUrl}
+            className="w-full max-h-72 object-contain"
+            controls
+            playsInline
+          />
+          <button
+            onClick={reset}
+            className="absolute top-3 right-3 bg-black/60 text-white text-xs px-3 py-1.5 rounded-lg hover:bg-black/80 transition-colors"
+          >
+            Changer
+          </button>
+        </div>
+      ) : (
+        <div
+          onDrop={handleDrop}
+          onDragOver={(e) => e.preventDefault()}
+          className="rounded-2xl border-2 border-dashed border-gray-200 py-10 px-6 flex flex-col items-center gap-5"
+        >
+          {/* Mobile: two prominent buttons */}
+          <div className="flex gap-3 w-full max-w-xs">
             <button
-              onClick={(e) => { e.stopPropagation(); inputRef.current?.click(); }}
-              className="absolute top-3 right-3 bg-black/60 text-white text-xs px-3 py-1.5 rounded-lg hover:bg-black/80 transition-colors"
+              onClick={() => cameraRef.current?.click()}
+              className="flex-1 flex flex-col items-center gap-2 py-4 rounded-xl bg-black text-white font-semibold text-sm hover:bg-gray-900 transition-colors"
             >
-              Changer
+              <Camera className="h-5 w-5" />
+              Filmer
+            </button>
+            <button
+              onClick={() => fileRef.current?.click()}
+              className="flex-1 flex flex-col items-center gap-2 py-4 rounded-xl bg-gray-100 text-black font-semibold text-sm hover:bg-gray-200 transition-colors"
+            >
+              <FolderOpen className="h-5 w-5" />
+              Importer
             </button>
           </div>
-        ) : (
-          <div className="flex flex-col items-center gap-3 py-12 px-6">
-            <div className="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center">
-              <Video className="h-7 w-7 text-gray-400" />
-            </div>
-            <div className="text-center">
-              <p className="font-semibold text-black text-sm">Déposer une vidéo</p>
-              <p className="text-xs text-gray-400 mt-1">ou appuyez pour filmer / choisir</p>
-            </div>
-            <div className="flex items-center gap-2 text-xs text-gray-400">
-              <span className="px-2 py-0.5 bg-gray-100 rounded">MP4</span>
-              <span className="px-2 py-0.5 bg-gray-100 rounded">MOV</span>
-              <span className="px-2 py-0.5 bg-gray-100 rounded">WebM</span>
-              <span className="text-gray-300">•</span>
-              <span>max ~200 Mo</span>
-            </div>
+          <p className="text-xs text-gray-400 text-center">
+            ou glissez-déposez une vidéo ici
+          </p>
+          <div className="flex items-center gap-2 text-xs text-gray-400">
+            <span className="px-2 py-0.5 bg-gray-100 rounded">MP4</span>
+            <span className="px-2 py-0.5 bg-gray-100 rounded">MOV</span>
+            <span className="px-2 py-0.5 bg-gray-100 rounded">WebM</span>
+            <span className="text-gray-300">•</span>
+            <span>portrait ou paysage</span>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Tips */}
       {!result && (
         <div className="bg-orange-light rounded-xl p-4 space-y-2">
           <p className="text-xs font-semibold text-orange">Conseils pour une meilleure analyse</p>
           <ul className="space-y-1">
-            {["Filmez de profil ou de 3/4 pour capter le mouvement", "30 secondes minimum, lumière correcte", "Incluez le cheval entier dans le cadre"].map((tip) => (
+            {[
+              "Filmez de profil ou 3/4 pour capter le mouvement",
+              "30 secondes minimum, bonne luminosité",
+              "Cadrez le cheval entier (tête + sabots)",
+              "iPhone : utilisez Safari pour de meilleurs résultats",
+            ].map((tip) => (
               <li key={tip} className="flex items-start gap-2 text-xs text-gray-600">
                 <ChevronRight className="h-3 w-3 text-orange mt-0.5 flex-shrink-0" />
                 {tip}
@@ -238,12 +289,12 @@ export default function VideoAnalysis({ horse }: Props) {
         <button
           onClick={handleAnalyze}
           disabled={isLoading}
-          className="w-full btn-primary flex items-center justify-center gap-2 py-3"
+          className="w-full btn-primary flex items-center justify-center gap-2 py-3.5 text-base"
         >
           {isLoading ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
-              {step === "extracting" ? "Extraction des images…" : "Analyse en cours…"}
+              {step === "extracting" ? "Extraction des images…" : "Analyse IA en cours…"}
             </>
           ) : (
             <>
@@ -256,7 +307,7 @@ export default function VideoAnalysis({ horse }: Props) {
 
       {/* Error */}
       {error && (
-        <div className="bg-red-50 border border-red-100 rounded-xl p-4 text-sm text-red-600">
+        <div className="bg-red-50 border border-red-100 rounded-xl p-4 text-sm text-red-600 leading-relaxed">
           {error}
         </div>
       )}
@@ -267,7 +318,7 @@ export default function VideoAnalysis({ horse }: Props) {
           {/* Score card */}
           <div className="card flex items-center gap-6">
             <ScoreGauge score={result.score} />
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Note globale</p>
               <p className="text-2xl font-black text-black mt-0.5">{result.score}/10</p>
               <span className="inline-block mt-1 px-2 py-0.5 bg-gray-100 rounded-full text-xs font-semibold text-gray-600 capitalize">
@@ -336,7 +387,7 @@ export default function VideoAnalysis({ horse }: Props) {
 
           {/* New analysis */}
           <button
-            onClick={() => { setFile(null); setPreviewUrl(null); setResult(null); setStep("idle"); }}
+            onClick={reset}
             className="w-full btn-ghost flex items-center justify-center gap-2"
           >
             <Upload className="h-4 w-4" />

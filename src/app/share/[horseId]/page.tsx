@@ -291,7 +291,7 @@ export default async function PublicHorseProfilePage({ params }: Props) {
 
         {/* CTA */}
         <div className="bg-black rounded-2xl p-6 text-center">
-          <p className="text-white font-black text-lg mb-1">Suivez votre cheval sur Equilog</p>
+          <p className="text-white font-black text-lg mb-1">Suivez votre cheval sur Equistra</p>
           <p className="text-gray-400 text-sm mb-4">
             Carnet de santé, journal de travail, Horse Index et insights IA.
           </p>

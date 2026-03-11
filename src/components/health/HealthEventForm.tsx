@@ -48,14 +48,14 @@ interface Props {
 
 function loadPractitioner(type: HealthType): { vet_name: string; practitioner_phone: string } {
   try {
-    const stored = localStorage.getItem(`equilog_pract_${type}`);
+    const stored = localStorage.getItem(`equistra_pract_${type}`);
     return stored ? JSON.parse(stored) : { vet_name: "", practitioner_phone: "" };
   } catch { return { vet_name: "", practitioner_phone: "" }; }
 }
 
 function savePractitioner(type: HealthType, vet_name: string, practitioner_phone: string) {
   if (!vet_name) return;
-  try { localStorage.setItem(`equilog_pract_${type}`, JSON.stringify({ vet_name, practitioner_phone })); } catch {}
+  try { localStorage.setItem(`equistra_pract_${type}`, JSON.stringify({ vet_name, practitioner_phone })); } catch {}
 }
 
 export default function HealthEventForm({ horseId, onSaved, onCancel, defaultValues }: Props) {

@@ -13,8 +13,8 @@ export default function ShareButtons({ horseName, score, url }: Props) {
   const [copied, setCopied] = useState(false);
 
   const text = score
-    ? `${horseName} a un Horse Index de ${score}/100 sur Equilog 🐴`
-    : `Découvrez le profil de ${horseName} sur Equilog 🐴`;
+    ? `${horseName} a un Horse Index de ${score}/100 sur Equistra 🐴`
+    : `Découvrez le profil de ${horseName} sur Equistra 🐴`;
 
   const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
   const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(`${text} ${url}`)}`;

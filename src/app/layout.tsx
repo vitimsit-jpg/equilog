@@ -3,7 +3,7 @@ import "./globals.css";
 import { Toaster } from "react-hot-toast";
 
 export const metadata: Metadata = {
-  title: "Equilog — Le Strava du cheval",
+  title: "Equistra — Le Strava du cheval",
   description: "Hub central IA de gestion santé, performance et concours équestres",
   icons: {
     icon: "/favicon.ico",

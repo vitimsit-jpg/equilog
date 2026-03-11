@@ -5,7 +5,7 @@ function getResend() {
   return new Resend(process.env.RESEND_API_KEY);
 }
 
-const FROM = "Equilog <onboarding@resend.dev>";
+const FROM = "Equistra <onboarding@resend.dev>";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://equilog-i3nr-vitimsit-jpgs-projects.vercel.app";
 
 // ── Health reminder J-7 ──────────────────────────────────────────────────────
@@ -45,7 +45,7 @@ export async function sendHealthReminder(params: {
           </a>
         </div>
         <p style="text-align:center;font-size:11px;color:#9ca3af;margin-top:16px">
-          Equilog · <a href="${SITE_URL}/settings" style="color:#9ca3af">Gérer mes notifications</a>
+          Equistra · <a href="${SITE_URL}/settings" style="color:#9ca3af">Gérer mes notifications</a>
         </p>
       </div>
     `,
@@ -100,7 +100,7 @@ export async function sendScoreAlert(params: {
           </a>
         </div>
         <p style="text-align:center;font-size:11px;color:#9ca3af;margin-top:16px">
-          Equilog · <a href="${SITE_URL}/settings" style="color:#9ca3af">Gérer mes notifications</a>
+          Equistra · <a href="${SITE_URL}/settings" style="color:#9ca3af">Gérer mes notifications</a>
         </p>
       </div>
     `,
@@ -140,7 +140,7 @@ export async function sendWeeklySummary(params: {
   return getResend().emails.send({
     from: FROM,
     to,
-    subject: `📊 Résumé hebdomadaire Equilog`,
+    subject: `📊 Résumé hebdomadaire Equistra`,
     html: `
       <div style="font-family:sans-serif;max-width:520px;margin:0 auto;background:#FAFAF8;padding:32px 16px">
         <div style="background:white;border-radius:16px;padding:32px;border:1px solid #f0ede8">
@@ -162,7 +162,7 @@ export async function sendWeeklySummary(params: {
           </a>
         </div>
         <p style="text-align:center;font-size:11px;color:#9ca3af;margin-top:16px">
-          Equilog · <a href="${SITE_URL}/settings" style="color:#9ca3af">Gérer mes notifications</a>
+          Equistra · <a href="${SITE_URL}/settings" style="color:#9ca3af">Gérer mes notifications</a>
         </p>
       </div>
     `,

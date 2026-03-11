@@ -57,7 +57,7 @@ Identifie les risques sanitaires à anticiper et les rappels de soins à planifi
 Focus prioritaire : alertes santé, soins à programmer, état général du cheval.`,
 };
 
-const BASE_SYSTEM_PROMPT = `Tu es Equilog AI, un assistant expert en performance et santé équine.
+const BASE_SYSTEM_PROMPT = `Tu es Equistra AI, un assistant expert en performance et santé équine.
 Tu analyses les données croisées d'un cheval (entraînement, santé, concours, wearables) pour fournir des insights actionnables.
 
 Règles de réponse :
@@ -220,7 +220,7 @@ Adapte la charge aux concours à venir, à la fatigue récente (ressenti moyen d
   const response = await getClient().messages.create({
     model: "claude-sonnet-4-20250514",
     max_tokens: 1500,
-    system: `Tu es Equilog AI, coach équestre expert. Tu génères des plans d'entraînement personnalisés basés sur les données réelles du cheval. Réponse en JSON pur uniquement, sans markdown.`,
+    system: `Tu es Equistra AI, coach équestre expert. Tu génères des plans d'entraînement personnalisés basés sur les données réelles du cheval. Réponse en JSON pur uniquement, sans markdown.`,
     messages: [{ role: "user", content: prompt }],
   });
 

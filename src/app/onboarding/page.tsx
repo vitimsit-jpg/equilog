@@ -70,7 +70,7 @@ export default function OnboardingPage() {
           <div className="w-20 h-20 rounded-full bg-black text-white flex items-center justify-center mx-auto mb-6">
             <Check className="h-10 w-10" />
           </div>
-          <h1 className="text-2xl font-black text-black mb-2">Bienvenue sur Equilog !</h1>
+          <h1 className="text-2xl font-black text-black mb-2">Bienvenue sur Equistra !</h1>
           <p className="text-sm text-gray-500 mb-2">
             Votre profil est configuré.
             {horseName.trim() && (

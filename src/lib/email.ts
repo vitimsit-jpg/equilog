@@ -1,6 +1,6 @@
 import { Resend } from "resend";
 
-const FROM = "Equilog <onboarding@resend.dev>";
+const FROM = "Equistra <onboarding@resend.dev>";
 function getResend() {
   return new Resend(process.env.RESEND_API_KEY);
 }
@@ -48,7 +48,7 @@ function base(content: string): string {
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Equilog</title>
+<title>Equistra</title>
 </head>
 <body style="margin:0;padding:0;background:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:32px 0;">
@@ -57,7 +57,7 @@ function base(content: string): string {
         <!-- Header -->
         <tr>
           <td style="background:#FF6B35;padding:24px 32px;">
-            <p style="margin:0;font-size:22px;font-weight:700;color:#ffffff;letter-spacing:-0.5px;">🐴 Equilog</p>
+            <p style="margin:0;font-size:22px;font-weight:700;color:#ffffff;letter-spacing:-0.5px;">🐴 Equistra</p>
           </td>
         </tr>
         <!-- Body -->
@@ -70,7 +70,7 @@ function base(content: string): string {
         <tr>
           <td style="padding:16px 32px;border-top:1px solid #f0f0f0;">
             <p style="margin:0;font-size:12px;color:#999;">
-              Vous recevez cet email car vous utilisez Equilog.<br/>
+              Vous recevez cet email car vous utilisez Equistra.<br/>
               <a href="${APP_URL}/settings" style="color:#FF6B35;text-decoration:none;">Gérer mes préférences</a>
             </p>
           </td>
@@ -202,7 +202,7 @@ export async function sendWeeklySummary(p: WeeklySummaryParams) {
   return getResend().emails.send({
     from: FROM,
     to: p.to,
-    subject: `📊 Résumé Equilog — ${totalSessions} séance${totalSessions > 1 ? "s" : ""} cette semaine`,
+    subject: `📊 Résumé Equistra — ${totalSessions} séance${totalSessions > 1 ? "s" : ""} cette semaine`,
     html,
   });
 }

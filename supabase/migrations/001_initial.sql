@@ -1,4 +1,4 @@
--- Equilog — Initial Database Schema
+-- Equistra — Initial Database Schema
 -- Run this in your Supabase SQL Editor
 
 -- Enable UUID extension

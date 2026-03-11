@@ -405,7 +405,7 @@ export default async function DashboardPage() {
           <div className="w-16 h-16 rounded-full bg-beige flex items-center justify-center mx-auto mb-4">
             <span className="text-3xl">🐴</span>
           </div>
-          <h2 className="text-lg font-bold text-black mb-2">Bienvenue sur Equilog</h2>
+          <h2 className="text-lg font-bold text-black mb-2">Bienvenue sur Equistra</h2>
           <p className="text-sm text-gray-400 mb-6 max-w-sm mx-auto">
             Commencez par ajouter votre premier cheval pour suivre sa santé, son entraînement et ses résultats.
           </p>

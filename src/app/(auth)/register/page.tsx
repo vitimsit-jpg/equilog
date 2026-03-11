@@ -48,7 +48,7 @@ export default function RegisterPage() {
           plan: "starter",
         });
       }
-      toast.success("Compte créé ! Bienvenue sur Equilog.");
+      toast.success("Compte créé ! Bienvenue sur Equistra.");
       router.push("/onboarding");
       router.refresh();
     }

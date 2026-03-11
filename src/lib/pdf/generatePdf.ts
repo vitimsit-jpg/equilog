@@ -27,7 +27,7 @@ function drawFooter(doc: jsPDF, pageNum: number, total: number) {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7);
   doc.setTextColor(107, 114, 128);
-  doc.text("Généré par Equilog", MARGIN, y + 5);
+  doc.text("Généré par Equistra", MARGIN, y + 5);
   doc.text(`Page ${pageNum} / ${total}`, PAGE_W - MARGIN, y + 5, { align: "right" });
 }
 

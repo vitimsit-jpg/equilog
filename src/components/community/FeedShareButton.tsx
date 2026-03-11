@@ -21,12 +21,12 @@ function buildText(horseName: string, itemType: "session" | "competition", itemD
   };
   if (itemType === "session") {
     const type = TRAINING_LABELS[itemData.type as string] || "Séance";
-    return `🏇 ${horseName} a travaillé en ${type} · ${itemData.duration_min}min — via Equilog`;
+    return `🏇 ${horseName} a travaillé en ${type} · ${itemData.duration_min}min — via Equistra`;
   }
   const rank = itemData.result_rank && itemData.total_riders
     ? ` · ${itemData.result_rank}/${itemData.total_riders}`
     : "";
-  return `🏆 ${horseName} en concours · ${itemData.event_name}${rank} — via Equilog`;
+  return `🏆 ${horseName} en concours · ${itemData.event_name}${rank} — via Equistra`;
 }
 
 export default function FeedShareButton({ horseName, horseId, shareHorseIndex, itemType, itemData }: Props) {
@@ -65,7 +65,7 @@ export default function FeedShareButton({ horseName, horseId, shareHorseIndex, i
     const shareUrl = getUrl();
     if (typeof navigator !== "undefined" && navigator.share) {
       try {
-        await navigator.share({ title: `Equilog — ${horseName}`, text: shareText, url: shareUrl });
+        await navigator.share({ title: `Equistra — ${horseName}`, text: shareText, url: shareUrl });
       } catch {
         // user cancelled, do nothing
       }

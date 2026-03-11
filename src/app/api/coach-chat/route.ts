@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
   const userType = userProfile?.user_type ?? "loisir";
   const toneInstruction = PROFILE_TONE[userType] || "";
 
-  const systemPrompt = `Tu es Equilog Coach, un coach équestre IA expert intégré dans l'application Equilog.
+  const systemPrompt = `Tu es Equistra Coach, un coach équestre IA expert intégré dans l'application Equistra.
 Tu as accès aux données réelles de ce cheval et tu réponds aux questions de son propriétaire.
 ${toneInstruction}
 

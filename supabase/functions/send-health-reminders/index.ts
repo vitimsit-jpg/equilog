@@ -51,7 +51,7 @@ async function sendEmail(to: string, subject: string, html: string) {
       Authorization: `Bearer ${RESEND_API_KEY}`,
     },
     body: JSON.stringify({
-      from: "Equilog <noreply@equilog.app>",
+      from: "Equistra <noreply@equilog.app>",
       to,
       subject,
       html,
@@ -115,7 +115,7 @@ Deno.serve(async () => {
           </a>
         </div>
         <p style="color: #9CA3AF; font-size: 11px; text-align: center; margin-top: 12px;">
-          Equilog · Le Strava du cheval · <a href="https://equilog.app/settings" style="color: #9CA3AF;">Se désabonner</a>
+          Equistra · Le Strava du cheval · <a href="https://equilog.app/settings" style="color: #9CA3AF;">Se désabonner</a>
         </p>
       </div>
     `;

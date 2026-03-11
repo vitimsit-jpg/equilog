@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { LogOut, User, Bell } from "lucide-react";
 import { useState } from "react";
+import Link from "next/link";
 import type { User as UserType } from "@/lib/supabase/types";
 
 interface HeaderProps {
@@ -22,8 +23,15 @@ export default function Header({ user }: HeaderProps) {
   };
 
   return (
-    <header className="h-14 bg-white border-b border-gray-100 flex items-center justify-between px-6">
-      <div />
+    <header className="h-14 bg-white border-b border-gray-100 flex items-center justify-between px-4 md:px-6">
+      {/* Logo visible sur mobile uniquement (sidebar cachée) */}
+      <Link href="/dashboard" className="flex items-center gap-2 md:hidden">
+        <div className="w-7 h-7 rounded-lg bg-black flex items-center justify-center">
+          <span className="text-white font-black text-xs">E</span>
+        </div>
+        <span className="font-black text-black text-base tracking-tight">EQUISTRA</span>
+      </Link>
+      <div className="hidden md:block" />
       <div className="flex items-center gap-2">
         <button className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-black transition-colors relative">
           <Bell className="h-4 w-4" />
@@ -38,7 +46,7 @@ export default function Header({ user }: HeaderProps) {
             <div className="w-7 h-7 rounded-full bg-black text-white text-xs font-bold flex items-center justify-center">
               {user?.name?.[0]?.toUpperCase() || <User className="h-3.5 w-3.5" />}
             </div>
-            <span className="text-sm font-medium text-black">{user?.name || "Mon compte"}</span>
+            <span className="hidden sm:block text-sm font-medium text-black">{user?.name || "Mon compte"}</span>
           </button>
 
           {open && (

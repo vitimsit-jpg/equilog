@@ -7,6 +7,12 @@ export const metadata: Metadata = {
   description: "Hub central IA de gestion santé, performance et concours équestres",
   icons: {
     icon: "/favicon.ico",
+    apple: "/icon-192.png",
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Equistra",
   },
 };
 

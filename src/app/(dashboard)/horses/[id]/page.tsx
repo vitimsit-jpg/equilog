@@ -11,6 +11,7 @@ import ShareButton from "@/components/horse/ShareButton";
 import PremiumNudge from "@/components/ui/PremiumNudge";
 import PdfDownloadButton from "@/components/pdf/PdfDownloadButton";
 import AvatarUpload from "@/components/horse/AvatarUpload";
+import HorseEditModal from "@/components/horse/HorseEditModal";
 
 interface Props {
   params: { id: string };
@@ -85,12 +86,23 @@ export default async function HorsePage({ params }: Props) {
             currentAvatarUrl={(horse as any).avatar_url ?? null}
           />
           <div>
-            <h1 className="text-2xl font-black text-black">{horse.name}</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-black text-black">{horse.name}</h1>
+              <HorseEditModal horse={horse as any} />
+            </div>
             <p className="text-sm text-gray-400">
               {horse.breed && `${horse.breed} · `}
+              {(horse as any).sexe === "hongre" ? "Hongre · " : (horse as any).sexe === "jument" ? "Jument · " : (horse as any).sexe === "etalon" ? "Étalon · " : ""}
               {horse.discipline && `${horse.discipline} · `}
               {horse.birth_year && `Né en ${horse.birth_year}`}
             </p>
+            {((horse as any).objectif_saison || (horse as any).niveau) && (
+              <p className="text-xs text-gray-400 mt-0.5">
+                {(horse as any).niveau && `Niveau ${(horse as any).niveau}`}
+                {(horse as any).niveau && (horse as any).objectif_saison && " · "}
+                {(horse as any).objectif_saison && `🎯 ${(horse as any).objectif_saison}`}
+              </p>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2">

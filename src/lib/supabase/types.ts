@@ -23,9 +23,14 @@ export interface Horse {
   birth_year: number | null;
   discipline: Discipline | null;
   photo_url: string | null;
+  avatar_url: string | null;
   share_horse_index: boolean;
   region: string | null;
   ecurie: string | null;
+  sexe: "hongre" | "jument" | "etalon" | null;
+  conditions_vie: "box" | "paddock" | "pre" | "box_paddock" | null;
+  objectif_saison: string | null;
+  niveau: string | null;
   created_at: string;
 }
 

@@ -37,6 +37,9 @@ export default function HorseSwipeNav({
     // Require clear horizontal intent — not a scroll
     if (Math.abs(dx) < 60 || Math.abs(dy) > Math.abs(dx) * 0.6) return;
 
+    // Not on a known tab (e.g. /video) — don't navigate
+    if (currentIndex === -1) return;
+
     if (dx < 0 && currentIndex < TAB_SUFFIXES.length - 1) {
       router.push(`${base}${TAB_SUFFIXES[currentIndex + 1]}`);
     } else if (dx > 0 && currentIndex > 0) {

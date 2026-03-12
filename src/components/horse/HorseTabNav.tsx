@@ -16,7 +16,7 @@ export default function HorseTabNav({ horseId }: { horseId: string }) {
   const base = `/horses/${horseId}`;
 
   return (
-    <div className="flex overflow-x-auto bg-white border-b border-gray-100 sticky top-14 z-20 -mx-4 md:-mx-6 px-4 md:px-6" style={{ scrollbarWidth: "none" }}>
+    <div className="flex overflow-x-auto bg-white border-b border-gray-100 sticky top-14 z-20 px-4 md:px-6" style={{ scrollbarWidth: "none" }}>
       {TABS.map((tab) => {
         const href = `${base}${tab.suffix}`;
         const isActive =

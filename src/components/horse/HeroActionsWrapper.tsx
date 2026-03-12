@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { MoreHorizontal, X } from "lucide-react";
+import { haptic } from "@/lib/haptic";
 
 export default function HeroActionsWrapper({
   children,
@@ -18,7 +19,7 @@ export default function HeroActionsWrapper({
       {/* Mobile: single "···" pill */}
       <div className="md:hidden">
         <button
-          onClick={() => setOpen(true)}
+          onClick={() => { haptic("light"); setOpen(true); }}
           className="w-9 h-9 rounded-full bg-black/50 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white active:scale-95 transition-transform"
         >
           <MoreHorizontal className="h-4 w-4" />

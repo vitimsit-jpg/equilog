@@ -2,6 +2,7 @@
 
 import { useRouter, usePathname } from "next/navigation";
 import { useRef } from "react";
+import { haptic } from "@/lib/haptic";
 
 const TAB_SUFFIXES = ["", "/health", "/training", "/competitions", "/budget"];
 
@@ -41,8 +42,10 @@ export default function HorseSwipeNav({
     if (currentIndex === -1) return;
 
     if (dx < 0 && currentIndex < TAB_SUFFIXES.length - 1) {
+      haptic("light");
       router.push(`${base}${TAB_SUFFIXES[currentIndex + 1]}`);
     } else if (dx > 0 && currentIndex > 0) {
+      haptic("light");
       router.push(`${base}${TAB_SUFFIXES[currentIndex - 1]}`);
     }
   };

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { haptic } from "@/lib/haptic";
 
 const TABS = [
   { suffix: "", label: "Aperçu" },
@@ -27,6 +28,7 @@ export default function HorseTabNav({ horseId }: { horseId: string }) {
           <Link
             key={tab.suffix}
             href={href}
+            onClick={() => !isActive && haptic("light")}
             className={`flex-shrink-0 px-4 py-3.5 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${
               isActive
                 ? "text-orange border-orange"

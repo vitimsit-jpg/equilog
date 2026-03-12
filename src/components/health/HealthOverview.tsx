@@ -10,16 +10,21 @@ import HealthTimeline from "./HealthTimeline";
 import HealthTimeline30 from "./HealthTimeline30";
 import HealthEventModal from "./HealthEventModal";
 
-const CATEGORIES: CategoryConfig[] = [
+const MANDATORY_CATEGORIES: CategoryConfig[] = [
   { type: "veterinaire", label: "Vétérinaire", emoji: "🩺", defaultInterval: null },
   { type: "vaccin", label: "Vaccin", emoji: "💉", defaultInterval: 180 },
   { type: "vermifuge", label: "Vermifuge", emoji: "🌿", defaultInterval: 90 },
   { type: "ferrage", label: "Parage", emoji: "🔨", defaultInterval: 35 },
   { type: "dentiste", label: "Dentiste", emoji: "🦷", defaultInterval: 365 },
+];
+
+const COMFORT_CATEGORIES: CategoryConfig[] = [
   { type: "osteo", label: "Ostéopathie", emoji: "🤲", defaultInterval: 180 },
   { type: "masseuse", label: "Masseuse", emoji: "💆", defaultInterval: 90 },
   { type: "autre", label: "Autre", emoji: "📋", defaultInterval: null },
 ];
+
+const CATEGORIES = [...MANDATORY_CATEGORIES, ...COMFORT_CATEGORIES];
 
 function getLatestByType(records: HealthRecord[]): Record<string, HealthRecord | null> {
   const map: Record<string, HealthRecord | null> = {};
@@ -158,7 +163,7 @@ export default function HealthOverview({ records, horseId }: Props) {
           <HealthTimeline30 records={records} />
 
           {/* Budget santé */}
-          {costEntries.length > 0 && (
+          {costEntries.length >= 3 && (
             <div className="card">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-bold text-black text-sm">Budget santé</h3>
@@ -180,15 +185,33 @@ export default function HealthOverview({ records, horseId }: Props) {
             </div>
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {CATEGORIES.map((cat) => (
-              <HealthCategoryCard
-                key={cat.type}
-                config={cat}
-                records={records.filter((r) => r.type === cat.type)}
-                horseId={horseId}
-              />
-            ))}
+          <div className="space-y-4">
+            <div>
+              <p className="text-2xs font-bold text-gray-400 uppercase tracking-wider mb-2 px-0.5">Soins obligatoires</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {MANDATORY_CATEGORIES.map((cat) => (
+                  <HealthCategoryCard
+                    key={cat.type}
+                    config={cat}
+                    records={records.filter((r) => r.type === cat.type)}
+                    horseId={horseId}
+                  />
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-2xs font-bold text-gray-400 uppercase tracking-wider mb-2 px-0.5">Soins de confort</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {COMFORT_CATEGORIES.map((cat) => (
+                  <HealthCategoryCard
+                    key={cat.type}
+                    config={cat}
+                    records={records.filter((r) => r.type === cat.type)}
+                    horseId={horseId}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       ) : (

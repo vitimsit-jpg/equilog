@@ -46,8 +46,14 @@ export default function TrainingDashboard({ sessions, horseId, latestInsight }: 
       return acc;
     }, {});
 
-  const chartPoints = Object.values(chartData)
-    .map((d) => ({
+  const chartPoints = Object.entries(chartData)
+    .sort(([a], [b]) => {
+      // keys are "dd/MM", recover sort order from original filtered sessions
+      const dateA = filtered.find((s) => format(parseISO(s.date), "dd/MM") === a)?.date ?? "";
+      const dateB = filtered.find((s) => format(parseISO(s.date), "dd/MM") === b)?.date ?? "";
+      return new Date(dateA).getTime() - new Date(dateB).getTime();
+    })
+    .map(([, d]) => ({
       date: d.date,
       intensity: parseFloat((d.intensity / d.count).toFixed(1)),
       feeling: parseFloat((d.feeling / d.count).toFixed(1)),

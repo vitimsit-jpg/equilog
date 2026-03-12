@@ -1,7 +1,9 @@
+import Link from "next/link";
 import type { ScoreBreakdown } from "@/lib/supabase/types";
 
 interface ScoreBreakdownProps {
   breakdown: ScoreBreakdown;
+  horseId?: string;
 }
 
 const components = [
@@ -12,7 +14,10 @@ const components = [
   { key: "wearables", label: "Données wearables", max: 10, icon: "⌚" },
 ];
 
-export default function ScoreBreakdownComponent({ breakdown }: ScoreBreakdownProps) {
+export default function ScoreBreakdownComponent({ breakdown, horseId }: ScoreBreakdownProps) {
+  // Estimate current weekly pace from regularite score (target = 4 sessions/week = 25pts)
+  const estimatedWeekly = Math.round(((breakdown.regularite / 25) * 4) * 10) / 10;
+
   return (
     <div className="space-y-3">
       {components.map((comp) => {
@@ -22,13 +27,13 @@ export default function ScoreBreakdownComponent({ breakdown }: ScoreBreakdownPro
 
         return (
           <div key={comp.key}>
-            <div className="flex items-center justify-between mb-1.5">
+            <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-2">
                 <span className="text-sm">{comp.icon}</span>
                 <span className="text-xs font-medium text-gray-700">{comp.label}</span>
                 {isNA && (
                   <span className="text-2xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
-                    Redistribué
+                    Bientôt disponible
                   </span>
                 )}
               </div>
@@ -36,6 +41,24 @@ export default function ScoreBreakdownComponent({ breakdown }: ScoreBreakdownPro
                 {isNA ? "—" : `${value}/${comp.max}`}
               </span>
             </div>
+
+            {/* Contextual hint */}
+            {comp.key === "regularite" && (
+              <p className="text-2xs text-gray-400 mb-1.5">
+                ~{estimatedWeekly} séance{estimatedWeekly !== 1 ? "s" : ""}/sem · Objectif : 4/sem sur 30 jours
+              </p>
+            )}
+            {comp.key === "sante" && (
+              <p className="text-2xs text-gray-400 mb-1.5">
+                Basé sur vaccin, vermifuge, parage, dentiste.{" "}
+                {horseId && (
+                  <Link href={`/horses/${horseId}/health`} className="underline hover:text-gray-600">
+                    Voir le carnet →
+                  </Link>
+                )}
+              </p>
+            )}
+
             <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
               {!isNA && (
                 <div

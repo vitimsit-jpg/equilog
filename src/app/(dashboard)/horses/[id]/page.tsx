@@ -179,7 +179,7 @@ export default async function HorsePage({ params }: Props) {
           {breakdown && (
             <div className="card">
               <h2 className="font-bold text-black text-sm mb-4">Détail du score</h2>
-              <ScoreBreakdownComponent breakdown={breakdown} />
+              <ScoreBreakdownComponent breakdown={breakdown} horseId={horse.id} />
             </div>
           )}
 

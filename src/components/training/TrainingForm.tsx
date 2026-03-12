@@ -13,6 +13,11 @@ import type { TrainingSession } from "@/lib/supabase/types";
 import VoiceButton from "./VoiceButton";
 import { AlertTriangle } from "lucide-react";
 
+const RECOVERY_TAGS = [
+  "Massage", "Eau froide", "Bonnets de glace", "Tapis de massage",
+  "Longe légère", "Marche à pied", "Aquathérapie", "Infrarouge", "Repos complet",
+];
+
 const ALERT_KEYWORDS = ["boiterie", "boite", "douleur", "blessure", "blessé", "blessée", "chute", "plaie", "enflé", "enfle", "gonflement", "gonflé", "gonflée", "abcès", "abces", "colique", "fièvre", "fievre", "fatigue excessive", "refuse", "refus de sauter", "coup", "coupure", "contusion"];
 
 function detectHealthAlert(notes: string): string | null {
@@ -171,12 +176,30 @@ export default function TrainingForm({ horseId, onSaved, onCancel, defaultValues
         placeholder="Ex : carrière couverte, extérieur..."
       />
 
-      <Input
-        label="Équipement de récupération"
-        value={form.equipement_recuperation}
-        onChange={(e) => setForm({ ...form, equipement_recuperation: e.target.value })}
-        placeholder="Ex : massage, eau froide, bonnets de glace..."
-      />
+      <div>
+        <label className="label">Équipement de récupération</label>
+        <div className="flex flex-wrap gap-2 mt-1">
+          {RECOVERY_TAGS.map((tag) => {
+            const active = form.equipement_recuperation.split(",").map((t) => t.trim()).includes(tag);
+            return (
+              <button
+                key={tag}
+                type="button"
+                onClick={() => {
+                  const current = form.equipement_recuperation.split(",").map((t) => t.trim()).filter(Boolean);
+                  const next = active ? current.filter((t) => t !== tag) : [...current, tag];
+                  setForm({ ...form, equipement_recuperation: next.join(", ") });
+                }}
+                className={`text-xs px-3 py-1.5 rounded-full border transition-all font-medium ${
+                  active ? "bg-black text-white border-black" : "bg-white text-gray-500 border-gray-200 hover:border-gray-400"
+                }`}
+              >
+                {tag}
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       <label className="flex items-center gap-3 cursor-pointer select-none">
         <input

@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard, Users, ShoppingBag, Settings,
+  LayoutDashboard, Users, Medal, Settings,
   Heart, Dumbbell, Trophy, Wallet, Star, Plus, X, Video,
 } from "lucide-react";
 import type { Horse } from "@/lib/supabase/types";
@@ -35,7 +35,7 @@ export default function MobileBottomNav({ horses, overdueByHorse = {} }: Props) 
   const mainItems = [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { href: "/communaute", icon: Users, label: "Communauté" },
-    { href: "/marketplace", icon: ShoppingBag, label: "Marché" },
+    { href: "/classements", icon: Medal, label: "Classements" },
     { href: "/settings", icon: Settings, label: "Réglages" },
   ];
 

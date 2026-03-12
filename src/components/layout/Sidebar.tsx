@@ -17,7 +17,6 @@ import {
   Users,
   Building2,
   Video,
-  ShoppingBag,
 } from "lucide-react";
 import type { Horse, UserType } from "@/lib/supabase/types";
 import { useState } from "react";
@@ -34,7 +33,6 @@ const mainNav = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/communaute", icon: Users, label: "Communauté" },
   { href: "/classements", icon: Medal, label: "Classements" },
-  { href: "/marketplace", icon: ShoppingBag, label: "Marketplace" },
 ];
 
 const horseNavItems = [

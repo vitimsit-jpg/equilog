@@ -47,10 +47,13 @@ export function calculateHorseIndex(data: HorseData): ScoreBreakdown {
 
 function calculateRegularite(sessions: TrainingSession[], now: Date): number {
   // Max 25 pts
-  const last30Days = sessions.filter(
+  // Ne compter que les séances de 15 min ou plus comme séances réelles
+  const validSessions = sessions.filter((s) => s.duration_min >= 15);
+
+  const last30Days = validSessions.filter(
     (s) => differenceInDays(now, parseISO(s.date)) <= 30
   );
-  const last90Days = sessions.filter(
+  const last90Days = validSessions.filter(
     (s) => differenceInDays(now, parseISO(s.date)) <= 90
   );
 
@@ -79,9 +82,24 @@ function calculateRegularite(sessions: TrainingSession[], now: Date): number {
   else if (maxGap > 10) score *= 0.75;
   else if (maxGap > 7) score *= 0.85;
 
-  // Bonus for consistent weekly regularity (compare to historical average)
+  // Bonus régularité historique (pace actuel ≥ 90% de la moyenne 90j)
   if (currentWeekly >= avgWeekly * 0.9 && avgWeekly > 0) {
     score = Math.min(25, score * 1.1);
+  }
+
+  // Bonus streak : aucune semaine à 0 séance sur les 4 dernières semaines
+  const hasStreakBonus = (() => {
+    for (let week = 0; week < 4; week++) {
+      const inWeek = last30Days.filter((s) => {
+        const d = differenceInDays(now, parseISO(s.date));
+        return d >= week * 7 && d < (week + 1) * 7;
+      });
+      if (inWeek.length === 0) return false;
+    }
+    return true;
+  })();
+  if (hasStreakBonus && last30Days.length >= 12) {
+    score = Math.min(25, score * 1.08); // +8% si aucune semaine sans séance sur 30j
   }
 
   return score;
@@ -158,11 +176,11 @@ function calculateProgression(
 function calculateSante(healthRecords: HealthRecord[], now: Date): number {
   // Max 20 pts
   const checks = [
-    { type: "vaccin", maxDays: 180, weight: 5 },
-    { type: "vermifuge", maxDays: 90, weight: 4 },
-    { type: "ferrage", maxDays: 35, weight: 4 },
-    { type: "dentiste", maxDays: 365, weight: 4 },
-    { type: "osteo", maxDays: 180, weight: 3, optional: true },
+    { type: "vaccin",    maxDays: 182, weight: 5 },
+    { type: "vermifuge", maxDays: 90,  weight: 4 },
+    { type: "ferrage",   maxDays: 35,  weight: 4 },
+    { type: "dentiste",  maxDays: 365, weight: 4 },
+    { type: "osteo",     maxDays: 180, weight: 2, optional: true },
   ];
 
   let score = 0;
@@ -172,17 +190,10 @@ function calculateSante(healthRecords: HealthRecord[], now: Date): number {
       .filter((r) => r.type === check.type)
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-    if (records.length === 0) {
-      if (!check.optional) {
-        // No record = 0 pts for this check
-      }
-      continue;
-    }
+    if (records.length === 0) continue;
 
     const lastRecord = records[0];
-    const nextDate = lastRecord.next_date
-      ? parseISO(lastRecord.next_date)
-      : null;
+    const nextDate = lastRecord.next_date ? parseISO(lastRecord.next_date) : null;
 
     if (nextDate) {
       const daysUntilNext = differenceInDays(nextDate, now);
@@ -191,9 +202,8 @@ function calculateSante(healthRecords: HealthRecord[], now: Date): number {
       } else if (daysUntilNext >= -7) {
         score += check.weight * 0.5;
       }
-      // Overdue by more than 7 days = 0 pts
+      // Dépassé de plus de 7 jours = 0 pt
     } else {
-      // If we have a record but no next_date, check if the last record is recent enough
       const daysSinceRecord = differenceInDays(now, parseISO(lastRecord.date));
       if (daysSinceRecord <= check.maxDays) {
         score += check.weight;
@@ -202,6 +212,12 @@ function calculateSante(healthRecords: HealthRecord[], now: Date): number {
       }
     }
   }
+
+  // Bonus vétérinaire : visite vét dans les 12 derniers mois = +1 pt (suivi proactif)
+  const recentVet = healthRecords.some(
+    (r) => r.type === "veterinaire" && differenceInDays(now, parseISO(r.date)) <= 365
+  );
+  if (recentVet) score += 1;
 
   return Math.min(20, score);
 }
@@ -213,29 +229,41 @@ function calculateRecuperation(sessions: TrainingSession[], now: Date): number {
   );
 
   if (last14Days.length === 0) {
-    // No recent sessions — could be resting, neutral score
-    return 10;
+    return 10; // Pas de séances récentes — score neutre
   }
 
-  // Count rest days (days without training)
+  // Jours de repos (jours sans séance)
   const trainingDays = new Set(last14Days.map((s) => s.date.substring(0, 10)));
   const restDays = 14 - trainingDays.size;
   const restRatio = restDays / 14;
 
-  // Ideal rest ratio: 30-50% (4-7 days rest out of 14)
+  // Ratio idéal : 30-50% (4-7 jours de repos sur 14)
   let restScore: number;
   if (restRatio >= 0.3 && restRatio <= 0.5) restScore = 8;
   else if (restRatio >= 0.2 && restRatio < 0.3) restScore = 5;
   else if (restRatio > 0.5 && restRatio <= 0.7) restScore = 6;
-  else if (restRatio < 0.2) restScore = 2; // Overworked
-  else restScore = 4; // Too much rest
+  else if (restRatio < 0.2) restScore = 2; // Surmenage
+  else restScore = 4; // Trop de repos
 
-  // Average feeling score
+  // Score ressenti moyen
   const avgFeeling =
     last14Days.reduce((sum, s) => sum + s.feeling, 0) / last14Days.length;
-  const feelingScore = (avgFeeling / 5) * 12;
+  const feelingScore = (avgFeeling / 5) * 11;
 
-  return Math.min(20, restScore + feelingScore);
+  // Pénalité : séances longues (>90 min) sans récupération déclarée
+  const intensiveSessions = last14Days.filter(
+    (s) => s.duration_min > 90 && s.intensity >= 4
+  );
+  const intensiveWithoutRecovery = intensiveSessions.filter(
+    (s) => !s.equipement_recuperation
+  ).length;
+  const recoveryPenalty = Math.min(2, intensiveWithoutRecovery * 0.5);
+
+  // Bonus : équipement récupération utilisé au moins une fois
+  const usesRecovery = last14Days.some((s) => !!s.equipement_recuperation);
+  const recoveryBonus = usesRecovery ? 1 : 0;
+
+  return Math.min(20, restScore + feelingScore - recoveryPenalty + recoveryBonus);
 }
 
 function calculateWearables(wearableData: WearableData[], now: Date): number {

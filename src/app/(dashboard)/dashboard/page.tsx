@@ -1,10 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Plus, Heart, Dumbbell, TrendingUp, AlertCircle, Users, Trophy } from "lucide-react";
+import { Plus, Heart, Dumbbell, TrendingUp, AlertCircle, Users, Trophy, Zap, Star, Target } from "lucide-react";
 import { formatDate, daysUntil, HEALTH_TYPE_LABELS, getScoreColor } from "@/lib/utils";
 import Badge from "@/components/ui/Badge";
 import HorseAvatar from "@/components/ui/HorseAvatar";
+import { differenceInDays, startOfWeek } from "date-fns";
+import { fr } from "date-fns/locale";
 
 const USER_TYPE_WELCOME: Record<string, { title: string; subtitle: string; badge: string }> = {
   loisir:          { title: "Bonjour !", subtitle: "Voici l'état de votre cheval aujourd'hui.", badge: "Loisir" },
@@ -135,6 +137,59 @@ export default async function DashboardPage() {
   });
 
   const overdueRecords = alerts.filter((h) => daysUntil(h.next_date!) < 0);
+
+  // ── Quick actions contextuelles ──────────────────────────────────────────
+  const firstHorse = (horses || [])[0];
+  const now = new Date();
+  const weekStart = startOfWeek(now, { locale: fr });
+
+  const hasSessionThisWeek = (recentSessions || []).some(
+    (s) => new Date(s.date) >= weekStart
+  );
+  const latestScoreDate = firstHorse && (latestScores || []).find((s) => s.horse_id === firstHorse.id)?.computed_at;
+  const scoreIsStale = !latestScoreDate || differenceInDays(now, new Date(latestScoreDate)) >= 7;
+  const noObjectif = firstHorse && !(firstHorse as any).objectif_saison;
+
+  type QuickAction = { label: string; sub: string; href: string; icon: React.ElementType; color: string };
+  const quickActions: QuickAction[] = [];
+
+  if (firstHorse && !hasSessionThisWeek) {
+    quickActions.push({
+      label: "Séance du jour",
+      sub: "Aucune séance cette semaine",
+      href: `/horses/${firstHorse.id}/training`,
+      icon: Dumbbell,
+      color: "text-blue-500",
+    });
+  }
+  if (overdueRecords.length > 0 && firstHorse) {
+    const h = overdueRecords[0] as any;
+    quickActions.push({
+      label: "Soin en retard",
+      sub: `${HEALTH_TYPE_LABELS[(overdueRecords[0] as any).type]} — ${h.horses?.name || ""}`,
+      href: `/horses/${(overdueRecords[0] as any).horse_id || firstHorse.id}/health`,
+      icon: Heart,
+      color: "text-red-500",
+    });
+  }
+  if (firstHorse && scoreIsStale) {
+    quickActions.push({
+      label: "Calculer l'index",
+      sub: latestScoreDate ? "Mis à jour il y a 7j+" : "Jamais calculé",
+      href: `/horses/${firstHorse.id}`,
+      icon: Star,
+      color: "text-orange",
+    });
+  }
+  if (firstHorse && noObjectif) {
+    quickActions.push({
+      label: "Définir un objectif",
+      sub: "Objectif de saison manquant",
+      href: `/horses/${firstHorse.id}`,
+      icon: Target,
+      color: "text-green-500",
+    });
+  }
 
   // --- Widget JSX ---
 
@@ -410,6 +465,33 @@ export default async function DashboardPage() {
               return `${HEALTH_TYPE_LABELS[h.type]} (${horseName})`;
             }).join(", ")}
           </p>
+        </div>
+      )}
+
+      {/* Quick actions */}
+      {quickActions.length > 0 && (horses || []).length > 0 && (
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <Zap className="h-3.5 w-3.5 text-orange" />
+            <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">Actions rapides</span>
+          </div>
+          <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
+            {quickActions.map((action) => (
+              <Link
+                key={action.href + action.label}
+                href={action.href}
+                className="flex-shrink-0 flex items-center gap-3 px-4 py-3 bg-white border border-gray-100 rounded-2xl hover:border-gray-300 transition-all shadow-sm min-w-[200px]"
+              >
+                <div className={`w-8 h-8 rounded-xl bg-gray-50 flex items-center justify-center flex-shrink-0`}>
+                  <action.icon className={`h-4 w-4 ${action.color}`} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-black leading-none">{action.label}</p>
+                  <p className="text-xs text-gray-400 mt-0.5 truncate">{action.sub}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
         </div>
       )}
 

@@ -1,7 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import TrainingDashboard from "@/components/training/TrainingDashboard";
 import TrainingPlanCard from "@/components/training/TrainingPlanCard";
 import PdfDownloadButton from "@/components/pdf/PdfDownloadButton";
@@ -12,7 +10,9 @@ interface Props {
 
 export default async function TrainingPage({ params }: Props) {
   const supabase = createClient();
-  const { data: { user: authUser } } = await supabase.auth.getUser();
+  const {
+    data: { user: authUser },
+  } = await supabase.auth.getUser();
   if (!authUser) return notFound();
 
   const { data: horse } = await supabase
@@ -26,10 +26,26 @@ export default async function TrainingPage({ params }: Props) {
 
   const yearStart = `${new Date().getFullYear()}-01-01`;
 
-  const [{ data: sessions }, { data: yearHealth }, { data: yearCompetitions }] = await Promise.all([
-    supabase.from("training_sessions").select("*").eq("horse_id", horse.id).order("date", { ascending: false }),
-    supabase.from("health_records").select("id, type, date, cost").eq("horse_id", horse.id).gte("date", yearStart),
-    supabase.from("competitions").select("id, date, event_name, discipline, result_rank, total_riders").eq("horse_id", horse.id).gte("date", yearStart),
+  const [
+    { data: sessions },
+    { data: yearHealth },
+    { data: yearCompetitions },
+  ] = await Promise.all([
+    supabase
+      .from("training_sessions")
+      .select("*")
+      .eq("horse_id", horse.id)
+      .order("date", { ascending: false }),
+    supabase
+      .from("health_records")
+      .select("id, type, date, cost")
+      .eq("horse_id", horse.id)
+      .gte("date", yearStart),
+    supabase
+      .from("competitions")
+      .select("id, date, event_name, discipline, result_rank, total_riders")
+      .eq("horse_id", horse.id)
+      .gte("date", yearStart),
   ]);
 
   const [{ data: latestInsight }, { data: latestPlan }] = await Promise.all([
@@ -54,17 +70,13 @@ export default async function TrainingPage({ params }: Props) {
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Link href={`/horses/${horse.id}`} className="btn-ghost p-2">
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-          <div>
-            <h1 className="text-2xl font-black text-black">Journal de travail</h1>
-            <p className="text-sm text-gray-400">{horse.name}</p>
-          </div>
-        </div>
+        <h2 className="text-lg font-bold text-black">Journal de travail</h2>
         <div className="flex items-center gap-2">
-          <PdfDownloadButton type="rapport" horse={horse} sessions={sessions || []} />
+          <PdfDownloadButton
+            type="rapport"
+            horse={horse}
+            sessions={sessions || []}
+          />
           <PdfDownloadButton
             type="bilan"
             horse={horse}
@@ -82,7 +94,6 @@ export default async function TrainingPage({ params }: Props) {
         horseId={horse.id}
         latestInsight={latestInsight ?? null}
       />
-
     </div>
   );
 }

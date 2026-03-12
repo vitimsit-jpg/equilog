@@ -1,11 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Plus, Heart, Dumbbell, TrendingUp, AlertCircle, Users, Trophy, Zap, Star, Target } from "lucide-react";
+import { Plus, Heart, Dumbbell, TrendingUp, AlertCircle, Users, Trophy, Zap, Star, Target, Activity, ShieldCheck } from "lucide-react";
 import { formatDate, daysUntil, HEALTH_TYPE_LABELS, getScoreColor } from "@/lib/utils";
 import Badge from "@/components/ui/Badge";
 import HorseAvatar from "@/components/ui/HorseAvatar";
-import { differenceInDays, startOfWeek } from "date-fns";
+import { differenceInDays, startOfWeek, subDays } from "date-fns";
 import { fr } from "date-fns/locale";
 
 const USER_TYPE_WELCOME: Record<string, { title: string; subtitle: string; badge: string }> = {
@@ -17,14 +17,13 @@ const USER_TYPE_WELCOME: Record<string, { title: string; subtitle: string; badge
   gerant_ecurie:   { title: "Tableau de bord écurie", subtitle: "Vue d'ensemble de tous vos pensionnaires.", badge: "Gérant écurie" },
 };
 
-// Widgets shown for each profile (in order)
 const WIDGET_ORDER: Record<string, string[]> = {
-  loisir:          ["horses", "alerts", "sessions_insights", "ecurie"],
-  competition:     ["horses", "competitions", "sessions_insights", "alerts", "ecurie"],
-  pro:             ["horses", "sessions_insights", "competitions", "alerts", "ecurie"],
-  gerant_cavalier: ["ecurie", "horses", "alerts", "sessions_insights"],
-  coach:           ["horses", "sessions_insights", "ecurie"],
-  gerant_ecurie:   ["ecurie", "horses", "alerts"],
+  loisir:          ["alerts", "sessions_insights", "ecurie"],
+  competition:     ["competitions", "sessions_insights", "alerts", "ecurie"],
+  pro:             ["sessions_insights", "competitions", "alerts", "ecurie"],
+  gerant_cavalier: ["ecurie", "alerts", "sessions_insights"],
+  coach:           ["sessions_insights", "ecurie"],
+  gerant_ecurie:   ["ecurie", "alerts"],
 };
 
 export default async function DashboardPage() {
@@ -49,8 +48,8 @@ export default async function DashboardPage() {
 
   const horseIds = (horses || []).map((h) => h.id);
   const userEcuries = Array.from(new Set((horses || []).map((h) => h.ecurie).filter(Boolean))) as string[];
-
   const fetchCompetitions = ["competition", "pro", "gerant_cavalier"].includes(userType);
+  const thirtyDaysAgo = subDays(new Date(), 30).toISOString().split("T")[0];
 
   const [
     { data: latestScores },
@@ -58,6 +57,7 @@ export default async function DashboardPage() {
     { data: recentSessions },
     { data: recentInsights },
     { data: recentCompetitions },
+    { count: sessionsCount30d },
   ] = await Promise.all([
     supabase
       .from("horse_scores")
@@ -92,6 +92,13 @@ export default async function DashboardPage() {
           .order("date", { ascending: false })
           .limit(4)
       : Promise.resolve({ data: null }),
+    horseIds.length
+      ? supabase
+          .from("training_sessions")
+          .select("id", { count: "exact", head: true })
+          .in("horse_id", horseIds)
+          .gte("date", thirtyDaysAgo)
+      : Promise.resolve({ count: 0 }),
   ]);
 
   const scoresByHorse: Record<string, number> = {};
@@ -135,22 +142,24 @@ export default async function DashboardPage() {
     const days = daysUntil(h.next_date!);
     return days <= 30;
   });
-
   const overdueRecords = alerts.filter((h) => daysUntil(h.next_date!) < 0);
 
-  // ── Quick actions contextuelles ──────────────────────────────────────────
+  // Stats
+  const scoresArr = Object.values(scoresByHorse);
+  const avgScore = scoresArr.length ? Math.round(scoresArr.reduce((a, b) => a + b, 0) / scoresArr.length) : null;
+  const nextAlert = (upcomingHealth || []).find((h) => h.next_date && daysUntil(h.next_date) >= 0);
+  const nextAlertDays = nextAlert ? daysUntil(nextAlert.next_date!) : null;
+
+  // Quick actions
   const firstHorse = (horses || [])[0];
   const now = new Date();
   const weekStart = startOfWeek(now, { locale: fr });
-
-  const hasSessionThisWeek = (recentSessions || []).some(
-    (s) => new Date(s.date) >= weekStart
-  );
+  const hasSessionThisWeek = (recentSessions || []).some((s) => new Date(s.date) >= weekStart);
   const latestScoreDate = firstHorse && (latestScores || []).find((s) => s.horse_id === firstHorse.id)?.computed_at;
   const scoreIsStale = !latestScoreDate || differenceInDays(now, new Date(latestScoreDate)) >= 7;
   const noObjectif = firstHorse && !(firstHorse as any).objectif_saison;
 
-  type QuickAction = { label: string; sub: string; href: string; icon: React.ElementType; color: string };
+  type QuickAction = { label: string; sub: string; href: string; icon: React.ElementType; color: string; bg: string };
   const quickActions: QuickAction[] = [];
 
   if (firstHorse && !hasSessionThisWeek) {
@@ -160,6 +169,7 @@ export default async function DashboardPage() {
       href: `/horses/${firstHorse.id}/training`,
       icon: Dumbbell,
       color: "text-blue-500",
+      bg: "bg-blue-50",
     });
   }
   if (overdueRecords.length > 0 && firstHorse) {
@@ -170,6 +180,7 @@ export default async function DashboardPage() {
       href: `/horses/${(overdueRecords[0] as any).horse_id || firstHorse.id}/health`,
       icon: Heart,
       color: "text-red-500",
+      bg: "bg-red-50",
     });
   }
   if (firstHorse && scoreIsStale) {
@@ -179,6 +190,7 @@ export default async function DashboardPage() {
       href: `/horses/${firstHorse.id}`,
       icon: Star,
       color: "text-orange",
+      bg: "bg-orange-light",
     });
   }
   if (firstHorse && noObjectif) {
@@ -187,44 +199,12 @@ export default async function DashboardPage() {
       sub: "Objectif de saison manquant",
       href: `/horses/${firstHorse.id}`,
       icon: Target,
-      color: "text-green-500",
+      color: "text-green-600",
+      bg: "bg-green-50",
     });
   }
 
-  // --- Widget JSX ---
-
-  const widgetHorses = (horses || []).length > 0 ? (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {(horses || []).map((horse) => {
-        const score = scoresByHorse[horse.id];
-        return (
-          <Link key={horse.id} href={`/horses/${horse.id}`} className="card-hover group">
-            <div className="flex items-start justify-between mb-3">
-              <HorseAvatar name={horse.name} photoUrl={horse.avatar_url} size="lg" />
-              {score !== undefined && (
-                <div className="text-right">
-                  <div className="text-2xl font-black text-black">{score}</div>
-                  <div className="text-2xs text-gray-400 uppercase tracking-wide">Horse Index</div>
-                </div>
-              )}
-            </div>
-            <h3 className="font-bold text-black">{horse.name}</h3>
-            <p className="text-xs text-gray-400 mt-0.5">
-              {horse.breed && `${horse.breed} · `}
-              {horse.discipline}
-            </p>
-          </Link>
-        );
-      })}
-      <Link
-        href="/horses/new"
-        className="card border-2 border-dashed border-gray-200 hover:border-orange transition-colors flex items-center justify-center gap-2 text-gray-400 hover:text-orange min-h-[100px]"
-      >
-        <Plus className="h-4 w-4" />
-        <span className="text-sm font-medium">Ajouter un cheval</span>
-      </Link>
-    </div>
-  ) : null;
+  // --- Widgets ---
 
   const widgetAlerts = alerts.length > 0 ? (
     <div className="card">
@@ -280,10 +260,7 @@ export default async function DashboardPage() {
                   <div className="text-right">
                     <div className="flex gap-1">
                       {Array.from({ length: 5 }).map((_, i) => (
-                        <div
-                          key={i}
-                          className={`w-1.5 h-3 rounded-full ${i < s.intensity ? "bg-orange" : "bg-gray-200"}`}
-                        />
+                        <div key={i} className={`w-1.5 h-3 rounded-full ${i < s.intensity ? "bg-orange" : "bg-gray-200"}`} />
                       ))}
                     </div>
                     <p className="text-xs text-gray-400 mt-0.5">{formatDate(s.date)}</p>
@@ -307,7 +284,7 @@ export default async function DashboardPage() {
               let parsed: { summary?: string } = {};
               try { parsed = JSON.parse(insight.content); } catch {}
               return (
-                <div key={insight.id} className="p-3 rounded-lg bg-orange-light border border-orange/10">
+                <div key={insight.id} className="p-3 rounded-xl bg-orange-light border border-orange/10">
                   <p className="text-xs font-semibold text-orange mb-1">{horseName}</p>
                   <p className="text-xs text-gray-700 leading-relaxed">
                     {parsed.summary || insight.content.substring(0, 120)}
@@ -345,9 +322,7 @@ export default async function DashboardPage() {
                   <p className="text-xs text-gray-400">{horseName} · {c.discipline} · {formatDate(c.date)}</p>
                 </div>
                 {hasRank ? (
-                  <div className="text-right">
-                    <p className="text-lg font-black text-black">{c.result_rank}<span className="text-xs text-gray-400 font-normal">/{c.total_riders}</span></p>
-                  </div>
+                  <p className="text-lg font-black text-black">{c.result_rank}<span className="text-xs text-gray-400 font-normal">/{c.total_riders}</span></p>
                 ) : (
                   <span className="text-xs text-gray-300">—</span>
                 )}
@@ -380,10 +355,7 @@ export default async function DashboardPage() {
             <h2 className="font-bold text-black">Mon écurie</h2>
             <span className="text-xs text-gray-400 font-normal">— {userEcuries[0]}</span>
           </div>
-          <Link
-            href={`/ecurie/${encodeURIComponent(userEcuries[0])}`}
-            className="text-xs text-orange font-semibold hover:underline"
-          >
+          <Link href={`/ecurie/${encodeURIComponent(userEcuries[0])}`} className="text-xs text-orange font-semibold hover:underline">
             Voir tout →
           </Link>
         </div>
@@ -410,24 +382,10 @@ export default async function DashboardPage() {
           })}
         </div>
       </div>
-    ) : (
-      <div className="card border-2 border-dashed border-gray-200 text-center py-8">
-        <Users className="h-6 w-6 text-gray-300 mx-auto mb-2" />
-        <p className="text-sm font-semibold text-black mb-1">Aucun pensionnaire visible</p>
-        <p className="text-xs text-gray-400 mb-3">
-          Renseignez le nom de votre écurie sur votre fiche cheval pour voir les autres pensionnaires qui partagent leur Horse Index.
-        </p>
-        {horseIds[0] && (
-          <Link href={`/horses/${horseIds[0]}`} className="text-xs font-semibold text-orange hover:underline">
-            Renseigner mon écurie →
-          </Link>
-        )}
-      </div>
-    )
+    ) : null
   ) : null;
 
   const WIDGETS: Record<string, React.ReactNode> = {
-    horses: widgetHorses,
     alerts: widgetAlerts,
     sessions_insights: widgetSessionsInsights,
     competitions: widgetCompetitions,
@@ -436,8 +394,9 @@ export default async function DashboardPage() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 animate-fade-in">
-      {/* Hero header */}
-      <div className="rounded-2xl bg-gradient-to-br from-[#1A1A1A] to-[#2D1A0E] px-6 py-5 flex items-center justify-between">
+
+      {/* ── Hero header ───────────────────────────────────────────────── */}
+      <div className="rounded-2xl bg-gradient-to-br from-[#1A1A1A] to-[#2D1A0E] px-6 py-6 flex items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5 mb-1">
             <h1 className="text-2xl font-black text-white">{welcome.title}</h1>
@@ -445,45 +404,177 @@ export default async function DashboardPage() {
               {welcome.badge}
             </span>
           </div>
-          <p className="text-sm text-gray-400">{welcome.subtitle}</p>
+          <p className="text-sm text-gray-500">{welcome.subtitle}</p>
         </div>
         <Link href="/horses/new" className="btn-primary flex-shrink-0">
           <Plus className="h-4 w-4" />
           <span className="hidden sm:inline">Nouveau cheval</span>
-          <span className="sm:hidden">Ajouter</span>
+          <span className="sm:hidden">+</span>
         </Link>
       </div>
 
-      {/* Overdue health banner */}
-      {overdueRecords.length > 0 && (
-        <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-red-50 border border-red-200">
-          <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0" />
-          <p className="text-sm font-semibold text-red-700 flex-1">
-            {overdueRecords.length} soin{overdueRecords.length > 1 ? "s" : ""} en retard —{" "}
-            {overdueRecords.map((h) => {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              const horseName = (h as any).horses?.name;
-              return `${HEALTH_TYPE_LABELS[h.type]} (${horseName})`;
-            }).join(", ")}
-          </p>
+      {/* ── Stats strip ───────────────────────────────────────────────── */}
+      {(horses || []).length > 0 && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {/* Séances 30j */}
+          <div className="card p-4 flex flex-col gap-1">
+            <div className="flex items-center gap-1.5 mb-1">
+              <Activity className="h-3.5 w-3.5 text-blue-500" />
+              <span className="text-2xs font-bold uppercase tracking-wide text-gray-400">Séances (30j)</span>
+            </div>
+            <div className="text-3xl font-black text-black leading-none">{sessionsCount30d ?? 0}</div>
+            <p className="text-xs text-gray-400 mt-0.5">entraînements</p>
+          </div>
+
+          {/* Horse Index moyen */}
+          <div className="card p-4 flex flex-col gap-1">
+            <div className="flex items-center gap-1.5 mb-1">
+              <Star className="h-3.5 w-3.5 text-orange" />
+              <span className="text-2xs font-bold uppercase tracking-wide text-gray-400">Horse Index</span>
+            </div>
+            {avgScore !== null ? (
+              <>
+                <div className="text-3xl font-black leading-none" style={{ color: getScoreColor(avgScore) }}>{avgScore}</div>
+                <p className="text-xs text-gray-400 mt-0.5">score moyen</p>
+              </>
+            ) : (
+              <>
+                <div className="text-3xl font-black text-gray-200 leading-none">—</div>
+                <p className="text-xs text-gray-400 mt-0.5">non calculé</p>
+              </>
+            )}
+          </div>
+
+          {/* Soins en retard */}
+          <div className={`card p-4 flex flex-col gap-1 ${overdueRecords.length > 0 ? "border border-red-100" : ""}`}>
+            <div className="flex items-center gap-1.5 mb-1">
+              <ShieldCheck className={`h-3.5 w-3.5 ${overdueRecords.length > 0 ? "text-danger" : "text-success"}`} />
+              <span className="text-2xs font-bold uppercase tracking-wide text-gray-400">Santé</span>
+            </div>
+            <div className={`text-3xl font-black leading-none ${overdueRecords.length > 0 ? "text-danger" : "text-success"}`}>
+              {overdueRecords.length > 0 ? overdueRecords.length : "✓"}
+            </div>
+            <p className="text-xs text-gray-400 mt-0.5">
+              {overdueRecords.length > 0 ? `soin${overdueRecords.length > 1 ? "s" : ""} en retard` : "à jour"}
+            </p>
+          </div>
+
+          {/* Prochaine échéance */}
+          <div className="card p-4 flex flex-col gap-1">
+            <div className="flex items-center gap-1.5 mb-1">
+              <Heart className="h-3.5 w-3.5 text-pink-500" />
+              <span className="text-2xs font-bold uppercase tracking-wide text-gray-400">Prochain soin</span>
+            </div>
+            {nextAlertDays !== null ? (
+              <>
+                <div className={`text-3xl font-black leading-none ${nextAlertDays <= 7 ? "text-warning" : "text-black"}`}>
+                  J-{nextAlertDays}
+                </div>
+                <p className="text-xs text-gray-400 mt-0.5 truncate">
+                  {nextAlert && HEALTH_TYPE_LABELS[(nextAlert as any).type]}
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="text-3xl font-black text-gray-200 leading-none">—</div>
+                <p className="text-xs text-gray-400 mt-0.5">aucun prévu</p>
+              </>
+            )}
+          </div>
         </div>
       )}
 
-      {/* Quick actions */}
+      {/* ── Mes chevaux — cards photo ─────────────────────────────────── */}
+      {(horses || []).length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-bold text-black">Mes chevaux</h2>
+            <Link href="/horses/new" className="text-xs text-gray-400 hover:text-orange transition-colors font-medium flex items-center gap-1">
+              <Plus className="h-3.5 w-3.5" />
+              Ajouter
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {(horses || []).map((horse) => {
+              const score = scoresByHorse[horse.id];
+              const avatarUrl = (horse as any).avatar_url;
+              const overdue = overdueRecords.filter((r) => (r as any).horse_id === horse.id).length;
+              return (
+                <Link
+                  key={horse.id}
+                  href={`/horses/${horse.id}`}
+                  className="relative rounded-2xl overflow-hidden min-h-[200px] flex flex-col justify-end group cursor-pointer shadow-card hover:shadow-card-hover transition-all duration-300 hover:-translate-y-0.5"
+                >
+                  {/* Background */}
+                  {avatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={avatarUrl}
+                      alt={horse.name}
+                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 bg-gradient-to-br from-gray-700 via-gray-800 to-[#2D1A0E]" />
+                  )}
+                  {/* Dark overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
+
+                  {/* Score badge top-right */}
+                  {score !== undefined && (
+                    <div className="absolute top-3 right-3 flex flex-col items-center bg-black/40 backdrop-blur-sm rounded-xl px-2.5 py-1.5 border border-white/15">
+                      <span className="text-xl font-black text-white leading-none" style={{ color: getScoreColor(score) }}>{score}</span>
+                      <span className="text-2xs text-white/50 uppercase tracking-wider leading-none mt-0.5">Index</span>
+                    </div>
+                  )}
+
+                  {/* Overdue badge top-left */}
+                  {overdue > 0 && (
+                    <div className="absolute top-3 left-3 flex items-center gap-1 bg-danger/90 backdrop-blur-sm rounded-xl px-2.5 py-1 border border-red-400/30">
+                      <Heart className="h-3 w-3 text-white" />
+                      <span className="text-xs font-bold text-white">{overdue} en retard</span>
+                    </div>
+                  )}
+
+                  {/* Content bottom */}
+                  <div className="relative z-10 px-4 py-4">
+                    <h3 className="text-lg font-black text-white leading-tight">{horse.name}</h3>
+                    <p className="text-xs text-white/50 mt-0.5">
+                      {[horse.breed, horse.discipline].filter(Boolean).join(" · ") || "—"}
+                    </p>
+                  </div>
+                </Link>
+              );
+            })}
+
+            {/* Add new horse card */}
+            <Link
+              href="/horses/new"
+              className="relative rounded-2xl min-h-[200px] flex flex-col items-center justify-center gap-2 border-2 border-dashed border-gray-200 hover:border-orange text-gray-400 hover:text-orange transition-all duration-200 group"
+            >
+              <div className="w-10 h-10 rounded-xl bg-gray-100 group-hover:bg-orange-light flex items-center justify-center transition-colors">
+                <Plus className="h-5 w-5" />
+              </div>
+              <span className="text-sm font-semibold">Ajouter un cheval</span>
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {/* ── Quick actions ─────────────────────────────────────────────── */}
       {quickActions.length > 0 && (horses || []).length > 0 && (
         <div>
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2 mb-3">
             <Zap className="h-3.5 w-3.5 text-orange" />
-            <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">Actions rapides</span>
+            <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">À faire</span>
           </div>
-          <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
+          <div className="flex gap-3 overflow-x-auto pb-1">
             {quickActions.map((action) => (
               <Link
                 key={action.href + action.label}
                 href={action.href}
-                className="flex-shrink-0 flex items-center gap-3 px-4 py-3 bg-white border border-gray-100 rounded-2xl hover:border-gray-300 transition-all shadow-sm min-w-[200px]"
+                className="flex-shrink-0 flex items-center gap-3 px-4 py-3 bg-white border border-gray-100 rounded-2xl hover:border-gray-300 hover:shadow-card transition-all duration-200 min-w-[200px]"
               >
-                <div className={`w-8 h-8 rounded-xl bg-gray-50 flex items-center justify-center flex-shrink-0`}>
+                <div className={`w-8 h-8 rounded-xl ${action.bg} flex items-center justify-center flex-shrink-0`}>
                   <action.icon className={`h-4 w-4 ${action.color}`} />
                 </div>
                 <div className="min-w-0">
@@ -496,14 +587,14 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {/* No horses CTA */}
+      {/* ── No horses CTA ─────────────────────────────────────────────── */}
       {(horses || []).length === 0 && (
-        <div className="card text-center py-12">
-          <div className="w-16 h-16 rounded-full bg-beige flex items-center justify-center mx-auto mb-4">
+        <div className="card text-center py-16">
+          <div className="w-16 h-16 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center mx-auto mb-5">
             <span className="text-3xl">🐴</span>
           </div>
           <h2 className="text-lg font-bold text-black mb-2">Bienvenue sur Equistra</h2>
-          <p className="text-sm text-gray-400 mb-6 max-w-sm mx-auto">
+          <p className="text-sm text-gray-400 mb-6 max-w-sm mx-auto leading-relaxed">
             Commencez par ajouter votre premier cheval pour suivre sa santé, son entraînement et ses résultats.
           </p>
           <Link href="/horses/new" className="btn-primary">
@@ -513,7 +604,7 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {/* Widgets in profile-specific order */}
+      {/* ── Widgets in profile order ───────────────────────────────────── */}
       {(horses || []).length > 0 && widgetOrder.map((key) => (
         WIDGETS[key] ? <div key={key}>{WIDGETS[key]}</div> : null
       ))}

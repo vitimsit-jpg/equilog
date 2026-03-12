@@ -61,10 +61,10 @@ export default async function HorsePage({ params }: Props) {
   const breakdown = currentScore?.score_breakdown;
 
   const quickLinks = [
-    { href: `health`, icon: Heart, label: "Carnet de santé", color: "text-red-500" },
-    { href: `training`, icon: Dumbbell, label: "Journal de travail", color: "text-blue-500" },
-    { href: `competitions`, icon: Trophy, label: "Concours", color: "text-yellow-500" },
-    { href: `budget`, icon: Wallet, label: "Budget", color: "text-green-500" },
+    { href: `health`, icon: Heart, label: "Carnet de santé", color: "text-red-500", bg: "bg-red-50" },
+    { href: `training`, icon: Dumbbell, label: "Journal de travail", color: "text-blue-500", bg: "bg-blue-50" },
+    { href: `competitions`, icon: Trophy, label: "Concours", color: "text-yellow-600", bg: "bg-yellow-50" },
+    { href: `budget`, icon: Wallet, label: "Budget", color: "text-green-600", bg: "bg-green-50" },
   ];
 
   let parsedInsight: { summary?: string; insights?: string[]; alerts?: string[]; recommendations?: string[] } = {};
@@ -201,7 +201,9 @@ export default async function HorsePage({ params }: Props) {
             href={`/horses/${horse.id}/${link.href}`}
             className="card-hover flex items-center gap-3 p-4"
           >
-            <link.icon className={`h-5 w-5 ${link.color}`} />
+            <div className={`w-9 h-9 rounded-xl ${link.bg} flex items-center justify-center flex-shrink-0`}>
+              <link.icon className={`h-4.5 w-4.5 ${link.color}`} />
+            </div>
             <span className="text-sm font-semibold text-black">{link.label}</span>
           </Link>
         ))}
@@ -216,9 +218,9 @@ export default async function HorsePage({ params }: Props) {
 
       {/* AI Insight */}
       {parsedInsight.summary && (
-        <div className="card border-l-4 border-orange">
+        <div className="card bg-gradient-to-br from-orange-light to-white border border-orange/10">
           <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-lg bg-orange text-white text-xs font-black flex items-center justify-center flex-shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-orange text-white text-xs font-black flex items-center justify-center flex-shrink-0 shadow-orange">
               IA
             </div>
             <div className="flex-1 min-w-0">

@@ -47,14 +47,19 @@ export default function PremiumNudge({ userPlan, userType, context }: Props) {
   const priceLabel = targetPlan === "Écurie" ? "29€/mois" : "9€/mois";
 
   return (
-    <div className="rounded-xl border-2 border-dashed border-orange/30 bg-orange-light p-4 flex items-start justify-between gap-4">
-      <div>
-        <p className="text-sm font-bold text-black">{nudge.title}</p>
-        <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{nudge.desc}</p>
+    <div className="rounded-2xl bg-gradient-to-r from-orange-light to-white border border-orange/15 p-4 flex items-center justify-between gap-4">
+      <div className="flex items-center gap-3">
+        <div className="w-9 h-9 rounded-xl bg-orange/10 border border-orange/20 flex items-center justify-center flex-shrink-0">
+          <span className="text-orange text-base">✨</span>
+        </div>
+        <div>
+          <p className="text-sm font-bold text-black">{nudge.title}</p>
+          <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{nudge.desc}</p>
+        </div>
       </div>
       <Link
         href="/settings"
-        className="shrink-0 text-xs font-bold text-orange border border-orange/30 rounded-lg px-3 py-1.5 hover:bg-orange hover:text-white transition-colors whitespace-nowrap"
+        className="shrink-0 text-xs font-bold text-white bg-orange rounded-xl px-3 py-1.5 shadow-orange hover:bg-orange-hover transition-all whitespace-nowrap"
       >
         {nudge.cta} · {priceLabel}
       </Link>

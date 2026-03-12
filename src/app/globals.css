@@ -34,35 +34,35 @@ body {
 
 @layer components {
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-orange text-white font-semibold text-sm px-4 py-2.5 transition-all hover:bg-orange-hover active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-orange text-white font-semibold text-sm px-4 py-2.5 shadow-orange transition-all duration-200 hover:bg-orange-hover hover:shadow-orange-hover active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none;
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-white text-black font-semibold text-sm px-4 py-2.5 border border-gray-200 transition-all hover:bg-gray-50 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-white text-black font-semibold text-sm px-4 py-2.5 border border-gray-200 transition-all duration-200 hover:bg-gray-50 hover:border-gray-300 active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
   .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg text-gray-600 font-medium text-sm px-3 py-2 transition-all hover:bg-black/5 active:scale-95;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl text-gray-600 font-medium text-sm px-3 py-2 transition-all duration-200 hover:bg-black/5 hover:text-black active:scale-[0.97];
   }
 
   .card {
-    @apply bg-white rounded-xl shadow-card p-5;
+    @apply bg-white rounded-2xl shadow-card p-5;
   }
 
   .card-hover {
-    @apply card transition-shadow hover:shadow-card-hover cursor-pointer;
+    @apply card transition-all duration-200 hover:shadow-card-hover hover:-translate-y-px cursor-pointer;
   }
 
   .input {
-    @apply w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-black placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-orange/20 focus:border-orange transition-all;
+    @apply w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-black placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-orange/20 focus:border-orange transition-all duration-150;
   }
 
   .label {
-    @apply block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5;
+    @apply block text-xs font-semibold text-gray-500 mb-1.5 tracking-normal;
   }
 
   .badge {
-    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold;
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold;
   }
 
   .badge-orange {
@@ -82,19 +82,19 @@ body {
   }
 
   .badge-gray {
-    @apply badge bg-gray-100 text-gray-600;
+    @apply badge bg-gray-100 text-gray-500;
   }
 
   .section-title {
-    @apply text-xs font-bold uppercase tracking-widest text-gray-400;
+    @apply text-2xs font-bold uppercase tracking-widest text-gray-400;
   }
 
   .nav-item {
-    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 transition-all hover:bg-black/5 hover:text-black;
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-500 transition-all duration-150 hover:bg-black/5 hover:text-black;
   }
 
   .nav-item-active {
-    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-black bg-orange-light;
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-orange bg-orange-light;
   }
 
   .stat-card {
@@ -103,6 +103,18 @@ body {
 
   .divider {
     @apply border-t border-gray-100;
+  }
+
+  .page-title {
+    @apply text-xl font-bold text-black tracking-tight;
+  }
+
+  .page-subtitle {
+    @apply text-sm text-gray-500;
+  }
+
+  .empty-state {
+    @apply flex flex-col items-center justify-center py-12 text-center;
   }
 }
 

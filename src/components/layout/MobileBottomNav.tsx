@@ -42,18 +42,23 @@ export default function MobileBottomNav({ horses, overdueByHorse = {} }: Props) 
   return (
     <>
       {/* Bottom bar */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-100 md:hidden">
-        <div className="flex items-center justify-around px-1 pt-2 pb-3">
+      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-gray-100 md:hidden shadow-sm-up">
+        <div className="flex items-center justify-around px-1 pt-1.5 pb-safe" style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}>
           {mainItems.map((item) => {
             const active = pathname === item.href;
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className="flex flex-col items-center gap-0.5 px-2 py-1"
+                className="flex flex-col items-center gap-0.5 px-3 py-1.5 min-w-[56px] relative"
               >
-                <item.icon className={cn("h-5 w-5", active ? "text-orange" : "text-gray-400")} />
-                <span className={cn("text-2xs font-medium", active ? "text-black" : "text-gray-400")}>
+                <div className={cn(
+                  "flex items-center justify-center w-9 h-7 rounded-xl transition-all duration-200",
+                  active ? "bg-orange-light" : ""
+                )}>
+                  <item.icon className={cn("h-5 w-5 transition-colors", active ? "text-orange" : "text-gray-400")} />
+                </div>
+                <span className={cn("text-2xs font-medium transition-colors", active ? "text-orange font-semibold" : "text-gray-400")}>
                   {item.label}
                 </span>
               </Link>
@@ -63,19 +68,24 @@ export default function MobileBottomNav({ horses, overdueByHorse = {} }: Props) 
           {/* Mes chevaux */}
           <button
             onClick={() => setDrawerOpen(true)}
-            className="flex flex-col items-center gap-0.5 px-2 py-1 relative"
+            className="flex flex-col items-center gap-0.5 px-3 py-1.5 min-w-[56px] relative"
           >
-            {activeHorse ? (
-              <HorseAvatar name={activeHorse.name} photoUrl={activeHorse.avatar_url} size="xs" rounded="full" />
-            ) : (
-              <div className="w-5 h-5 rounded-full bg-gray-400 flex items-center justify-center">
-                <span className="text-white text-xs font-black">+</span>
-              </div>
-            )}
+            <div className={cn(
+              "flex items-center justify-center w-9 h-7 rounded-xl transition-all duration-200",
+              activeHorse ? "bg-orange-light" : ""
+            )}>
+              {activeHorse ? (
+                <HorseAvatar name={activeHorse.name} photoUrl={activeHorse.avatar_url} size="xs" rounded="full" />
+              ) : (
+                <div className="w-5 h-5 rounded-full bg-gray-300 flex items-center justify-center">
+                  <span className="text-white text-xs font-black">+</span>
+                </div>
+              )}
+            </div>
             {hasAnyOverdue && (
-              <span className="absolute top-0.5 right-0 w-2 h-2 rounded-full bg-red-500" />
+              <span className="absolute top-1 right-2 w-2 h-2 rounded-full bg-danger border-2 border-white" />
             )}
-            <span className={cn("text-2xs font-medium", activeHorse ? "text-black" : "text-gray-400")}>
+            <span className={cn("text-2xs font-medium transition-colors", activeHorse ? "text-orange font-semibold" : "text-gray-400")}>
               Chevaux
             </span>
           </button>
@@ -84,14 +94,17 @@ export default function MobileBottomNav({ horses, overdueByHorse = {} }: Props) 
 
       {/* Drawer */}
       {drawerOpen && (
-        <div className="fixed inset-0 z-50 md:hidden">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setDrawerOpen(false)} />
-          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl max-h-[80vh] flex flex-col">
-            {/* Handle */}
-            <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-gray-100 flex-shrink-0">
+        <div className="fixed inset-0 z-50 md:hidden animate-fade-in">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setDrawerOpen(false)} />
+          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl max-h-[82vh] flex flex-col animate-slide-up">
+            {/* Handle bar */}
+            <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
+              <div className="w-10 h-1 rounded-full bg-gray-200" />
+            </div>
+            <div className="flex items-center justify-between px-5 pt-1 pb-3 border-b border-gray-100 flex-shrink-0">
               <span className="font-bold text-black text-base">Mes chevaux</span>
-              <button onClick={() => setDrawerOpen(false)} className="p-1 rounded-lg hover:bg-gray-100">
-                <X className="h-5 w-5 text-gray-400" />
+              <button onClick={() => setDrawerOpen(false)} className="p-1.5 rounded-xl hover:bg-gray-100 transition-colors">
+                <X className="h-4 w-4 text-gray-400" />
               </button>
             </div>
 
@@ -99,17 +112,17 @@ export default function MobileBottomNav({ horses, overdueByHorse = {} }: Props) 
               {horses.map((horse) => {
                 const overdue = overdueByHorse[horse.id] || 0;
                 return (
-                  <div key={horse.id} className="rounded-xl border border-gray-100 overflow-hidden">
+                  <div key={horse.id} className="rounded-2xl border border-gray-100 overflow-hidden shadow-card">
                     {/* Horse name row */}
                     <Link
                       href={`/horses/${horse.id}`}
                       onClick={() => setDrawerOpen(false)}
-                      className="flex items-center gap-3 px-4 py-3 bg-gray-50"
+                      className="flex items-center gap-3 px-4 py-3 bg-gray-50/80"
                     >
                       <HorseAvatar name={horse.name} photoUrl={horse.avatar_url} size="sm" rounded="full" />
                       <span className="font-semibold text-black flex-1 truncate">{horse.name}</span>
                       {overdue > 0 && (
-                        <span className="w-5 h-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-bold flex-shrink-0">
+                        <span className="w-5 h-5 rounded-full bg-danger text-white text-xs flex items-center justify-center font-bold flex-shrink-0">
                           {overdue}
                         </span>
                       )}
@@ -127,13 +140,13 @@ export default function MobileBottomNav({ horses, overdueByHorse = {} }: Props) 
                             onClick={() => setDrawerOpen(false)}
                             className={cn(
                               "relative flex flex-col items-center gap-1 py-3 transition-colors",
-                              active ? "bg-orange-light text-orange" : "text-gray-500"
+                              active ? "bg-orange-light text-orange" : "text-gray-500 hover:bg-gray-50"
                             )}
                           >
                             <item.icon className="h-4 w-4" />
                             <span className="text-2xs font-medium">{item.label}</span>
                             {showDot && (
-                              <span className="absolute top-1 right-2 w-1.5 h-1.5 rounded-full bg-red-500" />
+                              <span className="absolute top-1 right-2 w-1.5 h-1.5 rounded-full bg-danger" />
                             )}
                           </Link>
                         );
@@ -146,7 +159,7 @@ export default function MobileBottomNav({ horses, overdueByHorse = {} }: Props) 
               <Link
                 href="/horses/new"
                 onClick={() => setDrawerOpen(false)}
-                className="flex items-center gap-2 justify-center py-3 text-sm text-gray-400 border border-dashed border-gray-200 rounded-xl hover:border-orange hover:text-orange transition-colors"
+                className="flex items-center gap-2 justify-center py-3.5 text-sm text-gray-400 border border-dashed border-gray-200 rounded-2xl hover:border-orange hover:text-orange transition-colors"
               >
                 <Plus className="h-4 w-4" />
                 Ajouter un cheval

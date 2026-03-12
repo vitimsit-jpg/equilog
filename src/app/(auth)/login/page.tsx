@@ -33,21 +33,22 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-beige flex items-center justify-center p-4">
-      <div className="w-full max-w-sm">
+    <div className="min-h-screen flex items-center justify-center p-4" style={{ background: "linear-gradient(135deg, #FAFAFA 0%, #FFF0EB 50%, #F5F5F5 100%)" }}>
+      <div className="w-full max-w-sm animate-fade-in">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 mb-4">
-            <div className="w-10 h-10 rounded-xl bg-black flex items-center justify-center">
+          <div className="inline-flex items-center gap-2.5 mb-3">
+            <div className="w-11 h-11 rounded-2xl bg-black flex items-center justify-center shadow-lg">
               <span className="text-white font-black text-lg">E</span>
             </div>
             <span className="font-black text-black text-2xl tracking-tight">EQUISTRA</span>
           </div>
-          <p className="text-sm text-gray-500">Le Strava du cheval</p>
+          <p className="text-sm text-gray-500 font-medium">Le carnet de bord de votre cheval</p>
         </div>
 
-        <div className="card">
-          <h1 className="text-xl font-bold text-black mb-6">Connexion</h1>
+        <div className="card shadow-card-hover">
+          <h1 className="text-xl font-bold text-black mb-1">Bon retour</h1>
+          <p className="text-sm text-gray-400 mb-6">Connectez-vous à votre espace.</p>
 
           <form onSubmit={handleLogin} className="space-y-4">
             <Input
@@ -67,7 +68,7 @@ export default function LoginPage() {
               required
             />
 
-            <Button type="submit" loading={loading} className="w-full">
+            <Button type="submit" loading={loading} className="w-full mt-1">
               Se connecter
             </Button>
           </form>

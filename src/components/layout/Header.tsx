@@ -23,17 +23,17 @@ export default function Header({ user }: HeaderProps) {
   };
 
   return (
-    <header className="h-14 bg-white border-b border-gray-100 flex items-center justify-between px-4 md:px-6">
+    <header className="h-14 bg-white/90 backdrop-blur-md border-b border-gray-100 flex items-center justify-between px-4 md:px-6 sticky top-0 z-30">
       {/* Logo visible sur mobile uniquement (sidebar cachée) */}
       <Link href="/dashboard" className="flex items-center gap-2 md:hidden">
-        <div className="w-7 h-7 rounded-lg bg-black flex items-center justify-center">
+        <div className="w-7 h-7 rounded-xl bg-black flex items-center justify-center">
           <span className="text-white font-black text-xs">E</span>
         </div>
         <span className="font-black text-black text-base tracking-tight">EQUISTRA</span>
       </Link>
       <div className="hidden md:block" />
-      <div className="flex items-center gap-2">
-        <button className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-black transition-colors relative">
+      <div className="flex items-center gap-1.5">
+        <button className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-black transition-colors relative">
           <Bell className="h-4 w-4" />
           <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-orange" />
         </button>
@@ -41,7 +41,7 @@ export default function Header({ user }: HeaderProps) {
         <div className="relative">
           <button
             onClick={() => setOpen(!open)}
-            className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+            className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-xl hover:bg-gray-100 transition-colors"
           >
             <div className="w-7 h-7 rounded-full bg-black text-white text-xs font-bold flex items-center justify-center">
               {user?.name?.[0]?.toUpperCase() || <User className="h-3.5 w-3.5" />}
@@ -50,14 +50,22 @@ export default function Header({ user }: HeaderProps) {
           </button>
 
           {open && (
-            <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50">
-              <div className="px-4 py-2 border-b border-gray-100">
+            <div className="absolute right-0 top-full mt-1.5 w-48 bg-white rounded-2xl shadow-card-hover border border-gray-100 py-1.5 z-50 animate-scale-in">
+              <div className="px-4 py-2.5 border-b border-gray-100">
                 <p className="text-xs font-semibold text-black truncate">{user?.name}</p>
                 <p className="text-xs text-gray-400 truncate">{user?.email}</p>
               </div>
+              <Link
+                href="/settings"
+                onClick={() => setOpen(false)}
+                className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-black transition-colors"
+              >
+                <User className="h-4 w-4" />
+                Mon profil
+              </Link>
               <button
                 onClick={handleSignOut}
-                className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-black transition-colors"
+                className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-danger hover:bg-red-50 transition-colors"
               >
                 <LogOut className="h-4 w-4" />
                 Se déconnecter

@@ -112,7 +112,7 @@ export default function CoachChat({ horseId, horseName, hasRecentCompetition }: 
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="fixed bottom-6 right-6 z-50 flex items-center gap-2 bg-black text-white px-4 py-3 rounded-2xl shadow-lg hover:bg-gray-900 transition-all hover:scale-105"
+          className="fixed bottom-20 right-4 md:bottom-6 md:right-6 z-50 flex items-center gap-2 bg-black text-white px-4 py-3 rounded-2xl shadow-lg hover:bg-gray-900 transition-all hover:scale-105 animate-fade-in"
         >
           <Sparkles className="h-4 w-4 text-orange" />
           <span className="text-sm font-bold">Coach IA</span>
@@ -121,7 +121,7 @@ export default function CoachChat({ horseId, horseName, hasRecentCompetition }: 
 
       {/* Chat panel */}
       {open && (
-        <div className="fixed bottom-6 right-6 z-50 w-[380px] max-w-[calc(100vw-24px)] flex flex-col rounded-2xl shadow-2xl border border-gray-100 overflow-hidden bg-white" style={{ height: "520px" }}>
+        <div className="fixed bottom-0 right-0 md:bottom-6 md:right-6 z-50 w-full md:w-[380px] max-w-full flex flex-col md:rounded-3xl shadow-2xl border border-gray-100 overflow-hidden bg-white" style={{ height: "min(520px, 92vh)" }}>
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 bg-black">
             <div className="flex items-center gap-2">

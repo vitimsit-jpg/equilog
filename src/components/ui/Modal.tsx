@@ -51,7 +51,7 @@ export default function Modal({ open, onClose, title, children, className, size 
     >
       <div
         className={cn(
-          "w-full bg-white rounded-2xl shadow-lg animate-slide-up overflow-hidden",
+          "w-full bg-white rounded-3xl shadow-card-hover animate-scale-in overflow-hidden",
           sizes[size],
           className
         )}
@@ -61,7 +61,7 @@ export default function Modal({ open, onClose, title, children, className, size 
             <h2 className="text-base font-bold text-black">{title}</h2>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-400 hover:text-black"
+              className="p-1.5 rounded-xl hover:bg-gray-100 transition-colors text-gray-400 hover:text-black"
             >
               <X className="h-4 w-4" />
             </button>

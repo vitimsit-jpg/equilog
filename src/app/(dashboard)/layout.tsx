@@ -53,11 +53,16 @@ export default async function DashboardLayout({
   return (
     <div className="flex h-screen bg-beige overflow-hidden">
       <div className="hidden md:flex">
-        <Sidebar horses={horses || []} userType={userProfile?.user_type ?? null} overdueByHorse={overdueByHorse} />
+        <Sidebar
+          horses={horses || []}
+          currentHorseId={undefined}
+          userType={userProfile?.user_type ?? null}
+          overdueByHorse={overdueByHorse}
+        />
       </div>
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header user={userProfile} />
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 pb-20 md:pb-6">{children}</main>
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 pb-20 md:pb-6 scroll-smooth">{children}</main>
       </div>
       <MobileBottomNav horses={horses || []} overdueByHorse={overdueByHorse} />
     </div>

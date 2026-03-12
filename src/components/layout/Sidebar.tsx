@@ -74,11 +74,11 @@ export default function Sidebar({ horses, currentHorseId, userType, overdueByHor
     .filter((item) => item && !hiddenItems.includes(item.href));
 
   return (
-    <aside className="w-64 min-h-screen bg-white border-r border-gray-100 flex flex-col">
+    <aside className="w-64 min-h-screen bg-white border-r border-gray-100/80 flex flex-col">
       {/* Logo */}
-      <div className="px-5 py-5 border-b border-gray-100">
-        <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-black flex items-center justify-center">
+      <div className="px-5 py-5 border-b border-gray-100/80">
+        <Link href="/dashboard" className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-black flex items-center justify-center shadow-sm">
             <span className="text-white font-black text-sm">E</span>
           </div>
           <span className="font-black text-black text-lg tracking-tight">EQUISTRA</span>

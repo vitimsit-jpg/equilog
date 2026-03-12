@@ -4,6 +4,8 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import CoachChat from "@/components/coaching/CoachChat";
 import HorseTabNav from "@/components/horse/HorseTabNav";
+import HorseSwipeNav from "@/components/horse/HorseSwipeNav";
+import HeroActionsWrapper from "@/components/horse/HeroActionsWrapper";
 import HorseEditModal from "@/components/horse/HorseEditModal";
 import RecalculateButton from "@/components/horse-index/RecalculateButton";
 import ShareButton from "@/components/horse/ShareButton";
@@ -92,7 +94,7 @@ export default async function HorseLayout({ children, params }: Props) {
             >
               <ArrowLeft className="h-4 w-4" />
             </Link>
-            <div className="flex items-center gap-1.5">
+            <HeroActionsWrapper>
               <PdfDownloadButton
                 type="fiche"
                 horse={horse}
@@ -115,7 +117,7 @@ export default async function HorseLayout({ children, params }: Props) {
               )}
               <RecalculateButton horseId={horse.id} />
               <HorseEditModal horse={horse as any} />
-            </div>
+            </HeroActionsWrapper>
           </div>
 
           {/* Bottom: horse name + meta + score badge */}
@@ -155,8 +157,10 @@ export default async function HorseLayout({ children, params }: Props) {
         <HorseTabNav horseId={horse.id} />
       </div>
 
-      {/* Page content */}
-      <div className="mt-6">{children}</div>
+      {/* Page content — swipeable between tabs on mobile */}
+      <HorseSwipeNav horseId={horse.id}>
+        <div className="mt-6">{children}</div>
+      </HorseSwipeNav>
 
       <CoachChat
         horseId={horse.id}

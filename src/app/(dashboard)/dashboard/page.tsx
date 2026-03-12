@@ -494,7 +494,63 @@ export default async function DashboardPage() {
               Ajouter
             </Link>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+
+          {/* Mobile: horizontal snap carousel — full bleed */}
+          <div className="md:hidden -mx-4">
+            <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory px-4 pb-3" style={{ scrollbarWidth: "none" }}>
+              {(horses || []).map((horse) => {
+                const score = scoresByHorse[horse.id];
+                const avatarUrl = (horse as any).avatar_url;
+                const overdue = overdueRecords.filter((r) => (r as any).horse_id === horse.id).length;
+                return (
+                  <Link
+                    key={horse.id}
+                    href={`/horses/${horse.id}`}
+                    className="relative flex-shrink-0 w-[78vw] rounded-2xl overflow-hidden h-[220px] flex flex-col justify-end snap-start shadow-card active:scale-[0.98] transition-transform"
+                  >
+                    {avatarUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={avatarUrl} alt={horse.name} className="absolute inset-0 w-full h-full object-cover" />
+                    ) : (
+                      <div className="absolute inset-0 bg-gradient-to-br from-gray-700 via-gray-800 to-[#2D1A0E]" />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
+                    {score !== undefined && (
+                      <div className="absolute top-3 right-3 flex flex-col items-center bg-black/40 backdrop-blur-sm rounded-xl px-2.5 py-1.5 border border-white/15">
+                        <span className="text-xl font-black text-white leading-none" style={{ color: getScoreColor(score) }}>{score}</span>
+                        <span className="text-2xs text-white/50 uppercase tracking-wider leading-none mt-0.5">Index</span>
+                      </div>
+                    )}
+                    {overdue > 0 && (
+                      <div className="absolute top-3 left-3 flex items-center gap-1 bg-danger/90 backdrop-blur-sm rounded-xl px-2.5 py-1 border border-red-400/30">
+                        <Heart className="h-3 w-3 text-white" />
+                        <span className="text-xs font-bold text-white">{overdue} en retard</span>
+                      </div>
+                    )}
+                    <div className="relative z-10 px-4 py-4">
+                      <h3 className="text-lg font-black text-white leading-tight">{horse.name}</h3>
+                      <p className="text-xs text-white/50 mt-0.5">
+                        {[horse.breed, horse.discipline].filter(Boolean).join(" · ") || "—"}
+                      </p>
+                    </div>
+                  </Link>
+                );
+              })}
+              {/* Add card */}
+              <Link
+                href="/horses/new"
+                className="flex-shrink-0 w-[55vw] snap-start rounded-2xl h-[220px] flex flex-col items-center justify-center gap-2 border-2 border-dashed border-gray-200 active:bg-gray-50 transition-colors"
+              >
+                <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center">
+                  <Plus className="h-5 w-5 text-gray-400" />
+                </div>
+                <span className="text-sm font-semibold text-gray-400">Ajouter</span>
+              </Link>
+            </div>
+          </div>
+
+          {/* Desktop: grid */}
+          <div className="hidden md:grid grid-cols-2 lg:grid-cols-3 gap-4">
             {(horses || []).map((horse) => {
               const score = scoresByHorse[horse.id];
               const avatarUrl = (horse as any).avatar_url;
@@ -505,37 +561,25 @@ export default async function DashboardPage() {
                   href={`/horses/${horse.id}`}
                   className="relative rounded-2xl overflow-hidden min-h-[200px] flex flex-col justify-end group cursor-pointer shadow-card hover:shadow-card-hover transition-all duration-300 hover:-translate-y-0.5"
                 >
-                  {/* Background */}
                   {avatarUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={avatarUrl}
-                      alt={horse.name}
-                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
+                    <img src={avatarUrl} alt={horse.name} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                   ) : (
                     <div className="absolute inset-0 bg-gradient-to-br from-gray-700 via-gray-800 to-[#2D1A0E]" />
                   )}
-                  {/* Dark overlay */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
-
-                  {/* Score badge top-right */}
                   {score !== undefined && (
                     <div className="absolute top-3 right-3 flex flex-col items-center bg-black/40 backdrop-blur-sm rounded-xl px-2.5 py-1.5 border border-white/15">
                       <span className="text-xl font-black text-white leading-none" style={{ color: getScoreColor(score) }}>{score}</span>
                       <span className="text-2xs text-white/50 uppercase tracking-wider leading-none mt-0.5">Index</span>
                     </div>
                   )}
-
-                  {/* Overdue badge top-left */}
                   {overdue > 0 && (
                     <div className="absolute top-3 left-3 flex items-center gap-1 bg-danger/90 backdrop-blur-sm rounded-xl px-2.5 py-1 border border-red-400/30">
                       <Heart className="h-3 w-3 text-white" />
                       <span className="text-xs font-bold text-white">{overdue} en retard</span>
                     </div>
                   )}
-
-                  {/* Content bottom */}
                   <div className="relative z-10 px-4 py-4">
                     <h3 className="text-lg font-black text-white leading-tight">{horse.name}</h3>
                     <p className="text-xs text-white/50 mt-0.5">
@@ -545,8 +589,6 @@ export default async function DashboardPage() {
                 </Link>
               );
             })}
-
-            {/* Add new horse card */}
             <Link
               href="/horses/new"
               className="relative rounded-2xl min-h-[200px] flex flex-col items-center justify-center gap-2 border-2 border-dashed border-gray-200 hover:border-orange text-gray-400 hover:text-orange transition-all duration-200 group"

@@ -180,3 +180,9 @@ body {
 .stagger-children > *:nth-child(5) { animation-delay: 240ms; }
 .stagger-children > *:nth-child(6) { animation-delay: 300ms; }
 .stagger-children > *:nth-child(n+7) { animation-delay: 360ms; }
+
+/* Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton { animation: none; }
+  .stagger-children > * { opacity: 1; animation: none; }
+}

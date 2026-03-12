@@ -436,20 +436,21 @@ export default async function DashboardPage() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+      {/* Hero header */}
+      <div className="rounded-2xl bg-gradient-to-br from-[#1A1A1A] to-[#2D1A0E] px-6 py-5 flex items-center justify-between">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <h1 className="text-2xl font-black text-black">{welcome.title}</h1>
-            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-orange-light text-orange border border-orange/20">
+          <div className="flex items-center gap-2.5 mb-1">
+            <h1 className="text-2xl font-black text-white">{welcome.title}</h1>
+            <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-orange/20 text-orange border border-orange/30">
               {welcome.badge}
             </span>
           </div>
           <p className="text-sm text-gray-400">{welcome.subtitle}</p>
         </div>
-        <Link href="/horses/new" className="btn-primary">
+        <Link href="/horses/new" className="btn-primary flex-shrink-0">
           <Plus className="h-4 w-4" />
-          Nouveau cheval
+          <span className="hidden sm:inline">Nouveau cheval</span>
+          <span className="sm:hidden">Ajouter</span>
         </Link>
       </div>
 

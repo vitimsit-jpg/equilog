@@ -26,7 +26,7 @@ export default function Header({ user }: HeaderProps) {
     <header className="h-14 bg-white/90 backdrop-blur-md border-b border-gray-100 flex items-center justify-between px-4 md:px-6 sticky top-0 z-30">
       {/* Logo visible sur mobile uniquement (sidebar cachée) */}
       <Link href="/dashboard" className="flex items-center gap-2 md:hidden">
-        <div className="w-7 h-7 rounded-xl bg-black flex items-center justify-center">
+        <div className="w-7 h-7 rounded-xl bg-orange flex items-center justify-center shadow-orange">
           <span className="text-white font-black text-xs">E</span>
         </div>
         <span className="font-black text-black text-base tracking-tight">EQUISTRA</span>

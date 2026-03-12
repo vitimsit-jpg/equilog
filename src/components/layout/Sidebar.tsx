@@ -73,19 +73,22 @@ export default function Sidebar({ horses, currentHorseId, userType, overdueByHor
     .map((href) => horseNavItems.find((item) => item.href === href)!)
     .filter((item) => item && !hiddenItems.includes(item.href));
 
+  const darkNavItem = "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-400 transition-all duration-150 hover:bg-white/10 hover:text-white";
+  const darkNavItemActive = "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-white bg-orange";
+
   return (
-    <aside className="w-64 min-h-screen bg-white border-r border-gray-100/80 flex flex-col">
+    <aside className="w-64 min-h-screen bg-[#0F0F0F] flex flex-col">
       {/* Logo */}
-      <div className="px-5 py-5 border-b border-gray-100/80">
+      <div className="px-5 py-5 border-b border-white/10">
         <Link href="/dashboard" className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-black flex items-center justify-center shadow-sm">
+          <div className="w-8 h-8 rounded-xl bg-orange flex items-center justify-center shadow-orange">
             <span className="text-white font-black text-sm">E</span>
           </div>
-          <span className="font-black text-black text-lg tracking-tight">EQUISTRA</span>
+          <span className="font-black text-white text-lg tracking-tight">EQUISTRA</span>
         </Link>
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
+      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
         {/* Main nav */}
         {mainNav.map((item) => {
           const active = pathname === item.href;
@@ -93,7 +96,7 @@ export default function Sidebar({ horses, currentHorseId, userType, overdueByHor
             <Link
               key={item.href}
               href={item.href}
-              className={cn(active ? "nav-item-active" : "nav-item")}
+              className={cn(active ? darkNavItemActive : darkNavItem)}
             >
               <item.icon className="h-4 w-4 flex-shrink-0" />
               {item.label}
@@ -105,7 +108,7 @@ export default function Sidebar({ horses, currentHorseId, userType, overdueByHor
         {(userType === "gerant_ecurie" || userType === "gerant_cavalier") && (
           <Link
             href="/mon-ecurie"
-            className={cn(pathname === "/mon-ecurie" ? "nav-item-active" : "nav-item")}
+            className={cn(pathname === "/mon-ecurie" ? darkNavItemActive : darkNavItem)}
           >
             <Building2 className="h-4 w-4 flex-shrink-0" />
             Mon Écurie
@@ -113,19 +116,19 @@ export default function Sidebar({ horses, currentHorseId, userType, overdueByHor
         )}
 
         {/* Horses section */}
-        <div className="pt-4">
+        <div className="pt-5">
           <div className="flex items-center justify-between px-3 mb-2">
-            <span className="section-title">Mes chevaux</span>
+            <span className="text-2xs font-bold uppercase tracking-widest text-gray-600">Mes chevaux</span>
             <Link
               href="/horses/new"
-              className="p-0.5 rounded hover:bg-gray-100 text-gray-400 hover:text-black transition-colors"
+              className="p-0.5 rounded hover:bg-white/10 text-gray-600 hover:text-white transition-colors"
             >
               <Plus className="h-3.5 w-3.5" />
             </Link>
           </div>
 
           {horses.length === 0 && (
-            <Link href="/horses/new" className="nav-item text-gray-400">
+            <Link href="/horses/new" className={darkNavItem}>
               <Plus className="h-4 w-4" />
               Ajouter un cheval
             </Link>
@@ -140,10 +143,10 @@ export default function Sidebar({ horses, currentHorseId, userType, overdueByHor
                 <button
                   onClick={() => setExpanded(isExpanded ? null : horse.id)}
                   className={cn(
-                    "w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
+                    "w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150",
                     isActiveHorse
-                      ? "bg-orange-light text-black"
-                      : "text-gray-600 hover:bg-black/5 hover:text-black"
+                      ? "text-white bg-white/10"
+                      : "text-gray-400 hover:bg-white/10 hover:text-white"
                   )}
                 >
                   <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -151,13 +154,13 @@ export default function Sidebar({ horses, currentHorseId, userType, overdueByHor
                     <span className="truncate">{horse.name}</span>
                   </div>
                   {overdueByHorse[horse.id] > 0 && (
-                    <span className="ml-1 flex-shrink-0 w-4 h-4 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-bold">
+                    <span className="ml-1 flex-shrink-0 w-4 h-4 rounded-full bg-danger text-white text-xs flex items-center justify-center font-bold">
                       {overdueByHorse[horse.id]}
                     </span>
                   )}
                   <ChevronDown
                     className={cn(
-                      "h-3.5 w-3.5 text-gray-400 transition-transform",
+                      "h-3.5 w-3.5 text-gray-600 transition-transform",
                       isExpanded && "rotate-180"
                     )}
                   />
@@ -174,12 +177,15 @@ export default function Sidebar({ horses, currentHorseId, userType, overdueByHor
                       <Link
                         key={href}
                         href={href}
-                        className={cn(active ? "nav-item-active" : "nav-item", "text-xs py-2")}
+                        className={cn(
+                          active ? darkNavItemActive : darkNavItem,
+                          "text-xs py-2"
+                        )}
                       >
                         <item.icon className="h-3.5 w-3.5 flex-shrink-0" />
                         <span className="flex-1">{item.label}</span>
                         {showAlert && (
-                          <span className="w-4 h-4 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-bold flex-shrink-0">
+                          <span className="w-4 h-4 rounded-full bg-danger text-white text-xs flex items-center justify-center font-bold flex-shrink-0">
                             {overdueByHorse[horse.id]}
                           </span>
                         )}
@@ -187,12 +193,12 @@ export default function Sidebar({ horses, currentHorseId, userType, overdueByHor
                     );
                   };
                   return (
-                    <div className="ml-3 pl-3 border-l border-gray-100 mt-1 space-y-0.5">
+                    <div className="ml-3 pl-3 border-l border-white/10 mt-1 space-y-0.5">
                       {healthItem && renderNavItem(healthItem)}
                       <Link
                         href={`/horses/${horse.id}`}
                         className={cn(
-                          pathname === `/horses/${horse.id}` ? "nav-item-active" : "nav-item",
+                          pathname === `/horses/${horse.id}` ? darkNavItemActive : darkNavItem,
                           "text-xs py-2"
                         )}
                       >
@@ -210,8 +216,8 @@ export default function Sidebar({ horses, currentHorseId, userType, overdueByHor
       </nav>
 
       {/* Bottom */}
-      <div className="px-3 pb-4 border-t border-gray-100 pt-3">
-        <Link href="/settings" className={cn(pathname === "/settings" ? "nav-item-active" : "nav-item")}>
+      <div className="px-3 pb-4 border-t border-white/10 pt-3">
+        <Link href="/settings" className={cn(pathname === "/settings" ? darkNavItemActive : darkNavItem)}>
           <Settings className="h-4 w-4" />
           Paramètres
         </Link>

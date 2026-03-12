@@ -74,54 +74,49 @@ export default async function HorsePage({ params }: Props) {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Link href="/dashboard" className="btn-ghost p-2">
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-          <AvatarUpload
-            horseId={horse.id}
-            horseName={horse.name}
-            currentAvatarUrl={(horse as any).avatar_url ?? null}
-          />
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-black text-black">{horse.name}</h1>
-              <HorseEditModal horse={horse as any} />
+      {/* Hero header */}
+      <div className="rounded-2xl bg-gradient-to-br from-[#1A1A1A] to-[#2D1A0E] px-5 py-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <Link href="/dashboard" className="p-1.5 rounded-xl text-gray-400 hover:bg-white/10 hover:text-white transition-colors flex-shrink-0">
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+            <AvatarUpload
+              horseId={horse.id}
+              horseName={horse.name}
+              currentAvatarUrl={(horse as any).avatar_url ?? null}
+            />
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <h1 className="text-2xl font-black text-white truncate">{horse.name}</h1>
+                <HorseEditModal horse={horse as any} />
+              </div>
+              <p className="text-sm text-gray-400">
+                {horse.breed && `${horse.breed} · `}
+                {(horse as any).sexe === "hongre" ? "Hongre · " : (horse as any).sexe === "jument" ? "Jument · " : (horse as any).sexe === "etalon" ? "Étalon · " : ""}
+                {horse.discipline && `${horse.discipline} · `}
+                {horse.birth_year && `Né en ${horse.birth_year}`}
+              </p>
+              {((horse as any).objectif_saison || (horse as any).niveau) && (
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {(horse as any).niveau && `Niveau ${(horse as any).niveau}`}
+                  {(horse as any).niveau && (horse as any).objectif_saison && " · "}
+                  {(horse as any).objectif_saison && `🎯 ${(horse as any).objectif_saison}`}
+                </p>
+              )}
             </div>
-            <p className="text-sm text-gray-400">
-              {horse.breed && `${horse.breed} · `}
-              {(horse as any).sexe === "hongre" ? "Hongre · " : (horse as any).sexe === "jument" ? "Jument · " : (horse as any).sexe === "etalon" ? "Étalon · " : ""}
-              {horse.discipline && `${horse.discipline} · `}
-              {horse.birth_year && `Né en ${horse.birth_year}`}
-            </p>
-            {((horse as any).objectif_saison || (horse as any).niveau) && (
-              <p className="text-xs text-gray-400 mt-0.5">
-                {(horse as any).niveau && `Niveau ${(horse as any).niveau}`}
-                {(horse as any).niveau && (horse as any).objectif_saison && " · "}
-                {(horse as any).objectif_saison && `🎯 ${(horse as any).objectif_saison}`}
-              </p>
-            )}
-            {((horse as any).sire_number || (horse as any).fei_number) && (
-              <p className="text-xs text-gray-300 mt-0.5">
-                {(horse as any).sire_number && `SIRE ${(horse as any).sire_number}`}
-                {(horse as any).sire_number && (horse as any).fei_number && " · "}
-                {(horse as any).fei_number && `FEI ${(horse as any).fei_number}`}
-              </p>
-            )}
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <PdfDownloadButton
-            type="fiche"
-            horse={horse}
-            score={currentScore ? { score: currentScore.score, score_breakdown: currentScore.score_breakdown as Record<string, number> | null, computed_at: currentScore.computed_at } : null}
-          />
-          {horse.share_horse_index && (
-            <ShareButton horseId={horse.id} horseName={horse.name} />
-          )}
-          <RecalculateButton horseId={horse.id} />
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            <PdfDownloadButton
+              type="fiche"
+              horse={horse}
+              score={currentScore ? { score: currentScore.score, score_breakdown: currentScore.score_breakdown as Record<string, number> | null, computed_at: currentScore.computed_at } : null}
+            />
+            {horse.share_horse_index && (
+              <ShareButton horseId={horse.id} horseName={horse.name} />
+            )}
+            <RecalculateButton horseId={horse.id} />
+          </div>
         </div>
       </div>
 

@@ -51,7 +51,7 @@ export default async function DashboardLayout({
   });
 
   return (
-    <div className="flex h-screen bg-beige overflow-hidden">
+    <div className="flex h-screen bg-[#F5F5F5] overflow-hidden">
       <div className="hidden md:flex">
         <Sidebar
           horses={horses || []}

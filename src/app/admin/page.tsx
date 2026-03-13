@@ -15,27 +15,16 @@ export default async function AdminPage() {
     { count: totalUsers },
     { count: totalHorses },
     { data: signupsRaw },
-    { data: planCounts },
-    { data: typeCounts },
-    activeUsers7,
-    activeUsers30,
+    { data: usersForPlans },
+    { data: usersForTypes },
+    { data: active7 },
+    { data: active30 },
   ] = await Promise.all([
     admin.from("users").select("*", { count: "exact", head: true }),
     admin.from("horses").select("*", { count: "exact", head: true }),
     admin.rpc("get_daily_signups", { days_back: 30 }),
-    admin.from("users").select("plan").then(({ data }) => {
-      const counts: Record<string, number> = {};
-      (data || []).forEach((u) => { counts[u.plan] = (counts[u.plan] || 0) + 1; });
-      return { data: Object.entries(counts).map(([name, value]) => ({ name, value })) };
-    }),
-    admin.from("users").select("user_type").then(({ data }) => {
-      const counts: Record<string, number> = {};
-      (data || []).forEach((u) => {
-        const t = u.user_type || "unknown";
-        counts[t] = (counts[t] || 0) + 1;
-      });
-      return { data: Object.entries(counts).map(([name, value]) => ({ name, value })) };
-    }),
+    admin.from("users").select("plan"),
+    admin.from("users").select("user_type"),
     admin.rpc("get_active_users_count", { days_back: 7 }),
     admin.rpc("get_active_users_count", { days_back: 30 }),
   ]);
@@ -45,11 +34,22 @@ export default async function AdminPage() {
     count: Number(r.count),
   }));
 
+  const planCountsMap: Record<string, number> = {};
+  (usersForPlans || []).forEach((u) => { planCountsMap[u.plan] = (planCountsMap[u.plan] || 0) + 1; });
+  const planCounts = Object.entries(planCountsMap).map(([name, value]) => ({ name, value }));
+
+  const typeCountsMap: Record<string, number> = {};
+  (usersForTypes || []).forEach((u) => {
+    const t = u.user_type || "unknown";
+    typeCountsMap[t] = (typeCountsMap[t] || 0) + 1;
+  });
+  const typeCounts = Object.entries(typeCountsMap).map(([name, value]) => ({ name, value }));
+
   const stats = [
     { label: "Utilisateurs total", value: totalUsers ?? 0 },
     { label: "Chevaux total", value: totalHorses ?? 0 },
-    { label: "Actifs 7j", value: Number(activeUsers7.data ?? 0) },
-    { label: "Actifs 30j", value: Number(activeUsers30.data ?? 0) },
+    { label: "Actifs 7j", value: Number(active7 ?? 0) },
+    { label: "Actifs 30j", value: Number(active30 ?? 0) },
   ];
 
   return (

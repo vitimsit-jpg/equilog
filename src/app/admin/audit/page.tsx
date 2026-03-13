@@ -20,9 +20,17 @@ export default async function AdminAuditPage({
 
   const { data: logs, count } = await admin
     .from("audit_logs")
-    .select("*, admin:admin_id(email, name)", { count: "exact" })
+    .select("*", { count: "exact" })
     .order("created_at", { ascending: false })
     .range(from, from + perPage - 1);
+
+  // Fetch admin emails separately (audit_logs.admin_id → auth.users, not joinable via PostgREST)
+  const adminIds = Array.from(new Set((logs || []).map((l) => l.admin_id).filter(Boolean)));
+  const adminEmailMap: Record<string, string> = {};
+  if (adminIds.length) {
+    const { data: admins } = await admin.from("users").select("id, email, name").in("id", adminIds);
+    (admins || []).forEach((a) => { adminEmailMap[a.id] = a.email; });
+  }
 
   return (
     <div className="space-y-5">
@@ -49,8 +57,7 @@ export default async function AdminAuditPage({
                   {format(new Date(log.created_at), "dd MMM HH:mm", { locale: fr })}
                 </td>
                 <td className="px-4 py-3 text-xs text-gray-400">
-                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                  {(log.admin as any)?.email || "—"}
+                  {adminEmailMap[log.admin_id] || "—"}
                 </td>
                 <td className="px-4 py-3">
                   <span className="font-mono text-xs text-orange bg-orange/10 px-2 py-0.5 rounded-lg">

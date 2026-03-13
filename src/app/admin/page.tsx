@@ -8,11 +8,19 @@ export default async function AdminPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  // Diagnostic: check env var availability
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    throw new Error("SUPABASE_SERVICE_ROLE_KEY manquante dans les variables d'environnement Vercel (Settings → Environment Variables)");
+  try {
+    return await AdminPageContent();
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? `${e.name}: ${e.message}` : String(e);
+    return (
+      <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-6 text-sm font-mono text-red-300 whitespace-pre-wrap break-all">
+        {msg}
+      </div>
+    );
   }
+}
 
+async function AdminPageContent() {
   const admin = createAdminClient();
 
   // Parallel fetches

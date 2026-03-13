@@ -35,7 +35,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         </div>
         <AdminNav />
         <div className="mt-auto px-4 pb-4 border-t border-white/10 pt-3">
-          <p className="text-2xs text-gray-500 truncate">{profile.email}</p>
+          <p className="text-2xs text-gray-500 truncate">{profile?.email}</p>
         </div>
       </aside>
 

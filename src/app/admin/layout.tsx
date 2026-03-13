@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import AdminNav from "@/components/admin/AdminNav";
@@ -9,10 +8,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const adminClient = createAdminClient();
-  const { data: profile } = await adminClient
+  // Use regular client — user can read their own row via RLS
+  const { data: profile } = await supabase
     .from("users")
-    .select("is_admin, name, email")
+    .select("is_admin, email")
     .eq("id", user.id)
     .single();
 

@@ -15,6 +15,8 @@ export interface User {
   notify_health_reminders: boolean;
   notify_weekly_summary: boolean;
   created_at: string;
+  is_admin?: boolean;
+  status?: string;
 }
 
 export interface Horse {

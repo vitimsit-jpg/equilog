@@ -50,6 +50,14 @@ interface Competition {
   total_riders?: number | null;
 }
 
+interface BudgetEntry {
+  id: string;
+  date: string;
+  category: string;
+  amount: number;
+  description?: string | null;
+}
+
 interface Props {
   type: PdfType;
   horse: Horse;
@@ -57,9 +65,10 @@ interface Props {
   records?: HealthRecord[];
   sessions?: TrainingSession[];
   competitions?: Competition[];
+  budgetEntries?: BudgetEntry[];
 }
 
-export default function PdfDownloadButton({ type, horse, score, records, sessions, competitions }: Props) {
+export default function PdfDownloadButton({ type, horse, score, records, sessions, competitions, budgetEntries }: Props) {
   const [loading, setLoading] = useState(false);
 
   const handleDownload = async () => {
@@ -73,7 +82,7 @@ export default function PdfDownloadButton({ type, horse, score, records, session
       } else if (type === "rapport") {
         generateRapportPdf(horse, sessions ?? []);
       } else if (type === "bilan") {
-        generateBilanAnnuelPdf(horse, sessions ?? [], records ?? [], competitions ?? []);
+        generateBilanAnnuelPdf(horse, sessions ?? [], records ?? [], competitions ?? [], budgetEntries ?? []);
       }
     } finally {
       setLoading(false);

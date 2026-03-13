@@ -42,7 +42,7 @@ export default function FeedShareButton({ horseName, horseId, shareHorseIndex, i
   }, []);
 
   const getUrl = () => {
-    const base = typeof window !== "undefined" ? window.location.origin : "https://equilog.app";
+    const base = typeof window !== "undefined" ? window.location.origin : "https://equistra.app";
     return shareHorseIndex ? `${base}/share/${horseId}` : base;
   };
 

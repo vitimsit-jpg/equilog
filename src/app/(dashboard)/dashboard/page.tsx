@@ -631,18 +631,44 @@ export default async function DashboardPage() {
 
       {/* ── No horses CTA ─────────────────────────────────────────────── */}
       {(horses || []).length === 0 && (
-        <div className="card text-center py-16">
-          <div className="w-16 h-16 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center mx-auto mb-5">
-            <span className="text-3xl">🐴</span>
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#0F0F0F] via-[#1A1A1A] to-[#0F0F0F] p-8 text-center">
+          {/* Decorative blurs */}
+          <div className="absolute -top-12 -right-12 w-56 h-56 rounded-full bg-orange/20 blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-12 -left-12 w-56 h-56 rounded-full bg-orange/10 blur-3xl pointer-events-none" />
+
+          <div className="relative">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-orange to-orange/60 flex items-center justify-center mx-auto mb-5 shadow-orange">
+              <span className="text-2xl">🐴</span>
+            </div>
+            <h2 className="text-xl font-black text-white mb-2">Bienvenue sur Equistra</h2>
+            <p className="text-sm text-white/50 mb-8 max-w-xs mx-auto leading-relaxed">
+              Ajoutez votre premier cheval pour accéder au suivi santé, journal de travail et Horse Index.
+            </p>
+
+            {/* Onboarding steps */}
+            <div className="flex flex-col gap-3 mb-8 max-w-xs mx-auto text-left">
+              {[
+                { label: "Ajouter votre cheval", sub: "Nom, race, discipline", active: true },
+                { label: "Carnet de santé", sub: "Vaccins, dentiste, ostéo..." },
+                { label: "Analyse & Horse Index", sub: "Score IA, statistiques, classements" },
+              ].map((step, i) => (
+                <div key={i} className={`flex items-center gap-3 ${step.active ? "opacity-100" : "opacity-35"}`}>
+                  <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold ${step.active ? "bg-orange text-white" : "bg-white/10 text-white/50"}`}>
+                    {i + 1}
+                  </div>
+                  <div>
+                    <p className={`text-sm font-semibold ${step.active ? "text-white" : "text-white/60"}`}>{step.label}</p>
+                    <p className="text-xs text-white/30">{step.sub}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <Link href="/horses/new" className="btn-primary inline-flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              Ajouter mon premier cheval
+            </Link>
           </div>
-          <h2 className="text-lg font-bold text-black mb-2">Bienvenue sur Equistra</h2>
-          <p className="text-sm text-gray-400 mb-6 max-w-sm mx-auto leading-relaxed">
-            Commencez par ajouter votre premier cheval pour suivre sa santé, son entraînement et ses résultats.
-          </p>
-          <Link href="/horses/new" className="btn-primary">
-            <Plus className="h-4 w-4" />
-            Ajouter mon premier cheval
-          </Link>
         </div>
       )}
 

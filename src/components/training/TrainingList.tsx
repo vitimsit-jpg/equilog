@@ -34,8 +34,13 @@ export default function TrainingList({ sessions, horseId }: Props) {
       <div className="card">
         <EmptyState
           icon={Dumbbell}
-          title="Aucune séance"
-          description="Commencez à enregistrer vos séances de travail."
+          title="Aucune séance enregistrée"
+          description="Suivez chaque sortie : type de travail, intensité, ressenti et objectifs."
+          steps={[
+            { label: "Enregistrer une première séance" },
+            { label: "Suivre l'intensité & le ressenti" },
+            { label: "Analyser la progression sur 30 jours" },
+          ]}
         />
       </div>
     );

@@ -31,7 +31,16 @@ export default function BudgetList({ entries, horseId }: Props) {
   if (entries.length === 0) {
     return (
       <div className="card">
-        <EmptyState icon={Wallet} title="Aucune dépense" description="Enregistrez vos dépenses pour suivre le budget de votre cheval." />
+        <EmptyState
+          icon={Wallet}
+          title="Aucune dépense enregistrée"
+          description="Gardez une vision claire des coûts : alimentation, soins, concours et plus."
+          steps={[
+            { label: "Ajouter une première dépense" },
+            { label: "Catégoriser vos frais" },
+            { label: "Visualiser le budget mensuel" },
+          ]}
+        />
       </div>
     );
   }

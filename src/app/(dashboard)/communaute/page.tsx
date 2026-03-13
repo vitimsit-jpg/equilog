@@ -1,23 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Dumbbell, Trophy, TrendingUp, Users, Medal } from "lucide-react";
-import { formatDate, getScoreColor } from "@/lib/utils";
-import Badge from "@/components/ui/Badge";
-import HorseAvatar from "@/components/ui/HorseAvatar";
-import FeedReactionButton from "@/components/community/FeedReactionButton";
-import FeedMediaPreview from "@/components/community/FeedMediaPreview";
-import FeedComments from "@/components/community/FeedComments";
-import FeedShareButton from "@/components/community/FeedShareButton";
+import { TrendingUp, Users } from "lucide-react";
+import CommunauteFeed from "@/components/community/CommunauteFeed";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type FeedItem = { date: string; type: "session" | "competition"; data: any; horse: any };
-
-const TRAINING_TYPE_LABELS: Record<string, string> = {
-  dressage: "Dressage", saut: "Saut", endurance: "Endurance", cso: "CSO",
-  cross: "Cross", travail_a_pied: "Travail à pied", longe: "Longe",
-  galop: "Galop", plat: "Plat", autre: "Séance",
-};
 
 export default async function CommunautePage() {
   const supabase = createClient();
@@ -33,7 +21,7 @@ export default async function CommunautePage() {
   const userType = userProfile?.user_type || "loisir";
   const isCompetitor = ["competition", "pro", "gerant_cavalier"].includes(userType);
 
-  // Get user's horses to find their ecurie
+  // Get user's horses to find their écurie
   const { data: myHorses } = await supabase
     .from("horses")
     .select("ecurie")
@@ -51,12 +39,12 @@ export default async function CommunautePage() {
           <p className="text-sm text-gray-400 mt-0.5">L&apos;activité de votre écurie</p>
         </div>
         <div className="card text-center py-12">
-          <div className="w-16 h-16 rounded-full bg-beige flex items-center justify-center mx-auto mb-4">
-            <Users className="h-7 w-7 text-gray-300" />
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-orange to-orange/60 flex items-center justify-center mx-auto mb-4 shadow-orange">
+            <Users className="h-7 w-7 text-white" />
           </div>
           <h2 className="text-lg font-bold text-black mb-2">Rejoignez une écurie</h2>
-          <p className="text-sm text-gray-400 max-w-sm mx-auto mb-4">
-            Renseignez le nom de votre écurie sur la fiche de votre cheval pour voir l&apos;activité des autres chevaux pensionnaires.
+          <p className="text-sm text-gray-400 max-w-sm mx-auto mb-5">
+            Renseignez le nom de votre écurie sur la fiche de votre cheval pour voir l&apos;activité des autres pensionnaires.
           </p>
           <Link href="/horses/new" className="btn-primary">Ajouter un cheval</Link>
         </div>
@@ -94,17 +82,25 @@ export default async function CommunautePage() {
     ecurieHorseIds.length
       ? supabase.from("horse_scores").select("*").in("horse_id", ecurieHorseIds).order("computed_at", { ascending: false }).limit(ecurieHorseIds.length * 2)
       : Promise.resolve({ data: [] }),
-    supabase.from("feed_reactions").select("item_type, item_id"),
-    supabase.from("feed_reactions").select("item_type, item_id").eq("user_id", authUser.id),
+    supabase.from("feed_reactions").select("item_type, item_id, reaction_type"),
+    supabase.from("feed_reactions").select("item_type, item_id, reaction_type").eq("user_id", authUser.id),
   ]);
 
-  // Build reaction maps
-  const reactionCountMap: Record<string, number> = {};
+  // Build reaction maps per item + type
+  const reactionCountsMap: Record<string, Record<string, number>> = {};
   (allReactions || []).forEach((r) => {
     const key = `${r.item_type}:${r.item_id}`;
-    reactionCountMap[key] = (reactionCountMap[key] || 0) + 1;
+    if (!reactionCountsMap[key]) reactionCountsMap[key] = {};
+    const t = (r.reaction_type as string) || "like";
+    reactionCountsMap[key][t] = (reactionCountsMap[key][t] || 0) + 1;
   });
-  const myReactionSet = new Set((myReactions || []).map((r) => `${r.item_type}:${r.item_id}`));
+
+  // User's reaction per item
+  const myReactionMap: Record<string, string> = {};
+  (myReactions || []).forEach((r) => {
+    const key = `${r.item_type}:${r.item_id}`;
+    myReactionMap[key] = (r.reaction_type as string) || "like";
+  });
 
   // Latest score per ecurie horse
   const latestScoreByHorse: Record<string, number> = {};
@@ -154,172 +150,46 @@ export default async function CommunautePage() {
   );
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
+    <div className="max-w-4xl mx-auto space-y-5 animate-fade-in">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-black text-black">Communauté</h1>
-        <p className="text-sm text-gray-400 mt-0.5">
-          L&apos;activité de {userEcuries[0]}
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Feed — left/main column */}
-        <div className={`space-y-3 ${isCompetitor ? "lg:col-span-2" : "lg:col-span-3"}`}>
-          <h2 className="font-bold text-black flex items-center gap-2">
-            <TrendingUp className="h-4 w-4 text-orange" />
-            Fil d&apos;activité
-          </h2>
-
-          {feed.length === 0 ? (
-            <div className="card text-center py-10">
-              <p className="text-sm text-gray-400">
-                Aucune activité récente dans l&apos;écurie.<br />
-                Les chevaux doivent activer le partage Horse Index dans leur fiche.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {feed.map((item, idx) => {
-                const reactionKey = `${item.type}:${item.data.id}`;
-                const reactionCount = reactionCountMap[reactionKey] || 0;
-                const hasLiked = myReactionSet.has(reactionKey);
-                const itemComments = commentsByItem[item.data.id] || [];
-
-                return (
-                  <div key={idx} className="card flex items-start gap-3 py-3">
-                    {/* Horse avatar */}
-                    <HorseAvatar name={item.horse.name} photoUrl={item.horse.avatar_url} size="sm" rounded="full" />
-
-                    <div className="flex-1 min-w-0">
-                      {item.type === "session" && (
-                        <>
-                          <p className="text-sm font-semibold text-black">
-                            {item.horse.name}
-                            <span className="font-normal text-gray-500">
-                              {" "}a travaillé · {TRAINING_TYPE_LABELS[item.data.type] || item.data.type}
-                            </span>
-                          </p>
-                          <div className="flex items-center gap-3 mt-1">
-                            <span className="text-xs text-gray-400">
-                              <Dumbbell className="h-3 w-3 inline mr-1" />
-                              {item.data.duration_min}min
-                            </span>
-                            <div className="flex gap-0.5">
-                              {Array.from({ length: 5 }).map((_, i) => (
-                                <div
-                                  key={i}
-                                  className={`w-1.5 h-2.5 rounded-full ${i < item.data.intensity ? "bg-orange" : "bg-gray-200"}`}
-                                />
-                              ))}
-                            </div>
-                            <span className="text-xs text-gray-400">{formatDate(item.date)}</span>
-                          </div>
-                          {item.data.notes && (
-                            <p className="text-xs text-gray-500 mt-1 italic">&ldquo;{item.data.notes}&rdquo;</p>
-                          )}
-                          {item.data.media_urls?.length > 0 && (
-                            <FeedMediaPreview mediaUrls={item.data.media_urls} />
-                          )}
-                        </>
-                      )}
-
-                      {item.type === "competition" && (
-                        <>
-                          <p className="text-sm font-semibold text-black">
-                            {item.horse.name}
-                            <span className="font-normal text-gray-500"> en concours · {item.data.event_name}</span>
-                          </p>
-                          <div className="flex items-center gap-3 mt-1">
-                            <span className="text-xs text-gray-400">
-                              <Trophy className="h-3 w-3 inline mr-1" />
-                              {item.data.discipline} {item.data.level}
-                            </span>
-                            {item.data.result_rank && item.data.total_riders && (
-                              <Badge variant={item.data.result_rank <= 3 ? "orange" : "gray"}>
-                                {item.data.result_rank}/{item.data.total_riders}
-                              </Badge>
-                            )}
-                            <span className="text-xs text-gray-400">{formatDate(item.date)}</span>
-                          </div>
-                          {item.data.media_urls?.length > 0 && (
-                            <FeedMediaPreview mediaUrls={item.data.media_urls} />
-                          )}
-                        </>
-                      )}
-
-                      {/* Reaction + Share */}
-                      <div className="mt-2 flex items-center gap-2">
-                        <FeedReactionButton
-                          itemType={item.type}
-                          itemId={item.data.id}
-                          initialCount={reactionCount}
-                          initialLiked={hasLiked}
-                        />
-                        <FeedShareButton
-                          horseName={item.horse.name}
-                          horseId={item.horse.id}
-                          shareHorseIndex={item.horse.share_horse_index}
-                          itemType={item.type}
-                          itemData={item.data}
-                        />
-                      </div>
-                      <FeedComments
-                        itemType={item.type}
-                        itemId={item.data.id}
-                        currentUserId={authUser.id}
-                        initialComments={itemComments}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+      <div className="flex items-center gap-2">
+        <TrendingUp className="h-5 w-5 text-orange" />
+        <div>
+          <h1 className="text-2xl font-black text-black">Communauté</h1>
+          <p className="text-sm text-gray-400">
+            {userEcuries[0]}
+            {ecurieHorses && ecurieHorses.length > 0 && (
+              <span className="ml-1.5 px-1.5 py-0.5 bg-gray-100 rounded-full text-2xs font-semibold text-gray-500">
+                {ecurieHorses.length} cheval{ecurieHorses.length > 1 ? "x" : ""}
+              </span>
+            )}
+          </p>
         </div>
-
-        {/* Rankings — right column (compétiteurs only) */}
-        {isCompetitor && (
-          <div className="space-y-3">
-            <h2 className="font-bold text-black flex items-center gap-2">
-              <Medal className="h-4 w-4 text-orange" />
-              Classement écurie
-            </h2>
-            <div className="card">
-              {rankedHorses.length === 0 ? (
-                <p className="text-xs text-gray-400 text-center py-4">
-                  Aucun classement disponible.<br />Activez le partage Horse Index.
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {rankedHorses.map((horse, idx) => {
-                    const score = latestScoreByHorse[horse.id];
-                    return (
-                      <div key={horse.id} className="flex items-center justify-between py-1.5 border-b border-gray-50 last:border-0">
-                        <div className="flex items-center gap-2">
-                          <span className={`text-xs font-black w-5 ${idx === 0 ? "text-yellow-500" : idx === 1 ? "text-gray-400" : idx === 2 ? "text-orange-400" : "text-gray-300"}`}>
-                            {idx + 1}
-                          </span>
-                          <HorseAvatar name={horse.name} photoUrl={horse.avatar_url} size="xs" rounded="full" />
-                          <div>
-                            <p className="text-xs font-semibold text-black">{horse.name}</p>
-                            <p className="text-2xs text-gray-400">{horse.discipline || "—"}</p>
-                          </div>
-                        </div>
-                        {score !== undefined ? (
-                          <p className="text-base font-black" style={{ color: getScoreColor(score) }}>{score}</p>
-                        ) : (
-                          <p className="text-xs text-gray-300">—</p>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
       </div>
+
+      {feed.length === 0 && ecurieHorseIds.length > 0 ? (
+        <div className="card text-center py-12">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange to-orange/60 flex items-center justify-center mx-auto mb-4 shadow-orange">
+            <Users className="h-6 w-6 text-white" />
+          </div>
+          <p className="text-sm font-bold text-black mb-1.5">Aucune activité pour l&apos;instant</p>
+          <p className="text-xs text-gray-400 max-w-xs mx-auto leading-relaxed">
+            Les séances et concours apparaîtront ici dès qu&apos;un cheval de l&apos;écurie partage son activité.
+          </p>
+        </div>
+      ) : (
+        <CommunauteFeed
+          feed={feed}
+          reactionCountsMap={reactionCountsMap}
+          myReactionMap={myReactionMap}
+          commentsByItem={commentsByItem}
+          currentUserId={authUser.id}
+          isCompetitor={isCompetitor}
+          rankedHorses={rankedHorses}
+          latestScoreByHorse={latestScoreByHorse}
+          ecurieHorses={ecurieHorses || []}
+        />
+      )}
     </div>
   );
 }

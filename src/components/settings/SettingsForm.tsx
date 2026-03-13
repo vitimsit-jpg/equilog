@@ -193,7 +193,7 @@ export default function SettingsForm({ user }: Props) {
                     <Badge variant="orange">Actuel</Badge>
                   ) : (
                     <button
-                      onClick={() => toast("Paiement en ligne bientôt disponible — contactez-nous à contact@equilog.fr", { icon: "ℹ️" })}
+                      onClick={() => toast("Paiement en ligne bientôt disponible — contactez-nous à contact@equistra.fr", { icon: "ℹ️" })}
                       className="text-xs font-semibold text-orange hover:underline"
                     >
                       Choisir ce plan →

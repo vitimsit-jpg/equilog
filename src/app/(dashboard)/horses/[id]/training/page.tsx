@@ -30,6 +30,7 @@ export default async function TrainingPage({ params }: Props) {
     { data: sessions },
     { data: yearHealth },
     { data: yearCompetitions },
+    { data: yearBudget },
   ] = await Promise.all([
     supabase
       .from("training_sessions")
@@ -44,6 +45,11 @@ export default async function TrainingPage({ params }: Props) {
     supabase
       .from("competitions")
       .select("id, date, event_name, discipline, result_rank, total_riders")
+      .eq("horse_id", horse.id)
+      .gte("date", yearStart),
+    supabase
+      .from("budget_entries")
+      .select("id, date, category, amount, description")
       .eq("horse_id", horse.id)
       .gte("date", yearStart),
   ]);
@@ -83,6 +89,7 @@ export default async function TrainingPage({ params }: Props) {
             sessions={sessions || []}
             records={yearHealth || []}
             competitions={yearCompetitions || []}
+            budgetEntries={yearBudget || []}
           />
         </div>
       </div>

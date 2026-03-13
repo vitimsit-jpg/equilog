@@ -17,6 +17,7 @@ import {
   Users,
   Building2,
   Video,
+  ShieldAlert,
 } from "lucide-react";
 import type { Horse, UserType } from "@/lib/supabase/types";
 import { useState } from "react";
@@ -27,6 +28,7 @@ interface SidebarProps {
   currentHorseId?: string;
   userType?: UserType | null;
   overdueByHorse?: Record<string, number>;
+  isAdmin?: boolean;
 }
 
 const mainNav = [
@@ -59,7 +61,7 @@ const HIDDEN_ITEMS: Record<string, string[]> = {
   coach: [],
 };
 
-export default function Sidebar({ horses, currentHorseId, userType, overdueByHorse = {} }: SidebarProps) {
+export default function Sidebar({ horses, currentHorseId, userType, overdueByHorse = {}, isAdmin }: SidebarProps) {
   const pathname = usePathname();
   const [expanded, setExpanded] = useState<string | null>(currentHorseId || null);
 
@@ -214,7 +216,13 @@ export default function Sidebar({ horses, currentHorseId, userType, overdueByHor
       </nav>
 
       {/* Bottom */}
-      <div className="px-3 pb-4 border-t border-white/10 pt-3">
+      <div className="px-3 pb-4 border-t border-white/10 pt-3 space-y-0.5">
+        {isAdmin && (
+          <Link href="/admin" className={cn(pathname.startsWith("/admin") ? darkNavItemActive : darkNavItem)}>
+            <ShieldAlert className="h-4 w-4" />
+            Admin
+          </Link>
+        )}
         <Link href="/settings" className={cn(pathname === "/settings" ? darkNavItemActive : darkNavItem)}>
           <Settings className="h-4 w-4" />
           Paramètres

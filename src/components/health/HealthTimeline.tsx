@@ -56,6 +56,11 @@ export default function HealthTimeline({ records }: HealthTimelineProps) {
           icon={Heart}
           title="Aucun soin enregistré"
           description="Ajoutez vos vaccins, vermifuges, parages et autres soins pour suivre la santé de votre cheval."
+          steps={[
+            { label: "Ajouter un premier soin" },
+            { label: "Planifier les prochaines visites" },
+            { label: "Recevoir des rappels automatiques" },
+          ]}
         />
       </div>
     );

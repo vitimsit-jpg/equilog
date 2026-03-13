@@ -58,6 +58,7 @@ export default async function DashboardLayout({
           currentHorseId={undefined}
           userType={userProfile?.user_type ?? null}
           overdueByHorse={overdueByHorse}
+          isAdmin={userProfile?.is_admin ?? false}
         />
       </div>
       <div className="flex-1 flex flex-col overflow-hidden">

@@ -8,37 +8,35 @@ const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 export async function POST(request: NextRequest) {
   try {
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { frames, horseName, discipline } = await request.json();
+    const { frames, horseName, discipline, horseId } = await request.json();
 
-  if (!frames || !Array.isArray(frames) || frames.length === 0) {
-    return NextResponse.json({ error: "No frames provided" }, { status: 400 });
-  }
+    if (!frames || !Array.isArray(frames) || frames.length === 0) {
+      return NextResponse.json({ error: "No frames provided" }, { status: 400 });
+    }
 
-  const imageBlocks = frames.map((frame: string) => ({
-    type: "image" as const,
-    source: {
-      type: "base64" as const,
-      media_type: "image/jpeg" as const,
-      data: frame,
-    },
-  }));
+    const imageBlocks = frames.map((frame: string) => ({
+      type: "image" as const,
+      source: {
+        type: "base64" as const,
+        media_type: "image/jpeg" as const,
+        data: frame,
+      },
+    }));
 
-  const response = await client.messages.create({
-    model: "claude-sonnet-4-20250514",
-    max_tokens: 1500,
-    messages: [
-      {
-        role: "user",
-        content: [
-          {
-            type: "text",
-            text: `Tu es un coach équestre expert. Analyse ces ${frames.length} images extraites d'une vidéo du cheval ${horseName}${discipline ? ` (discipline principale : ${discipline})` : ""}.
+    const response = await client.messages.create({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 1500,
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: `Tu es un coach équestre expert. Analyse ces ${frames.length} images extraites d'une vidéo du cheval ${horseName}${discipline ? ` (discipline principale : ${discipline})` : ""}.
 
 Retourne une analyse JSON structurée (sans markdown) avec exactement ces champs :
 - allure: l'allure principale observée parmi "pas", "trot", "galop", "saut", "travail à pied", "autre"
@@ -50,25 +48,43 @@ Retourne une analyse JSON structurée (sans markdown) avec exactement ces champs
 - conseil_principal: le conseil le plus prioritaire et actionnable (1-2 phrases)
 
 Réponds uniquement avec le JSON, sans texte avant ou après.`,
-          },
-          ...imageBlocks,
-        ],
-      },
-    ],
-  });
+            },
+            ...imageBlocks,
+          ],
+        },
+      ],
+    });
 
-  const content = response.content[0];
-  if (content.type !== "text") {
-    return NextResponse.json({ error: "Unexpected response" }, { status: 500 });
-  }
+    const content = response.content[0];
+    if (content.type !== "text") {
+      return NextResponse.json({ error: "Unexpected response" }, { status: 500 });
+    }
 
-  try {
-    const jsonMatch = content.text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error("No JSON found");
-    return NextResponse.json(JSON.parse(jsonMatch[0]));
-  } catch {
-    return NextResponse.json({ error: "Parse error", raw: content.text }, { status: 500 });
-  }
+    let result;
+    try {
+      const jsonMatch = content.text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) throw new Error("No JSON found");
+      result = JSON.parse(jsonMatch[0]);
+    } catch {
+      return NextResponse.json({ error: "Parse error", raw: content.text }, { status: 500 });
+    }
+
+    // Save to DB if horseId provided
+    if (horseId) {
+      await supabase.from("video_analyses").insert({
+        horse_id: horseId,
+        user_id: user.id,
+        allure: result.allure,
+        score: result.score,
+        posture_cheval: result.posture_cheval,
+        position_cavalier: result.position_cavalier ?? null,
+        points_forts: result.points_forts,
+        axes_amelioration: result.axes_amelioration,
+        conseil_principal: result.conseil_principal,
+      });
+    }
+
+    return NextResponse.json(result);
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : "Unknown error";
     console.error("[video-analysis]", msg);

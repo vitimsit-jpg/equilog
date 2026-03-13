@@ -105,7 +105,16 @@ export default function CompetitionsDashboard({ competitions, healthRecords, hor
       {/* Competition list */}
       {competitions.length === 0 ? (
         <div className="card">
-          <EmptyState icon={Trophy} title="Aucun concours enregistré" description="Ajoutez vos résultats pour suivre votre progression." />
+          <EmptyState
+            icon={Trophy}
+            title="Aucun concours enregistré"
+            description="Retracez votre palmarès et suivez votre progression en classement."
+            steps={[
+              { label: "Ajouter votre premier concours" },
+              { label: "Enregistrer vos classements" },
+              { label: "Analyser la courbe de performance" },
+            ]}
+          />
         </div>
       ) : (
         <div className="space-y-4">

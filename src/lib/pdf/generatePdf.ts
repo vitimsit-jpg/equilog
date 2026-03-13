@@ -488,7 +488,8 @@ export function generateBilanAnnuelPdf(
   horse: { name: string; breed?: string | null; discipline?: string | null },
   sessions: Array<{ id: string; date: string; type: string; duration_min: number; intensity: number; feeling?: number | null }>,
   healthRecords: Array<{ id: string; type: string; date: string; cost?: number | null }>,
-  competitions: Array<{ id: string; date: string; event_name: string; discipline: string; result_rank?: number | null; total_riders?: number | null }>
+  competitions: Array<{ id: string; date: string; event_name: string; discipline: string; result_rank?: number | null; total_riders?: number | null }>,
+  budgetEntries?: Array<{ id: string; date: string; category: string; amount: number; description?: string | null }>
 ) {
   const TRAINING_LABELS: Record<string, string> = {
     dressage: "Dressage", saut: "Saut", endurance: "Endurance",
@@ -507,6 +508,7 @@ export function generateBilanAnnuelPdf(
   const yearSessions = sessions.filter((s) => s.date >= cutoff);
   const yearHealth = healthRecords.filter((r) => r.date >= cutoff);
   const yearCompetitions = competitions.filter((c) => c.date >= cutoff);
+  const yearBudget = (budgetEntries || []).filter((b) => b.date >= cutoff);
 
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   drawHeader(doc, horse.name, `Bilan ${year}`);
@@ -530,13 +532,15 @@ export function generateBilanAnnuelPdf(
   const avgIntensity = yearSessions.length > 0
     ? (yearSessions.reduce((s, r) => s + r.intensity, 0) / yearSessions.length).toFixed(1)
     : "—";
+  const totalBudget = yearBudget.reduce((s, b) => s + b.amount, 0);
   const totalHealthCost = yearHealth.reduce((s, r) => s + (r.cost || 0), 0);
+  const displayBudget = totalBudget > 0 ? totalBudget : totalHealthCost;
 
   const stats: [string, string][] = [
     [String(yearSessions.length), "Séances"],
     [`${hours}h${mins > 0 ? String(mins).padStart(2, "0") : ""}`, "Travail total"],
     [String(yearCompetitions.length), "Concours"],
-    [totalHealthCost > 0 ? `${totalHealthCost}€` : String(yearHealth.length), totalHealthCost > 0 ? "Soins (€)" : "Soins"],
+    [displayBudget > 0 ? `${Math.round(displayBudget)}€` : String(yearHealth.length), displayBudget > 0 ? "Dépenses" : "Soins"],
   ];
   const statW = (CONTENT_W - 6) / 4;
   stats.forEach(([val, lbl], i) => {
@@ -666,6 +670,12 @@ export function generateBilanAnnuelPdf(
 
   // Soins
   if (yearHealth.length > 0) {
+    if (y > 260) {
+      drawFooter(doc, 1, 1);
+      doc.addPage();
+      drawHeader(doc, horse.name, `Bilan ${year}`);
+      y = 30;
+    }
     y = sectionTitle(doc, "Soins de l'année", y);
     const byType: Record<string, number> = {};
     yearHealth.forEach((r) => { byType[r.type] = (byType[r.type] || 0) + 1; });
@@ -674,6 +684,47 @@ export function generateBilanAnnuelPdf(
     doc.setTextColor(0, 0, 0);
     const parts = Object.entries(byType).map(([t, n]) => `${HEALTH_LABELS[t] || t} ×${n}`).join("  ·  ");
     doc.text(parts, MARGIN, y + 5);
+    y += 14;
+  }
+
+  // Budget
+  if (yearBudget.length > 0) {
+    const BUDGET_LABELS: Record<string, string> = {
+      alimentation: "Alimentation", sante: "Santé", ferrure: "Ferrure",
+      equipement: "Équipement", transport: "Transport", concours: "Concours",
+      ecurie: "Écurie", autre: "Autre",
+    };
+    if (y > 250) {
+      drawFooter(doc, 1, 1);
+      doc.addPage();
+      drawHeader(doc, horse.name, `Bilan ${year}`);
+      y = 30;
+    }
+    y = sectionTitle(doc, `Budget de l'année  ·  Total ${Math.round(totalBudget)}€`, y);
+
+    // By category bar chart
+    const byCategory: Record<string, number> = {};
+    yearBudget.forEach((b) => { byCategory[b.category] = (byCategory[b.category] || 0) + b.amount; });
+    const catEntries = Object.entries(byCategory).sort((a, b) => b[1] - a[1]);
+    const maxCat = catEntries[0]?.[1] ?? 1;
+    const barMaxW = CONTENT_W - 52;
+
+    catEntries.forEach(([cat, amount]) => {
+      if (y > 272) return;
+      const label = BUDGET_LABELS[cat] || cat;
+      const barW = (amount / maxCat) * barMaxW;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7.5);
+      doc.setTextColor(0, 0, 0);
+      doc.text(label, MARGIN, y + 4);
+      doc.setFillColor(232, 68, 10);
+      doc.rect(MARGIN + 46, y, barW, 5, "F");
+      doc.setFontSize(7);
+      doc.setTextColor(107, 114, 128);
+      doc.text(`${Math.round(amount)}€`, MARGIN + 46 + barW + 2, y + 4);
+      y += 8;
+    });
+    y += 4;
   }
 
   drawFooter(doc, 1, 1);

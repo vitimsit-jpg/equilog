@@ -8,22 +8,8 @@ export default async function AdminPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  try {
-    return await AdminPageContent();
-  } catch (e: unknown) {
-    const msg = e instanceof Error ? `${e.name}: ${e.message}` : String(e);
-    return (
-      <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-6 text-sm font-mono text-red-300 whitespace-pre-wrap break-all">
-        {msg}
-      </div>
-    );
-  }
-}
-
-async function AdminPageContent() {
   const admin = createAdminClient();
 
-  // Parallel fetches
   const [
     { count: totalUsers },
     { count: totalHorses },
@@ -42,7 +28,7 @@ async function AdminPageContent() {
     admin.rpc("get_active_users_count", { days_back: 30 }),
   ]);
 
-  const signups: { signup_date: string; count: number }[] = (signupsRaw || []).map((r: { signup_date: string; count: string | number }) => ({
+  const signups = (signupsRaw || []).map((r: { signup_date: string; count: string | number }) => ({
     signup_date: r.signup_date,
     count: Number(r.count),
   }));
@@ -72,7 +58,6 @@ async function AdminPageContent() {
         <p className="text-sm text-gray-500 mt-0.5">Vue d&apos;ensemble de la plateforme</p>
       </div>
 
-      {/* KPI strip */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {stats.map((s) => (
           <div key={s.label} className="bg-white/5 border border-white/10 rounded-2xl p-4">
@@ -84,8 +69,8 @@ async function AdminPageContent() {
 
       <AdminAnalyticsCharts
         signups={signups}
-        planCounts={planCounts || []}
-        typeCounts={typeCounts || []}
+        planCounts={planCounts}
+        typeCounts={typeCounts}
       />
     </div>
   );

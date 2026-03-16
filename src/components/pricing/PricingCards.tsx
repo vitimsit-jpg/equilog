@@ -58,14 +58,17 @@ export default function PricingCards() {
   const [loading, setLoading] = useState<Plan | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentPlan, setCurrentPlan] = useState<Plan>("starter");
+  const [authReady, setAuthReady] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(async ({ data: { user } }) => {
-      if (!user) return;
-      setIsLoggedIn(true);
-      const { data } = await supabase.from("users").select("plan").eq("id", user.id).single();
-      if (data?.plan) setCurrentPlan(data.plan as Plan);
+      if (user) {
+        setIsLoggedIn(true);
+        const { data } = await supabase.from("users").select("plan").eq("id", user.id).single();
+        if (data?.plan) setCurrentPlan(data.plan as Plan);
+      }
+      setAuthReady(true);
     });
   }, []);
 
@@ -147,7 +150,7 @@ export default function PricingCards() {
 
             <button
               onClick={() => handleSelect(plan.id)}
-              disabled={loading === plan.id || isCurrent}
+              disabled={!authReady || loading === plan.id || isCurrent}
               className={`w-full py-3 rounded-xl font-bold text-sm transition-all disabled:opacity-60 ${
                 isCurrent
                   ? "border-2 border-gray-200 text-gray-400 cursor-default"

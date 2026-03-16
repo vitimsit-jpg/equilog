@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Check } from "lucide-react";
 import toast from "react-hot-toast";
+import { createClient } from "@/lib/supabase/client";
 import type { Plan } from "@/lib/plans";
 
 const PLANS = [
@@ -53,16 +54,22 @@ const PLANS = [
   },
 ];
 
-interface Props {
-  isLoggedIn: boolean;
-  currentPlan: Plan;
-}
-
-export default function PricingCards({ isLoggedIn, currentPlan }: Props) {
+export default function PricingCards() {
   const [loading, setLoading] = useState<Plan | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [currentPlan, setCurrentPlan] = useState<Plan>("starter");
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) return;
+      setIsLoggedIn(true);
+      const { data } = await supabase.from("users").select("plan").eq("id", user.id).single();
+      if (data?.plan) setCurrentPlan(data.plan as Plan);
+    });
+  }, []);
 
   const handleSelect = async (plan: Plan) => {
-    console.log("handleSelect", plan, { isLoggedIn, currentPlan });
     if (plan === "starter") {
       window.location.href = isLoggedIn ? "/dashboard" : "/register";
       return;
@@ -125,23 +132,15 @@ export default function PricingCards({ isLoggedIn, currentPlan }: Props) {
                 <span className={`text-3xl font-black ${isHighlighted ? "text-white" : "text-black"}`}>
                   {plan.price}
                 </span>
-                <span className={`text-sm ${isHighlighted ? "text-gray-400" : "text-gray-400"}`}>
-                  {plan.priceDetail}
-                </span>
+                <span className="text-sm text-gray-400">{plan.priceDetail}</span>
               </div>
             </div>
 
             <ul className="space-y-2.5 flex-1 mb-8">
               {plan.features.map((f) => (
                 <li key={f} className="flex items-start gap-2.5 text-sm">
-                  <Check
-                    className={`h-4 w-4 flex-shrink-0 mt-0.5 ${
-                      isHighlighted ? "text-orange" : "text-success"
-                    }`}
-                  />
-                  <span className={isHighlighted ? "text-gray-300" : "text-gray-600"}>
-                    {f}
-                  </span>
+                  <Check className={`h-4 w-4 flex-shrink-0 mt-0.5 ${isHighlighted ? "text-orange" : "text-success"}`} />
+                  <span className={isHighlighted ? "text-gray-300" : "text-gray-600"}>{f}</span>
                 </li>
               ))}
             </ul>
@@ -157,11 +156,7 @@ export default function PricingCards({ isLoggedIn, currentPlan }: Props) {
                   : "border-2 border-black text-black hover:bg-black hover:text-white"
               }`}
             >
-              {isCurrent
-                ? "Plan actuel"
-                : loading === plan.id
-                ? "Redirection..."
-                : plan.cta}
+              {isCurrent ? "Plan actuel" : loading === plan.id ? "Redirection..." : plan.cta}
             </button>
           </div>
         );

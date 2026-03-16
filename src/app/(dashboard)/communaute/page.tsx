@@ -22,8 +22,8 @@ export default async function CommunautePage() {
   if (userProfile?.plan === "starter") {
     return (
       <div className="max-w-3xl mx-auto animate-fade-in">
-        <h1 className="text-2xl font-black text-black mb-4">Communauté</h1>
-        <UpgradeBanner feature="Communauté" />
+        <h1 className="text-2xl font-black text-black mb-4">Réseaux</h1>
+        <UpgradeBanner feature="Réseaux" />
       </div>
     );
   }
@@ -45,7 +45,7 @@ export default async function CommunautePage() {
     return (
       <div className="max-w-3xl mx-auto space-y-6 animate-fade-in">
         <div>
-          <h1 className="text-2xl font-black text-black">Communauté</h1>
+          <h1 className="text-2xl font-black text-black">Réseaux</h1>
           <p className="text-sm text-gray-400 mt-0.5">L&apos;activité de votre écurie</p>
         </div>
         <div className="card text-center py-12">
@@ -165,7 +165,7 @@ export default async function CommunautePage() {
       <div className="flex items-center gap-2">
         <TrendingUp className="h-5 w-5 text-orange" />
         <div>
-          <h1 className="text-2xl font-black text-black">Communauté</h1>
+          <h1 className="text-2xl font-black text-black">Réseaux</h1>
           <p className="text-sm text-gray-400">
             {userEcuries[0]}
             {ecurieHorses && ecurieHorses.length > 0 && (

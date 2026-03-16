@@ -33,7 +33,7 @@ interface SidebarProps {
 
 const mainNav = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { href: "/communaute", icon: Users, label: "Communauté" },
+  { href: "/communaute", icon: Users, label: "Réseaux" },
   { href: "/classements", icon: Medal, label: "Classements" },
 ];
 

@@ -34,7 +34,7 @@ export default function MobileBottomNav({ horses, overdueByHorse = {} }: Props) 
 
   const mainItems = [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-    { href: "/communaute", icon: Users, label: "Communauté" },
+    { href: "/communaute", icon: Users, label: "Réseaux" },
     { href: "/classements", icon: Medal, label: "Classements" },
     { href: "/settings", icon: Settings, label: "Réglages" },
   ];

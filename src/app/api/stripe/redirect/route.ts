@@ -29,6 +29,15 @@ export async function GET(req: NextRequest) {
 
     let customerId = userProfile?.stripe_customer_id;
 
+    // Verify the customer exists in the current mode (test vs live)
+    if (customerId) {
+      try {
+        await stripe.customers.retrieve(customerId);
+      } catch {
+        customerId = null;
+      }
+    }
+
     if (!customerId) {
       const customer = await stripe.customers.create({
         email: userProfile?.email || user.email,

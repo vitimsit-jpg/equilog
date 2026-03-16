@@ -62,14 +62,16 @@ export default function PricingCards() {
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getUser().then(async ({ data: { user } }) => {
-      if (user) {
-        setIsLoggedIn(true);
-        const { data } = await supabase.from("users").select("plan").eq("id", user.id).single();
-        if (data?.plan) setCurrentPlan(data.plan as Plan);
-      }
-      setAuthReady(true);
-    });
+    supabase.auth.getUser()
+      .then(async ({ data: { user } }) => {
+        if (user) {
+          setIsLoggedIn(true);
+          const { data } = await supabase.from("users").select("plan").eq("id", user.id).single();
+          if (data?.plan) setCurrentPlan(data.plan as Plan);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setAuthReady(true));
   }, []);
 
   const handleSelect = async (plan: Plan) => {

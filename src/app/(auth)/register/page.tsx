@@ -3,7 +3,7 @@
 export const dynamic = "force-dynamic";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import toast from "react-hot-toast";
@@ -12,6 +12,8 @@ import Button from "@/components/ui/Button";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const planParam = searchParams.get("plan") as "pro" | "ecurie" | null;
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -50,6 +52,17 @@ export default function RegisterPage() {
       }
       fetch("/api/send-welcome", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, name }) });
       toast.success("Compte créé ! Bienvenue sur Equistra.");
+
+      if (planParam) {
+        const res = await fetch("/api/stripe/checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ plan: planParam }),
+        });
+        const { url } = await res.json();
+        if (url) { window.location.href = url; return; }
+      }
+
       router.push("/onboarding");
       router.refresh();
     }

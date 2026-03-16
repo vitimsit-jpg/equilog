@@ -38,14 +38,18 @@ export async function GET(req: NextRequest) {
     await adminClient.from("users").update({ stripe_customer_id: customerId }).eq("id", user.id);
   }
 
-  const session = await stripe.checkout.sessions.create({
-    mode: "subscription",
-    customer: customerId,
-    line_items: [{ price: STRIPE_PLANS[plan].priceId, quantity: 1 }],
-    success_url: `${APP_URL}/settings?success=1`,
-    cancel_url: `${APP_URL}/pricing`,
-    metadata: { user_id: user.id, plan },
-  });
-
-  return NextResponse.redirect(session.url!);
+  try {
+    const session = await stripe.checkout.sessions.create({
+      mode: "subscription",
+      customer: customerId,
+      line_items: [{ price: STRIPE_PLANS[plan].priceId, quantity: 1 }],
+      success_url: `${APP_URL}/settings?success=1`,
+      cancel_url: `${APP_URL}/pricing`,
+      metadata: { user_id: user.id, plan },
+    });
+    return NextResponse.redirect(session.url!);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return NextResponse.redirect(`${APP_URL}/pricing?err=${encodeURIComponent(msg)}`);
+  }
 }

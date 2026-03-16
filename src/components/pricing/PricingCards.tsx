@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Check } from "lucide-react";
 import toast from "react-hot-toast";
 import type { Plan } from "@/lib/plans";
@@ -60,20 +59,20 @@ interface Props {
 }
 
 export default function PricingCards({ isLoggedIn, currentPlan }: Props) {
-  const router = useRouter();
   const [loading, setLoading] = useState<Plan | null>(null);
 
   const handleSelect = async (plan: Plan) => {
+    console.log("handleSelect", plan, { isLoggedIn, currentPlan });
     if (plan === "starter") {
-      router.push(isLoggedIn ? "/dashboard" : "/register");
+      window.location.href = isLoggedIn ? "/dashboard" : "/register";
       return;
     }
     if (!isLoggedIn) {
-      router.push(`/register?plan=${plan}`);
+      window.location.href = `/register?plan=${plan}`;
       return;
     }
     if (plan === currentPlan) {
-      router.push("/settings");
+      window.location.href = "/settings";
       return;
     }
     setLoading(plan);

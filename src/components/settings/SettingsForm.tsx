@@ -10,6 +10,7 @@ import type { User, UserType } from "@/lib/supabase/types";
 import Badge from "@/components/ui/Badge";
 import { Bell } from "lucide-react";
 import PushNotificationToggle from "./PushNotificationToggle";
+import ProfileChangeModal from "./ProfileChangeModal";
 
 interface Props {
   user: User | null;
@@ -36,11 +37,12 @@ export default function SettingsForm({ user }: Props) {
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState(user?.name || "");
-  const [userType, setUserType] = useState<UserType | null>(user?.user_type || null);
-  const [savingType, setSavingType] = useState(false);
+  const [userType] = useState<UserType | null>(user?.user_type || null);
+
   const [notifHealth, setNotifHealth] = useState(user?.notify_health_reminders ?? true);
   const [notifWeekly, setNotifWeekly] = useState(user?.notify_weekly_summary ?? true);
   const [savingNotif, setSavingNotif] = useState(false);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [upgrading, setUpgrading] = useState<"pro" | "ecurie" | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
 
@@ -68,14 +70,6 @@ export default function SettingsForm({ user }: Props) {
     setLoading(false);
   };
 
-  const handleTypeChange = async (type: UserType) => {
-    setUserType(type);
-    setSavingType(true);
-    const { error } = await supabase.from("users").update({ user_type: type }).eq("id", user!.id);
-    if (error) toast.error("Erreur lors de la sauvegarde");
-    else { toast.success("Profil mis à jour"); router.refresh(); }
-    setSavingType(false);
-  };
 
   const handleUpgrade = async (plan: "pro" | "ecurie") => {
     setUpgrading(plan);
@@ -114,49 +108,43 @@ export default function SettingsForm({ user }: Props) {
       </div>
 
       <div className="card">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-bold text-black">Mon profil utilisateur</h2>
-          {savingType && <span className="text-xs text-gray-400">Enregistrement...</span>}
-        </div>
+        <h2 className="font-bold text-black mb-4">Mon profil utilisateur</h2>
 
-        {/* Current profile banner */}
         {userType && (() => {
           const current = USER_TYPE_OPTIONS.find((p) => p.type === userType);
           return current ? (
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-orange-light border border-orange/20 mb-4">
-              <span className="text-2xl">{current.emoji}</span>
-              <div>
-                <p className="text-xs font-bold text-orange uppercase tracking-wide">Profil actuel</p>
-                <p className="text-sm font-bold text-black">{current.label}</p>
-                <p className="text-xs text-gray-500">{current.subtitle}</p>
+            <div className="flex items-center justify-between gap-3 p-4 rounded-xl bg-orange-light border border-orange/20">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">{current.emoji}</span>
+                <div>
+                  <p className="text-xs font-bold text-orange uppercase tracking-wide">Profil actuel</p>
+                  <p className="text-sm font-bold text-black">{current.label}</p>
+                  <p className="text-xs text-gray-500">{current.subtitle}</p>
+                </div>
               </div>
+              <button
+                onClick={() => setProfileModalOpen(true)}
+                className="text-xs font-semibold text-gray-400 hover:text-black underline whitespace-nowrap transition-colors"
+              >
+                Changer
+              </button>
             </div>
           ) : null;
         })()}
 
-        <p className="text-xs text-gray-400 mb-3">Cliquez sur un profil pour le modifier :</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {USER_TYPE_OPTIONS.map((p) => (
-            <button
-              key={p.type}
-              onClick={() => handleTypeChange(p.type)}
-              className={`text-left p-3 rounded-xl border-2 transition-all ${
-                userType === p.type
-                  ? "border-orange bg-orange-light"
-                  : "border-gray-100 hover:border-gray-200"
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <span className="text-lg">{p.emoji}</span>
-                <div>
-                  <p className="text-sm font-bold text-black">{p.label}</p>
-                  <p className="text-xs text-gray-400">{p.subtitle}</p>
-                </div>
-              </div>
-            </button>
-          ))}
-        </div>
+        <p className="text-xs text-gray-400 mt-3">
+          Le profil détermine la navigation, le contenu mis en avant et les recommandations de l&apos;IA.
+          Ce n&apos;est pas un simple filtre — changez-le intentionnellement.
+        </p>
       </div>
+
+      {profileModalOpen && userType && (
+        <ProfileChangeModal
+          userId={user!.id}
+          currentType={userType}
+          onClose={() => setProfileModalOpen(false)}
+        />
+      )}
 
       <div className="card">
         <div className="flex items-center justify-between mb-4">

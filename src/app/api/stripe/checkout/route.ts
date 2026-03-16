@@ -60,8 +60,8 @@ export async function POST(req: NextRequest) {
           quantity: 1,
         },
       ],
-      success_url: `${APP_URL}/settings?success=1`,
-      cancel_url: `${APP_URL}/settings`,
+      success_url: `${APP_URL}/success`,
+      cancel_url: `${APP_URL}/pricing`,
       metadata: { user_id: user.id, plan },
     });
 

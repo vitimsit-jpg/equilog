@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
       mode: "subscription",
       customer: customerId,
       line_items: [{ price: STRIPE_PLANS[plan].priceId, quantity: 1 }],
-      success_url: `${APP_URL}/settings?success=1`,
+      success_url: `${APP_URL}/success`,
       cancel_url: `${APP_URL}/pricing`,
       metadata: { user_id: user.id, plan },
     });

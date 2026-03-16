@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { Upload, Camera, FolderOpen, Play, Loader2, CheckCircle2, TrendingUp, TrendingDown, Lightbulb, ChevronRight, History, ChevronDown } from "lucide-react";
 import { haptic } from "@/lib/haptic";
 
@@ -190,33 +190,20 @@ function AnalysisCard({ analysis, compact = false }: { analysis: SavedAnalysis; 
   );
 }
 
-export default function VideoAnalysis({ horse }: { horse: Horse }) {
+export default function VideoAnalysis({ horse, initialHistory = [] }: { horse: Horse; initialHistory?: SavedAnalysis[] }) {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [step, setStep] = useState<"idle" | "extracting" | "analyzing" | "done" | "error">("idle");
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [history, setHistory] = useState<SavedAnalysis[]>([]);
+  const [history, setHistory] = useState<SavedAnalysis[]>(initialHistory);
   const [historyOpen, setHistoryOpen] = useState(false);
   const cameraRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const storageKey = `video_analyses_${horse.id}`;
-
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(storageKey);
-      if (raw) setHistory(JSON.parse(raw));
-    } catch {}
-  }, [storageKey]);
-
   const saveToHistory = (analysis: AnalysisResult) => {
     const entry: SavedAnalysis = { ...analysis, date: new Date().toISOString() };
-    setHistory((prev) => {
-      const updated = [entry, ...prev].slice(0, MAX_HISTORY);
-      try { localStorage.setItem(storageKey, JSON.stringify(updated)); } catch {}
-      return updated;
-    });
+    setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY));
   };
 
   const handleFile = (f: File) => {

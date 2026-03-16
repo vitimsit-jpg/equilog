@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { notFound } from "next/navigation";
 import VideoAnalysis from "@/components/horses/VideoAnalysis";
+import UpgradeBanner from "@/components/ui/UpgradeBanner";
 
 interface Props {
   params: { id: string };
@@ -22,5 +24,40 @@ export default async function VideoPage({ params }: Props) {
 
   if (!horse) return notFound();
 
-  return <VideoAnalysis horse={horse} />;
+  const adminClient = createAdminClient();
+  const { data: userProfile } = await adminClient
+    .from("users")
+    .select("plan")
+    .eq("id", authUser.id)
+    .single();
+
+  const plan = userProfile?.plan ?? "starter";
+
+  if (plan === "starter") {
+    return (
+      <div className="max-w-2xl mx-auto">
+        <UpgradeBanner feature="Analyse Vidéo IA" requiredPlan="pro" />
+      </div>
+    );
+  }
+
+  const { data: dbHistory } = await supabase
+    .from("video_analyses")
+    .select("allure, score, posture_cheval, position_cavalier, points_forts, axes_amelioration, conseil_principal, created_at")
+    .eq("horse_id", params.id)
+    .order("created_at", { ascending: false })
+    .limit(10);
+
+  const history = (dbHistory ?? []).map((r) => ({
+    allure: r.allure,
+    score: r.score,
+    posture_cheval: r.posture_cheval,
+    position_cavalier: r.position_cavalier,
+    points_forts: r.points_forts,
+    axes_amelioration: r.axes_amelioration,
+    conseil_principal: r.conseil_principal,
+    date: r.created_at,
+  }));
+
+  return <VideoAnalysis horse={horse} initialHistory={history} />;
 }

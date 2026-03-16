@@ -10,6 +10,7 @@ const TABS = [
   { suffix: "/training", label: "Travail" },
   { suffix: "/competitions", label: "Concours" },
   { suffix: "/budget", label: "Budget" },
+  { suffix: "/video", label: "Vidéo" },
 ];
 
 export default function HorseTabNav({ horseId }: { horseId: string }) {

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check } from "lucide-react";
+import toast from "react-hot-toast";
 import type { Plan } from "@/lib/plans";
 
 const PLANS = [
@@ -76,13 +77,21 @@ export default function PricingCards({ isLoggedIn, currentPlan }: Props) {
       return;
     }
     setLoading(plan);
-    const res = await fetch("/api/stripe/checkout", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ plan }),
-    });
-    const { url } = await res.json();
-    if (url) window.location.href = url;
+    try {
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        toast.error(data.error || "Erreur lors de la redirection vers le paiement");
+      }
+    } catch {
+      toast.error("Erreur réseau, réessayez.");
+    }
     setLoading(null);
   };
 

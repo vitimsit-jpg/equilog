@@ -52,6 +52,6 @@ export async function GET(req: NextRequest) {
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error("Stripe redirect error:", msg);
-    return NextResponse.redirect(`${APP_URL}/pricing?err=${encodeURIComponent(msg)}`);
+    return Response.json({ error: msg }, { status: 500 });
   }
 }

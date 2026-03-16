@@ -19,7 +19,7 @@ export default function UpgradeBanner({ feature, requiredPlan = "pro" }: Props) 
       <p className="text-sm text-gray-400 mb-6 max-w-xs">
         Passez au plan {planLabel} ({price}/mois) pour accéder à cette fonctionnalité.
       </p>
-      <Link href="/settings" className="btn-primary inline-flex">
+      <Link href="/pricing" className="btn-primary inline-flex">
         Voir les plans →
       </Link>
     </div>

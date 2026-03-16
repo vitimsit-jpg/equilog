@@ -3,6 +3,9 @@
 import { useState, useRef } from "react";
 import { Upload, Camera, FolderOpen, Play, Loader2, CheckCircle2, TrendingUp, TrendingDown, Lightbulb, ChevronRight, History, ChevronDown } from "lucide-react";
 import { haptic } from "@/lib/haptic";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ResponsiveContainer } from "recharts";
+import { format, parseISO } from "date-fns";
+import { fr } from "date-fns/locale";
 
 interface Horse {
   id: string;
@@ -186,6 +189,73 @@ function AnalysisCard({ analysis, compact = false }: { analysis: SavedAnalysis; 
         </div>
         <p className="text-sm leading-relaxed">{analysis.conseil_principal}</p>
       </div>
+    </div>
+  );
+}
+
+function VideoScoreChart({ history }: { history: SavedAnalysis[] }) {
+  const data = [...history]
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .map((s) => ({
+      label: format(parseISO(s.date), "d MMM", { locale: fr }),
+      score: s.score,
+      allure: s.allure,
+    }));
+
+  const avg = Math.round(data.reduce((sum, d) => sum + d.score, 0) / data.length);
+  const trend = data.length >= 2 ? data[data.length - 1].score - data[0].score : 0;
+
+  return (
+    <div className="card space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <TrendingUp className="h-4 w-4 text-orange" />
+          <span className="text-sm font-bold text-black">Progression des scores</span>
+          <span className="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">{data.length} analyse{data.length > 1 ? "s" : ""}</span>
+        </div>
+        <div className="flex items-center gap-3 text-xs">
+          <span className="text-gray-400">Moy. <span className="font-bold text-black">{avg}/10</span></span>
+          {trend !== 0 && (
+            <span className={`font-bold ${trend > 0 ? "text-green-500" : "text-red-500"}`}>
+              {trend > 0 ? "+" : ""}{trend} pts
+            </span>
+          )}
+        </div>
+      </div>
+
+      <ResponsiveContainer width="100%" height={140}>
+        <LineChart data={data} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F0" vertical={false} />
+          <XAxis
+            dataKey="label"
+            tick={{ fontSize: 10, fill: "#9CA3AF" }}
+            tickLine={false}
+            axisLine={false}
+            interval="preserveStartEnd"
+          />
+          <YAxis
+            domain={[0, 10]}
+            ticks={[0, 5, 10]}
+            tick={{ fontSize: 10, fill: "#9CA3AF" }}
+            tickLine={false}
+            axisLine={false}
+          />
+          <ReferenceLine y={avg} stroke="#E8440A" strokeDasharray="4 3" strokeOpacity={0.4} />
+          <Tooltip
+            contentStyle={{ background: "#1A1A1A", border: "none", borderRadius: 8, color: "white", fontSize: 12 }}
+            formatter={(value, _, props) => [`${value}/10 — ${props.payload?.allure ?? ""}`, "Score"]}
+            labelStyle={{ color: "#9CA3AF" }}
+          />
+          <Line
+            type="monotone"
+            dataKey="score"
+            stroke="#E8440A"
+            strokeWidth={2.5}
+            dot={{ r: 4, fill: "#E8440A", strokeWidth: 0 }}
+            activeDot={{ r: 5, strokeWidth: 0 }}
+          />
+        </LineChart>
+      </ResponsiveContainer>
     </div>
   );
 }
@@ -375,6 +445,9 @@ export default function VideoAnalysis({ horse, initialHistory = [] }: { horse: H
           </button>
         </div>
       )}
+
+      {/* Score progression chart */}
+      {history.length >= 2 && <VideoScoreChart history={history} />}
 
       {/* History */}
       {history.length > 0 && (

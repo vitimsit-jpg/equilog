@@ -142,7 +142,7 @@ export default function ExportPDFButton({ horseId, horseName }: Props) {
         doc.setFontSize(isHeader ? 8 : 7.5);
         let x = MARGIN + 2;
         cols.forEach((c, i) => {
-          doc.setTextColor(isHeader ? ...orange : ...black);
+          doc.setTextColor(...(isHeader ? orange : black));
           doc.text(String(c).substring(0, 40), x, y + 4);
           x += widths[i];
         });

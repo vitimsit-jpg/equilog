@@ -8,6 +8,7 @@ import HorseAvatar from "@/components/ui/HorseAvatar";
 import { differenceInDays, startOfWeek, subDays } from "date-fns";
 import { fr } from "date-fns/locale";
 import WeatherWidget from "@/components/weather/WeatherWidget";
+import OnboardingChecklist from "@/components/dashboard/OnboardingChecklist";
 
 const USER_TYPE_WELCOME: Record<string, { title: string; subtitle: string; badge: string }> = {
   loisir:          { title: "Bonjour !", subtitle: "Voici l'état de votre cheval aujourd'hui.", badge: "Loisir" },
@@ -38,7 +39,10 @@ export default async function DashboardPage() {
     .eq("id", authUser.id)
     .single();
 
-  const userType = userProfile?.user_type || "loisir";
+  // Redirect to onboarding if not yet completed
+  if (!userProfile?.user_type) redirect("/onboarding");
+
+  const userType = userProfile.user_type || "loisir";
   const welcome = USER_TYPE_WELCOME[userType] || USER_TYPE_WELCOME.loisir;
   const widgetOrder = WIDGET_ORDER[userType] || WIDGET_ORDER.loisir;
 
@@ -59,6 +63,7 @@ export default async function DashboardPage() {
     { data: recentInsights },
     { data: recentCompetitions },
     { count: sessionsCount30d },
+    { count: healthRecordsCount },
   ] = await Promise.all([
     supabase
       .from("horse_scores")
@@ -99,6 +104,12 @@ export default async function DashboardPage() {
           .select("id", { count: "exact", head: true })
           .in("horse_id", horseIds)
           .gte("date", thirtyDaysAgo)
+      : Promise.resolve({ count: 0 }),
+    horseIds.length
+      ? supabase
+          .from("health_records")
+          .select("id", { count: "exact", head: true })
+          .in("horse_id", horseIds)
       : Promise.resolve({ count: 0 }),
   ]);
 
@@ -413,6 +424,15 @@ export default async function DashboardPage() {
           <span className="sm:hidden">+</span>
         </Link>
       </div>
+
+      {/* ── Checklist d'activation ────────────────────────────────────── */}
+      <OnboardingChecklist
+        hasHorse={(horses || []).length > 0}
+        hasHealthRecord={(healthRecordsCount ?? 0) > 0}
+        hasTrainingSession={(recentSessions || []).length > 0}
+        hasScore={Object.keys(scoresByHorse).length > 0}
+        firstHorseId={firstHorse?.id}
+      />
 
       {/* ── Météo ─────────────────────────────────────────────────────── */}
       <WeatherWidget />

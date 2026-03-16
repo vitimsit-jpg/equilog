@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import toast from "react-hot-toast";
@@ -38,6 +38,18 @@ export default function OnboardingPage() {
   const today = format(new Date(), "yyyy-MM-dd");
 
   const [step, setStep] = useState(1);
+
+  // Guard: already onboarded → redirect to dashboard
+  useEffect(() => {
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) return;
+      const { data } = await supabase.from("users").select("user_type").eq("id", user.id).single();
+      if (data?.user_type) {
+        const { count } = await supabase.from("horses").select("id", { count: "exact", head: true }).eq("user_id", user.id);
+        if ((count ?? 0) > 0) router.replace("/dashboard");
+      }
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [loading, setLoading] = useState(false);
   const [createdHorseId, setCreatedHorseId] = useState<string | null>(null);
 

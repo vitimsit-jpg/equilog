@@ -7,6 +7,7 @@ import Badge from "@/components/ui/Badge";
 import HorseAvatar from "@/components/ui/HorseAvatar";
 import { differenceInDays, startOfWeek, subDays } from "date-fns";
 import { fr } from "date-fns/locale";
+import WeatherWidget from "@/components/weather/WeatherWidget";
 
 const USER_TYPE_WELCOME: Record<string, { title: string; subtitle: string; badge: string }> = {
   loisir:          { title: "Bonjour !", subtitle: "Voici l'état de votre cheval aujourd'hui.", badge: "Loisir" },
@@ -412,6 +413,9 @@ export default async function DashboardPage() {
           <span className="sm:hidden">+</span>
         </Link>
       </div>
+
+      {/* ── Météo ─────────────────────────────────────────────────────── */}
+      <WeatherWidget />
 
       {/* ── Stats strip ───────────────────────────────────────────────── */}
       {(horses || []).length > 0 && (

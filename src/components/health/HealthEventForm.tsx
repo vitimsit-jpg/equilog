@@ -8,6 +8,7 @@ import Select from "@/components/ui/Select";
 import Textarea from "@/components/ui/Textarea";
 import Button from "@/components/ui/Button";
 import type { HealthRecord, HealthType } from "@/lib/supabase/types";
+import { trackEvent } from "@/lib/trackEvent";
 import { HEALTH_TYPE_LABELS } from "@/lib/utils";
 import { format, addDays } from "date-fns";
 
@@ -139,6 +140,7 @@ export default function HealthEventForm({ horseId, onSaved, onCancel, defaultVal
     else {
       savePractitioner(form.type, form.vet_name, form.practitioner_phone);
       toast.success("Soin enregistré !");
+      if (!defaultValues?.id) trackEvent({ event_name: "health_record_created", event_category: "health", properties: { type: form.type } });
       onSaved();
     }
     setLoading(false);

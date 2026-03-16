@@ -48,6 +48,7 @@ export default function RegisterPage() {
           plan: "starter",
         });
       }
+      fetch("/api/send-welcome", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, name }) });
       toast.success("Compte créé ! Bienvenue sur Equistra.");
       router.push("/onboarding");
       router.refresh();

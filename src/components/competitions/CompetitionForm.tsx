@@ -10,6 +10,7 @@ import Textarea from "@/components/ui/Textarea";
 import Button from "@/components/ui/Button";
 import { DISCIPLINE_LABELS } from "@/lib/utils";
 import type { Competition } from "@/lib/supabase/types";
+import { trackEvent } from "@/lib/trackEvent";
 
 const disciplineOptions = Object.entries(DISCIPLINE_LABELS).map(([v, l]) => ({ value: v, label: l }));
 
@@ -71,7 +72,11 @@ export default function CompetitionForm({ horseId, onSaved, onCancel, defaultVal
       : await supabase.from("competitions").insert(payload);
 
     if (error) toast.error("Erreur lors de l'enregistrement");
-    else { toast.success("Concours enregistré !"); onSaved(); }
+    else {
+      toast.success("Concours enregistré !");
+      if (!defaultValues?.id) trackEvent({ event_name: "competition_created", event_category: "competition", properties: { discipline: form.discipline, level: form.level } });
+      onSaved();
+    }
     setLoading(false);
   };
 

@@ -1,14 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import type { User, UserType } from "@/lib/supabase/types";
 import Badge from "@/components/ui/Badge";
 import { Bell } from "lucide-react";
+import PushNotificationToggle from "./PushNotificationToggle";
 
 interface Props {
   user: User | null;
@@ -32,6 +33,7 @@ const USER_TYPE_OPTIONS: { type: UserType; emoji: string; label: string; subtitl
 export default function SettingsForm({ user }: Props) {
   const supabase = createClient();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState(user?.name || "");
   const [userType, setUserType] = useState<UserType | null>(user?.user_type || null);
@@ -39,6 +41,14 @@ export default function SettingsForm({ user }: Props) {
   const [notifHealth, setNotifHealth] = useState(user?.notify_health_reminders ?? true);
   const [notifWeekly, setNotifWeekly] = useState(user?.notify_weekly_summary ?? true);
   const [savingNotif, setSavingNotif] = useState(false);
+  const [upgrading, setUpgrading] = useState<"pro" | "ecurie" | null>(null);
+  const [portalLoading, setPortalLoading] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get("success") === "1") {
+      toast.success("Abonnement activé ! Bienvenue sur le plan Pro.");
+    }
+  }, [searchParams]);
 
   const handleNotifToggle = async (field: "notify_health_reminders" | "notify_weekly_summary", value: boolean) => {
     if (field === "notify_health_reminders") setNotifHealth(value);
@@ -65,6 +75,22 @@ export default function SettingsForm({ user }: Props) {
     if (error) toast.error("Erreur lors de la sauvegarde");
     else { toast.success("Profil mis à jour"); router.refresh(); }
     setSavingType(false);
+  };
+
+  const handleUpgrade = async (plan: "pro" | "ecurie") => {
+    setUpgrading(plan);
+    const res = await fetch("/api/stripe/checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ plan }) });
+    const { url } = await res.json();
+    if (url) window.location.href = url;
+    setUpgrading(null);
+  };
+
+  const handlePortal = async () => {
+    setPortalLoading(true);
+    const res = await fetch("/api/stripe/portal", { method: "POST" });
+    const { url } = await res.json();
+    if (url) window.location.href = url;
+    setPortalLoading(false);
   };
 
   return (
@@ -159,6 +185,9 @@ export default function SettingsForm({ user }: Props) {
             </label>
           ))}
         </div>
+        <div className="pt-3 border-t border-gray-50">
+          <PushNotificationToggle />
+        </div>
       </div>
 
       <div className="card">
@@ -170,11 +199,12 @@ export default function SettingsForm({ user }: Props) {
         </div>
         <div className="space-y-3">
           {[
-            { plan: "starter", label: "Starter", price: "Gratuit", features: ["1 cheval", "Carnet de santé", "Journal de travail"] },
-            { plan: "pro", label: "Pro", price: "9€/mois", features: ["Chevaux illimités", "Tous les modules", "IA illimitée", "Export PDF"] },
-            { plan: "ecurie", label: "Écurie", price: "29€/mois", features: ["Tout le plan Pro", "Gestion multi-cavaliers", "Dashboard écurie"] },
+            { plan: "starter" as const, label: "Starter", price: "Gratuit", features: ["1 cheval", "Carnet de santé", "Journal de travail"] },
+            { plan: "pro" as const, label: "Pro", price: "9€/mois", features: ["Chevaux illimités", "Tous les modules", "IA illimitée", "Export PDF"] },
+            { plan: "ecurie" as const, label: "Écurie", price: "29€/mois", features: ["Tout le plan Pro", "Gestion multi-cavaliers", "Dashboard écurie"] },
           ].map((p) => {
             const isCurrent = user?.plan === p.plan;
+            const isStarter = p.plan === "starter";
             return (
               <div
                 key={p.plan}
@@ -191,14 +221,15 @@ export default function SettingsForm({ user }: Props) {
                   </div>
                   {isCurrent ? (
                     <Badge variant="orange">Actuel</Badge>
-                  ) : (
+                  ) : !isStarter ? (
                     <button
-                      onClick={() => toast("Paiement en ligne bientôt disponible — contactez-nous à contact@equistra.fr", { icon: "ℹ️" })}
-                      className="text-xs font-semibold text-orange hover:underline"
+                      onClick={() => handleUpgrade(p.plan)}
+                      disabled={upgrading === p.plan}
+                      className="text-xs font-semibold text-orange hover:underline disabled:opacity-50"
                     >
-                      Choisir ce plan →
+                      {upgrading === p.plan ? "Redirection..." : "Choisir ce plan →"}
                     </button>
-                  )}
+                  ) : null}
                 </div>
                 <ul className="space-y-0.5">
                   {p.features.map((f) => (
@@ -211,6 +242,18 @@ export default function SettingsForm({ user }: Props) {
             );
           })}
         </div>
+
+        {user?.stripe_subscription_id && (
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            <button
+              onClick={handlePortal}
+              disabled={portalLoading}
+              className="text-sm font-semibold text-gray-600 hover:text-black underline disabled:opacity-50"
+            >
+              {portalLoading ? "Redirection..." : "Gérer mon abonnement →"}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

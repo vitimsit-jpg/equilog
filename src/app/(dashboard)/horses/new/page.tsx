@@ -10,6 +10,8 @@ import Button from "@/components/ui/Button";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { DISCIPLINE_LABELS } from "@/lib/utils";
+import { trackEvent } from "@/lib/trackEvent";
+import { canAddHorse } from "@/lib/plans";
 
 const disciplineOptions = Object.entries(DISCIPLINE_LABELS).map(([value, label]) => ({ value, label }));
 
@@ -43,6 +45,16 @@ export default function NewHorsePage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { router.push("/login"); return; }
 
+    const { count: horseCount } = await supabase.from("horses").select("*", { count: "exact", head: true }).eq("user_id", user.id);
+    const { data: userProfile } = await supabase.from("users").select("plan").eq("id", user.id).single();
+    const plan = (userProfile?.plan || "starter") as "starter" | "pro" | "ecurie";
+    if (!canAddHorse(plan, horseCount || 0)) {
+      toast.error("Vous avez atteint la limite de chevaux pour le plan Starter. Passez au plan Pro pour en ajouter plus.");
+      router.push("/settings");
+      setLoading(false);
+      return;
+    }
+
     const { data, error } = await supabase
       .from("horses")
       .insert({
@@ -62,6 +74,7 @@ export default function NewHorsePage() {
       toast.error("Erreur lors de la création");
     } else {
       toast.success(`${form.name} ajouté !`);
+      trackEvent({ event_name: "horse_created", event_category: "horse", properties: { discipline: form.discipline || null, has_ecurie: !!form.ecurie } });
       router.push(`/horses/${data.id}`);
       router.refresh();
     }

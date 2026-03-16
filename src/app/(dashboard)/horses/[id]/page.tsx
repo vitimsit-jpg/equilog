@@ -6,6 +6,7 @@ import ScoreHistory from "@/components/horse-index/ScoreHistory";
 import { formatDate } from "@/lib/utils";
 import PremiumNudge from "@/components/ui/PremiumNudge";
 import AvatarUpload from "@/components/horse/AvatarUpload";
+import UpgradeBanner from "@/components/ui/UpgradeBanner";
 
 interface Props {
   params: { id: string };
@@ -50,6 +51,7 @@ export default async function HorsePage({ params }: Props) {
       .single(),
   ]);
 
+  const plan = userProfile?.plan ?? "starter";
   const currentScore = scores?.[0] ?? null;
   const breakdown = currentScore?.score_breakdown;
 
@@ -62,6 +64,14 @@ export default async function HorsePage({ params }: Props) {
   try {
     if (latestInsight?.content) parsedInsight = JSON.parse(latestInsight.content);
   } catch {}
+
+  if (plan === "starter") {
+    return (
+      <div className="max-w-4xl mx-auto animate-fade-in">
+        <UpgradeBanner feature="Horse Index & IA" />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">

@@ -140,6 +140,30 @@ export async function sendScoreAlert(p: ScoreAlertParams) {
   });
 }
 
+export async function sendWelcomeEmail(p: { to: string; userName: string }) {
+  const html = base(`
+    <h2 style="margin:0 0 8px;font-size:20px;font-weight:700;color:#111;">Bienvenue sur Equistra, ${p.userName} !</h2>
+    <p style="margin:0 0 20px;font-size:14px;color:#666;">Vous avez créé votre compte — votre carnet de bord équestre vous attend.</p>
+    <div style="background:#fff8f5;border-radius:10px;padding:20px 24px;margin-bottom:24px;">
+      <p style="margin:0 0 12px;font-size:13px;font-weight:600;color:#111;text-transform:uppercase;letter-spacing:0.5px;">Ce que vous pouvez faire :</p>
+      <ul style="margin:0;padding-left:18px;font-size:14px;color:#444;line-height:2;">
+        <li>Créer le profil de votre cheval</li>
+        <li>Suivre les soins et vaccins dans le carnet de santé</li>
+        <li>Enregistrer vos séances de travail</li>
+        <li>Visualiser le Horse Index — le score de forme global</li>
+      </ul>
+    </div>
+    ${btn(`${APP_URL}/horses/new`, "Ajouter mon premier cheval")}
+  `);
+
+  return getResend().emails.send({
+    from: FROM,
+    to: p.to,
+    subject: "Bienvenue sur Equistra !",
+    html,
+  });
+}
+
 export async function sendWeeklySummary(p: WeeklySummaryParams) {
   const totalSessions = p.horses.reduce((s, h) => s + h.sessionCount, 0);
   const totalMinutes = p.horses.reduce((s, h) => s + h.totalMinutes, 0);

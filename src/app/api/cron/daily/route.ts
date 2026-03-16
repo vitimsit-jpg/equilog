@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendHealthReminder, sendScoreAlert } from "@/lib/email";
+import { sendPushNotification } from "@/lib/webpush";
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://equilog-i3nr-vitimsit-jpgs-projects.vercel.app";
 
 function isAuthorized(request: NextRequest) {
   const auth = request.headers.get("authorization");
@@ -41,6 +44,24 @@ export async function GET(request: NextRequest) {
         dueDate: new Date(care.next_date).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }),
       });
       results.healthReminders++;
+
+      // Send push notifications
+      const { data: pushSubs } = await supabase
+        .from("push_subscriptions")
+        .select("endpoint, p256dh, auth")
+        .eq("user_id", horse.user_id);
+
+      for (const sub of pushSubs || []) {
+        try {
+          await sendPushNotification(sub, {
+            title: `Rappel soin — ${horse.name}`,
+            body: `${care.type} prévu dans 7 jours`,
+            url: `${APP_URL}/horses/${horse.id}/health`,
+          });
+        } catch {
+          // Ignore individual push errors (expired subscriptions, etc.)
+        }
+      }
     } catch {
       results.errors++;
     }

@@ -17,6 +17,9 @@ export interface User {
   created_at: string;
   is_admin?: boolean;
   status?: string;
+  stripe_customer_id?: string | null;
+  stripe_subscription_id?: string | null;
+  subscription_status?: string | null;
 }
 
 export interface Horse {

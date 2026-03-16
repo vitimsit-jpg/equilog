@@ -11,6 +11,7 @@ import Button from "@/components/ui/Button";
 import { TRAINING_TYPE_LABELS, INTENSITY_LABELS, FEELING_LABELS } from "@/lib/utils";
 import type { TrainingSession } from "@/lib/supabase/types";
 import VoiceButton from "./VoiceButton";
+import { trackEvent } from "@/lib/trackEvent";
 import { AlertTriangle } from "lucide-react";
 
 const RECOVERY_TAGS = [
@@ -76,7 +77,11 @@ export default function TrainingForm({ horseId, onSaved, onCancel, defaultValues
       : await supabase.from("training_sessions").insert(payload);
 
     if (error) toast.error("Erreur lors de l'enregistrement");
-    else { toast.success("Séance enregistrée !"); onSaved(); }
+    else {
+      toast.success("Séance enregistrée !");
+      if (!defaultValues?.id) trackEvent({ event_name: "training_created", event_category: "training", properties: { type: form.type, intensity: parseInt(form.intensity), duration_min: parseInt(form.duration_min) } });
+      onSaved();
+    }
     setLoading(false);
   };
 

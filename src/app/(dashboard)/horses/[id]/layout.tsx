@@ -35,6 +35,9 @@ export default async function HorseLayout({ children, params }: Props) {
   const weekAgo = new Date();
   weekAgo.setDate(weekAgo.getDate() - 14);
 
+  const { data: userProfile } = await supabase.from("users").select("plan").eq("id", authUser.id).single();
+  const plan = userProfile?.plan ?? "starter";
+
   const [{ data: recentComps }, { data: scores }] = await Promise.all([
     supabase
       .from("competitions")
@@ -162,11 +165,13 @@ export default async function HorseLayout({ children, params }: Props) {
         <div className="mt-6">{children}</div>
       </HorseSwipeNav>
 
-      <CoachChat
-        horseId={horse.id}
-        horseName={horse.name}
-        hasRecentCompetition={(recentComps || []).length > 0}
-      />
+      {plan !== "starter" && (
+        <CoachChat
+          horseId={horse.id}
+          horseName={horse.name}
+          hasRecentCompetition={(recentComps || []).length > 0}
+        />
+      )}
     </>
   );
 }

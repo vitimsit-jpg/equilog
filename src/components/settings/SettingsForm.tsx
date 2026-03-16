@@ -243,6 +243,12 @@ export default function SettingsForm({ user }: Props) {
           </div>
         )}
       </div>
+
+      <div className="text-center pt-2">
+        <a href="/mentions-legales" className="text-xs text-gray-400 hover:text-gray-600 underline">
+          Mentions légales & Politique de confidentialité
+        </a>
+      </div>
     </div>
   );
 }

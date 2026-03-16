@@ -7,6 +7,7 @@ import { formatDate } from "@/lib/utils";
 import PremiumNudge from "@/components/ui/PremiumNudge";
 import AvatarUpload from "@/components/horse/AvatarUpload";
 import UpgradeBanner from "@/components/ui/UpgradeBanner";
+import ExportPDFButton from "@/components/horse/ExportPDFButton";
 
 interface Props {
   params: { id: string };
@@ -75,6 +76,9 @@ export default async function HorsePage({ params }: Props) {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
+      <div className="flex justify-end">
+        <ExportPDFButton horseId={horse.id} horseName={horse.name} />
+      </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Horse Index card */}
         <div className="card lg:col-span-1 flex flex-col items-center gap-5">

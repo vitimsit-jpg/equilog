@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { BarChart2, Users, ShieldAlert, Activity } from "lucide-react";
+import { BarChart2, Users, ShieldAlert, Activity, TrendingUp } from "lucide-react";
 
 const navItems = [
   { href: "/admin", icon: BarChart2, label: "Analytics" },
+  { href: "/admin/comportement", icon: TrendingUp, label: "Comportement" },
   { href: "/admin/users", icon: Users, label: "Utilisateurs" },
-  { href: "/admin/audit", icon: ShieldAlert, label: "Audit logs" },
   { href: "/admin/events", icon: Activity, label: "Event logs" },
+  { href: "/admin/audit", icon: ShieldAlert, label: "Audit logs" },
 ];
 
 export default function AdminNav() {

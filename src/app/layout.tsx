@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Toaster } from "react-hot-toast";
+import PostHogProvider from "@/components/analytics/PostHogProvider";
 
 export const metadata: Metadata = {
   title: "Equistra — Le Strava du cheval",
@@ -24,7 +25,9 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <body className="antialiased">
+        <PostHogProvider>
         {children}
+        </PostHogProvider>
         <Toaster
           position="top-right"
           toastOptions={{

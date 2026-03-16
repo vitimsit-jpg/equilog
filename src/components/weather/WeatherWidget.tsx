@@ -46,11 +46,23 @@ export default function WeatherWidget() {
   useEffect(() => {
     async function load() {
       try {
-        const ipRes = await fetch("https://freeipapi.com/api/json");
-        const ipData = await ipRes.json();
-        const lat = ipData.latitude;
-        const lon = ipData.longitude;
-        const city = ipData.cityName || ipData.regionName || null;
+        let lat = 48.8566;
+        let lon = 2.3522;
+        let city: string | null = "Paris";
+
+        try {
+          const ipRes = await fetch("https://ip-api.com/json/?fields=lat,lon,city", { signal: AbortSignal.timeout(4000) });
+          if (ipRes.ok) {
+            const ipData = await ipRes.json();
+            if (ipData.lat && ipData.lon) {
+              lat = ipData.lat;
+              lon = ipData.lon;
+              city = ipData.city || null;
+            }
+          }
+        } catch {
+          // fallback Paris
+        }
 
         const meteoRes = await fetch(
           `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weathercode,windspeed_10m,precipitation,relative_humidity_2m&forecast_days=1`

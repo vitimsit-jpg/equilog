@@ -3,8 +3,6 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { TrendingUp, Users } from "lucide-react";
 import CommunauteFeed from "@/components/community/CommunauteFeed";
-import UpgradeBanner from "@/components/ui/UpgradeBanner";
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type FeedItem = { date: string; type: "session" | "competition"; data: any; horse: any };
 
@@ -15,18 +13,9 @@ export default async function CommunautePage() {
 
   const { data: userProfile } = await supabase
     .from("users")
-    .select("user_type, plan")
+    .select("user_type")
     .eq("id", authUser.id)
     .single();
-
-  if (userProfile?.plan === "starter") {
-    return (
-      <div className="max-w-3xl mx-auto animate-fade-in">
-        <h1 className="text-2xl font-black text-black mb-4">Réseaux</h1>
-        <UpgradeBanner feature="Réseaux" />
-      </div>
-    );
-  }
 
   const userType = userProfile?.user_type || "loisir";
   const isCompetitor = ["competition", "pro", "gerant_cavalier"].includes(userType);
@@ -67,7 +56,6 @@ export default async function CommunautePage() {
     .from("horses")
     .select("*")
     .in("ecurie", userEcuries)
-    .eq("share_horse_index", true)
     .limit(50);
 
   const ecurieHorseIds = (ecurieHorses || []).map((h) => h.id);

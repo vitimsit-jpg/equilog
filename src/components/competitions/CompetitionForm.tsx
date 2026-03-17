@@ -94,7 +94,7 @@ export default function CompetitionForm({ horseId, onSaved, onCancel, defaultVal
   const levelGroups = LEVELS_BY_DISCIPLINE[form.discipline] ?? GENERIC_LEVELS;
 
   const handleDisciplineChange = (discipline: string) => {
-    setForm({ ...form, discipline, level: "" });
+    setForm({ ...form, discipline: discipline as Competition["discipline"], level: "" });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

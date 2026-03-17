@@ -76,7 +76,7 @@ export default async function ClassementsPage({ searchParams }: Props) {
             <h1 className="text-2xl font-black text-black">Classements</h1>
           </div>
           <p className="text-sm text-gray-400">
-            {filtered.length} cheval{filtered.length > 1 ? "x" : ""} classé{filtered.length > 1 ? "s" : ""} par Horse Index
+            {filtered.length} cheval{filtered.length > 1 ? "ux" : ""} classé{filtered.length > 1 ? "s" : ""} par Horse Index
           </p>
         </div>
 

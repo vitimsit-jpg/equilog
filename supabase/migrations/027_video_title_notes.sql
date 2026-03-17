@@ -1,0 +1,2 @@
+ALTER TABLE video_analyses ADD COLUMN IF NOT EXISTS title TEXT;
+ALTER TABLE video_analyses ADD COLUMN IF NOT EXISTS notes TEXT;

@@ -43,12 +43,13 @@ export default async function VideoPage({ params }: Props) {
 
   const { data: dbHistory } = await supabase
     .from("video_analyses")
-    .select("allure, score, posture_cheval, position_cavalier, points_forts, axes_amelioration, conseil_principal, created_at")
+    .select("id, allure, score, posture_cheval, position_cavalier, points_forts, axes_amelioration, conseil_principal, created_at, video_url, title, notes")
     .eq("horse_id", params.id)
     .order("created_at", { ascending: false })
     .limit(10);
 
   const history = (dbHistory ?? []).map((r) => ({
+    id: r.id,
     allure: r.allure,
     score: r.score,
     posture_cheval: r.posture_cheval,
@@ -57,7 +58,10 @@ export default async function VideoPage({ params }: Props) {
     axes_amelioration: r.axes_amelioration,
     conseil_principal: r.conseil_principal,
     date: r.created_at,
+    video_url: r.video_url ?? null,
+    title: r.title ?? null,
+    notes: r.notes ?? null,
   }));
 
-  return <VideoAnalysis horse={horse} initialHistory={history} />;
+  return <VideoAnalysis horse={horse} initialHistory={history} userId={authUser.id} />;
 }

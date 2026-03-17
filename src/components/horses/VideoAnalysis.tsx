@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Upload, Camera, FolderOpen, Play, Loader2, CheckCircle2, TrendingUp, TrendingDown, Lightbulb, ChevronRight, History, ChevronDown } from "lucide-react";
+import { Upload, Camera, FolderOpen, Play, Loader2, CheckCircle2, TrendingUp, TrendingDown, Lightbulb, ChevronRight, History, ChevronDown, FileText, Save, Share2, Check } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 import { haptic } from "@/lib/haptic";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ResponsiveContainer } from "recharts";
 import { format, parseISO } from "date-fns";
@@ -24,7 +25,11 @@ interface AnalysisResult {
 }
 
 interface SavedAnalysis extends AnalysisResult {
+  id?: string;
   date: string; // ISO string
+  video_url?: string | null;
+  title?: string | null;
+  notes?: string | null;
 }
 
 const NUM_FRAMES = 6;
@@ -106,7 +111,13 @@ function ScoreGauge({ score }: { score: number }) {
   );
 }
 
-function AnalysisCard({ analysis, compact = false }: { analysis: SavedAnalysis; compact?: boolean }) {
+function AnalysisCard({ analysis, compact = false, onPlayVideo, onShare, shareState }: {
+  analysis: SavedAnalysis;
+  compact?: boolean;
+  onPlayVideo?: () => void;
+  onShare?: () => void;
+  shareState?: "idle" | "loading" | "copied";
+}) {
   const scoreColor = analysis.score >= 8 ? "text-green-500" : analysis.score >= 6 ? "text-orange" : "text-red-500";
 
   if (compact) {
@@ -114,12 +125,31 @@ function AnalysisCard({ analysis, compact = false }: { analysis: SavedAnalysis; 
       <div className="flex items-center gap-3">
         <div className={`text-2xl font-black ${scoreColor}`}>{analysis.score}<span className="text-xs text-gray-400 font-normal">/10</span></div>
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-semibold text-black capitalize">{analysis.allure}</p>
+          <div className="flex items-center gap-1.5">
+            <p className="text-xs font-semibold text-black truncate">
+              {analysis.title || <span className="capitalize">{analysis.allure}</span>}
+            </p>
+            {analysis.notes && <FileText className="h-3 w-3 text-gray-400 flex-shrink-0" />}
+          </div>
           <p className="text-xs text-gray-400 truncate">{analysis.conseil_principal}</p>
         </div>
-        <p className="text-2xs text-gray-300 flex-shrink-0">
-          {new Date(analysis.date).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
-        </p>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {onPlayVideo && (
+            <button onClick={onPlayVideo} className="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors" title="Revoir la vidéo">
+              <Play className="h-3 w-3 text-gray-600" />
+            </button>
+          )}
+          {onShare && (
+            <button onClick={onShare} className="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors" title="Partager">
+              {shareState === "loading" ? <Loader2 className="h-3 w-3 animate-spin text-gray-600" /> :
+               shareState === "copied" ? <Check className="h-3 w-3 text-green-500" /> :
+               <Share2 className="h-3 w-3 text-gray-600" />}
+            </button>
+          )}
+          <p className="text-2xs text-gray-300">
+            {new Date(analysis.date).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
+          </p>
+        </div>
       </div>
     );
   }
@@ -260,7 +290,7 @@ function VideoScoreChart({ history }: { history: SavedAnalysis[] }) {
   );
 }
 
-export default function VideoAnalysis({ horse, initialHistory = [] }: { horse: Horse; initialHistory?: SavedAnalysis[] }) {
+export default function VideoAnalysis({ horse, initialHistory = [], userId }: { horse: Horse; initialHistory?: SavedAnalysis[]; userId: string }) {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [step, setStep] = useState<"idle" | "extracting" | "analyzing" | "done" | "error">("idle");
@@ -268,12 +298,80 @@ export default function VideoAnalysis({ horse, initialHistory = [] }: { horse: H
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<SavedAnalysis[]>(initialHistory);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [currentAnalysisId, setCurrentAnalysisId] = useState<string | null>(null);
+  const [noteTitle, setNoteTitle] = useState("");
+  const [noteContent, setNoteContent] = useState("");
+  const [noteSaving, setNoteSaving] = useState(false);
+  const [noteSaved, setNoteSaved] = useState(false);
+  const [sharingId, setSharingId] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const saveToHistory = (analysis: AnalysisResult) => {
-    const entry: SavedAnalysis = { ...analysis, date: new Date().toISOString() };
+  const saveToHistory = (analysis: AnalysisResult, id?: string) => {
+    const entry: SavedAnalysis = { ...analysis, id, date: new Date().toISOString(), video_url: null, title: null, notes: null };
     setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY));
+  };
+
+  const handleSaveNote = async () => {
+    if (!currentAnalysisId || noteSaving) return;
+    setNoteSaving(true);
+    try {
+      const supabase = createClient();
+      await supabase.from("video_analyses")
+        .update({ title: noteTitle.trim() || null, notes: noteContent.trim() || null })
+        .eq("id", currentAnalysisId);
+      setHistory((prev) =>
+        prev.map((item) =>
+          item.id === currentAnalysisId
+            ? { ...item, title: noteTitle.trim() || null, notes: noteContent.trim() || null }
+            : item
+        )
+      );
+      setNoteSaved(true);
+    } finally {
+      setNoteSaving(false);
+    }
+  };
+
+  const handleShare = async (analysisId: string) => {
+    if (sharingId) return;
+    setSharingId(analysisId);
+    try {
+      const res = await fetch("/api/video-analysis/share", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ analysisId }),
+      });
+      const { shareUrl } = await res.json();
+      await navigator.clipboard.writeText(shareUrl);
+      setCopiedId(analysisId);
+      setTimeout(() => setCopiedId(null), 2500);
+    } finally {
+      setSharingId(null);
+    }
+  };
+
+  const uploadVideoBackground = async (f: File, analysisId: string) => {
+    try {
+      const supabase = createClient();
+      const ext = f.name.split(".").pop()?.toLowerCase() || "mp4";
+      const path = `${userId}/${horse.id}/${analysisId}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("video-analyses")
+        .upload(path, f, { contentType: f.type, cacheControl: "3600" });
+      if (uploadError) return;
+      await supabase.from("video_analyses").update({ video_url: path }).eq("id", analysisId);
+      setHistory((prev) =>
+        prev.map((item) => (item.id === analysisId ? { ...item, video_url: path } : item))
+      );
+    } catch {}
+  };
+
+  const handlePlayVideo = async (videoPath: string) => {
+    const supabase = createClient();
+    const { data } = await supabase.storage.from("video-analyses").createSignedUrl(videoPath, 3600);
+    if (data?.signedUrl) window.open(data.signedUrl, "_blank");
   };
 
   const handleFile = (f: File) => {
@@ -313,11 +411,21 @@ export default function VideoAnalysis({ horse, initialHistory = [] }: { horse: H
         throw new Error(errMsg);
       }
 
-      const data = await res.json();
+      const { analysisId, ...data } = await res.json();
       setResult(data);
-      saveToHistory(data);
+      saveToHistory(data, analysisId);
+      setCurrentAnalysisId(analysisId ?? null);
+      const today = new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
+      setNoteTitle(`${data.allure.charAt(0).toUpperCase() + data.allure.slice(1)} — ${today}`);
+      setNoteContent("");
+      setNoteSaved(false);
       haptic("success");
       setStep("done");
+
+      // Upload video in background after showing result
+      if (analysisId && file) {
+        uploadVideoBackground(file, analysisId);
+      }
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Une erreur est survenue");
       haptic("error");
@@ -332,6 +440,10 @@ export default function VideoAnalysis({ horse, initialHistory = [] }: { horse: H
     setResult(null);
     setError(null);
     setStep("idle");
+    setCurrentAnalysisId(null);
+    setNoteTitle("");
+    setNoteContent("");
+    setNoteSaved(false);
   };
 
   const isLoading = step === "extracting" || step === "analyzing";
@@ -439,6 +551,57 @@ export default function VideoAnalysis({ horse, initialHistory = [] }: { horse: H
       {result && (
         <div className="space-y-4">
           <AnalysisCard analysis={{ ...result, date: new Date().toISOString() }} />
+
+          {/* Title & notes form */}
+          <div className="card space-y-3">
+            <div className="flex items-center gap-2">
+              <FileText className="h-4 w-4 text-orange" />
+              <span className="text-sm font-bold text-black">Nommer cette séance</span>
+            </div>
+            <input
+              type="text"
+              value={noteTitle}
+              onChange={(e) => { setNoteTitle(e.target.value); setNoteSaved(false); }}
+              placeholder="ex: Travail sur le galop — 17 mars"
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-orange"
+            />
+            <textarea
+              value={noteContent}
+              onChange={(e) => { setNoteContent(e.target.value); setNoteSaved(false); }}
+              placeholder="Notes de la séance (optionnel)"
+              rows={3}
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-orange resize-none"
+            />
+            <button
+              onClick={handleSaveNote}
+              disabled={noteSaving || noteSaved}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-black text-white text-sm font-semibold hover:bg-gray-900 transition-colors disabled:opacity-50"
+            >
+              {noteSaving ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Save className="h-3.5 w-3.5" />
+              )}
+              {noteSaved ? "Enregistré ✓" : "Enregistrer"}
+            </button>
+          </div>
+
+          {currentAnalysisId && (
+            <button
+              onClick={() => handleShare(currentAnalysisId)}
+              disabled={sharingId === currentAnalysisId}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-700 hover:border-gray-400 transition-colors disabled:opacity-50"
+            >
+              {sharingId === currentAnalysisId ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : copiedId === currentAnalysisId ? (
+                <><Check className="h-4 w-4 text-green-500" /> Lien copié ✓</>
+              ) : (
+                <><Share2 className="h-4 w-4" /> Partager avec mon coach</>
+              )}
+            </button>
+          )}
+
           <button onClick={reset} className="w-full btn-ghost flex items-center justify-center gap-2">
             <Upload className="h-4 w-4" />
             Analyser une autre vidéo
@@ -468,7 +631,13 @@ export default function VideoAnalysis({ horse, initialHistory = [] }: { horse: H
             <div className="mt-4 space-y-3 divide-y divide-gray-50">
               {history.map((item, i) => (
                 <div key={i} className={i > 0 ? "pt-3" : ""}>
-                  <AnalysisCard analysis={item} compact />
+                  <AnalysisCard
+                    analysis={item}
+                    compact
+                    onPlayVideo={item.video_url ? () => handlePlayVideo(item.video_url!) : undefined}
+                    onShare={item.id ? () => handleShare(item.id!) : undefined}
+                    shareState={sharingId === item.id ? "loading" : copiedId === item.id ? "copied" : "idle"}
+                  />
                 </div>
               ))}
             </div>

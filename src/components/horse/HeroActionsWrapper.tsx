@@ -49,10 +49,7 @@ export default function HeroActionsWrapper({
               </button>
             </div>
             {/* Actions */}
-            <div
-              className="flex flex-col gap-2 p-5 pb-10"
-              onClick={() => setOpen(false)}
-            >
+            <div className="flex flex-col gap-2 p-5 pb-10">
               {children}
             </div>
           </div>

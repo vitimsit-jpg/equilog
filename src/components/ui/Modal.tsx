@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 import { X } from "lucide-react";
 import { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 
 interface ModalProps {
   open: boolean;
@@ -41,23 +42,24 @@ export default function Modal({ open, onClose, title, children, className, size 
     lg: "max-w-2xl",
   };
 
-  return (
+  return createPortal(
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in"
+      className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in"
       onClick={(e) => {
         if (e.target === overlayRef.current) onClose();
       }}
     >
       <div
         className={cn(
-          "w-full bg-white rounded-3xl shadow-card-hover animate-scale-in overflow-hidden",
+          "w-full bg-white rounded-3xl shadow-card-hover animate-scale-in flex flex-col",
+          "max-h-[calc(100svh-2rem)]",
           sizes[size],
           className
         )}
       >
         {title && (
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
             <h2 className="text-base font-bold text-black">{title}</h2>
             <button
               onClick={onClose}
@@ -67,8 +69,9 @@ export default function Modal({ open, onClose, title, children, className, size 
             </button>
           </div>
         )}
-        <div className="p-6">{children}</div>
+        <div className="px-6 py-6 overflow-y-auto flex-1">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

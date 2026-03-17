@@ -112,12 +112,22 @@ export default function HorseEditModal({ horse }: Props) {
 
   return (
     <>
+      {/* Desktop: icon only */}
       <button
         onClick={() => setOpen(true)}
-        className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-black transition-colors"
+        className="hidden md:flex p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-black transition-colors"
         title="Modifier le profil"
       >
         <Edit2 className="h-4 w-4" />
+      </button>
+
+      {/* Mobile: full row button for bottom sheet */}
+      <button
+        onClick={() => setOpen(true)}
+        className="md:hidden w-full flex items-center gap-3 px-4 py-3 rounded-2xl border border-gray-200 text-black text-sm font-semibold"
+      >
+        <Edit2 className="h-4 w-4 text-gray-500" />
+        Modifier le profil
       </button>
 
       <Modal open={open} onClose={() => setOpen(false)} title="Modifier le profil">

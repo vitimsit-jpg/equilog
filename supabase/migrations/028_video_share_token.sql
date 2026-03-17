@@ -1,0 +1,1 @@
+ALTER TABLE video_analyses ADD COLUMN IF NOT EXISTS share_token TEXT UNIQUE;

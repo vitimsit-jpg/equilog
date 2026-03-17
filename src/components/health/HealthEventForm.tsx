@@ -32,13 +32,9 @@ const defaultIntervals: Record<HealthType, number | null> = {
 // Vaccin subtypes with their interval in days (règles FFE)
 const vaccinSubtypes = [
   { value: "", label: "Sélectionner un vaccin" },
-  { value: "Grippe équine", label: "Grippe équine — FFE : 6 mois max", interval: 182 },
-  { value: "Rhinopneumonie", label: "Rhinopneumonie (6 mois)", interval: 180 },
-  { value: "Grippe + Rhinopneumonie", label: "Grippe + Rhinopneumonie — FFE : 6 mois max", interval: 182 },
-  { value: "Tétanos", label: "Tétanos (rappel tous les 2 ans)", interval: 730 },
-  { value: "West Nile", label: "West Nile (12 mois)", interval: 365 },
-  { value: "EHV / Herpès équin", label: "EHV / Herpès équin (6 mois)", interval: 180 },
-  { value: "Autre vaccin", label: "Autre vaccin", interval: null },
+  { value: "Grippe équine", label: "Grippe équine (1 an)", interval: 365 },
+  { value: "Rhinopneumonie", label: "Rhinopneumonie (1 an)", interval: 365 },
+  { value: "Grippe + Rhinopneumonie", label: "Grippe + Rhinopneumonie (1 an)", interval: 365 },
 ];
 
 interface Props {

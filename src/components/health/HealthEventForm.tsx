@@ -123,7 +123,7 @@ export default function HealthEventForm({ horseId, onSaved, onCancel, defaultVal
     const payload = {
       horse_id: horseId,
       type: form.type,
-      date: form.date,
+      date: form.date || today,
       next_date: form.next_date || null,
       vet_name: form.vet_name || null,
       practitioner_phone: form.practitioner_phone || null,

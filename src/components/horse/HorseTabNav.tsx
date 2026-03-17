@@ -10,6 +10,8 @@ const TABS = [
   { suffix: "/training", label: "Travail" },
   { suffix: "/competitions", label: "Concours" },
   { suffix: "/budget", label: "Budget" },
+  { suffix: "/historique", label: "Historique" },
+  { suffix: "/genealogie", label: "Généalogie" },
   { suffix: "/video", label: "Vidéo" },
 ];
 

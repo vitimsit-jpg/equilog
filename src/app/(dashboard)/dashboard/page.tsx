@@ -9,23 +9,30 @@ import { differenceInDays, startOfWeek, subDays } from "date-fns";
 import { fr } from "date-fns/locale";
 import WeatherWidget from "@/components/weather/WeatherWidget";
 import OnboardingChecklist from "@/components/dashboard/OnboardingChecklist";
+import HorseQuickActions from "@/components/dashboard/HorseQuickActions";
 
-const USER_TYPE_WELCOME: Record<string, { title: string; subtitle: string; badge: string }> = {
-  loisir:          { title: "Bonjour !", subtitle: "Voici l'état de votre cheval aujourd'hui.", badge: "Loisir" },
-  competition:     { title: "Prêt pour la saison ?", subtitle: "Vos performances et préparations concours.", badge: "Compétition" },
-  pro:             { title: "Tableau de bord", subtitle: "Vue d'ensemble de tous vos chevaux.", badge: "Pro" },
-  gerant_cavalier: { title: "Tableau de bord", subtitle: "Votre écurie et vos chevaux en un coup d'œil.", badge: "Gérant cavalier" },
+const PROFILE_WELCOME: Record<string, { title: string; subtitle: string; badge: string }> = {
+  loisir:      { title: "Bonjour !", subtitle: "Voici l'état de votre cheval aujourd'hui.", badge: "Loisir" },
+  competition: { title: "Prêt pour la saison ?", subtitle: "Vos performances et préparations concours.", badge: "Compétition" },
+  pro:         { title: "Tableau de bord", subtitle: "Vue d'ensemble de tous vos chevaux.", badge: "Pro" },
+  gerant:      { title: "Tableau de bord écurie", subtitle: "Vue d'ensemble de tous vos pensionnaires.", badge: "Gérant" },
+};
+
+// Legacy user_type fallback mapping
+const LEGACY_WELCOME: Record<string, { title: string; subtitle: string; badge: string }> = {
+  loisir:          PROFILE_WELCOME.loisir,
+  competition:     PROFILE_WELCOME.competition,
+  pro:             PROFILE_WELCOME.pro,
+  gerant_cavalier: PROFILE_WELCOME.gerant,
   coach:           { title: "Mes élèves", subtitle: "Suivez la progression de vos couples cavalier–cheval.", badge: "Coach" },
-  gerant_ecurie:   { title: "Tableau de bord écurie", subtitle: "Vue d'ensemble de tous vos pensionnaires.", badge: "Gérant écurie" },
+  gerant_ecurie:   PROFILE_WELCOME.gerant,
 };
 
 const WIDGET_ORDER: Record<string, string[]> = {
-  loisir:          ["alerts", "sessions_insights", "ecurie"],
-  competition:     ["competitions", "sessions_insights", "alerts", "ecurie"],
-  pro:             ["sessions_insights", "competitions", "alerts", "ecurie"],
-  gerant_cavalier: ["ecurie", "alerts", "sessions_insights"],
-  coach:           ["sessions_insights", "ecurie"],
-  gerant_ecurie:   ["ecurie", "alerts"],
+  loisir:      ["alerts", "sessions_insights", "ecurie"],
+  competition: ["competitions", "sessions_insights", "alerts", "ecurie"],
+  pro:         ["sessions_insights", "competitions", "alerts", "ecurie"],
+  gerant:      ["ecurie", "alerts", "sessions_insights"],
 };
 
 export default async function DashboardPage() {
@@ -35,16 +42,21 @@ export default async function DashboardPage() {
 
   const { data: userProfile } = await supabase
     .from("users")
-    .select("user_type")
+    .select("user_type, profile_type, module_coach, module_gerant")
     .eq("id", authUser.id)
     .single();
 
   // Redirect to onboarding if not yet completed
-  if (!userProfile?.user_type) redirect("/onboarding");
+  if (!userProfile?.profile_type && !userProfile?.user_type) redirect("/onboarding");
 
-  const userType = userProfile.user_type || "loisir";
-  const welcome = USER_TYPE_WELCOME[userType] || USER_TYPE_WELCOME.loisir;
-  const widgetOrder = WIDGET_ORDER[userType] || WIDGET_ORDER.loisir;
+  // Resolve effective profile (new system preferred, legacy fallback)
+  const profileType = userProfile?.profile_type || "loisir";
+  const userType = userProfile?.user_type || "loisir";
+  const moduleCoach = userProfile?.module_coach ?? false;
+  const moduleGerant = userProfile?.module_gerant ?? false;
+
+  const welcome = PROFILE_WELCOME[profileType] ?? LEGACY_WELCOME[userType] ?? PROFILE_WELCOME.loisir;
+  const widgetOrder = WIDGET_ORDER[profileType] ?? WIDGET_ORDER.loisir;
 
   const { data: horses } = await supabase
     .from("horses")
@@ -53,7 +65,7 @@ export default async function DashboardPage() {
 
   const horseIds = (horses || []).map((h) => h.id);
   const userEcuries = Array.from(new Set((horses || []).map((h) => h.ecurie).filter(Boolean))) as string[];
-  const fetchCompetitions = ["competition", "pro", "gerant_cavalier"].includes(userType);
+  const fetchCompetitions = ["competition", "pro"].includes(profileType) || ["competition", "pro", "gerant_cavalier"].includes(userType);
   const thirtyDaysAgo = subDays(new Date(), 30).toISOString().split("T")[0];
 
   const [
@@ -357,7 +369,7 @@ export default async function DashboardPage() {
     )
   ) : null;
 
-  const showEcurieWidget = ["gerant_ecurie", "gerant_cavalier", "pro", "competition", "loisir"].includes(userType);
+  const showEcurieWidget = true; // visible for all profiles when ecurie data exists
   const widgetEcurie = showEcurieWidget ? (
     rankedEcurieHorses.length > 0 && userEcuries[0] ? (
       <div className="card">
@@ -410,11 +422,21 @@ export default async function DashboardPage() {
       {/* ── Hero header ───────────────────────────────────────────────── */}
       <div className="rounded-2xl bg-gradient-to-br from-[#1A1A1A] to-[#2D1A0E] px-6 py-6 flex items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2.5 mb-1">
+          <div className="flex items-center gap-2.5 mb-1 flex-wrap">
             <h1 className="text-2xl font-black text-white">{welcome.title}</h1>
             <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-orange/20 text-orange border border-orange/30">
               {welcome.badge}
             </span>
+            {moduleCoach && (
+              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30">
+                Coach
+              </span>
+            )}
+            {moduleGerant && profileType !== "gerant" && (
+              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-400/30">
+                Gérant
+              </span>
+            )}
           </div>
           <p className="text-sm text-gray-500">{welcome.subtitle}</p>
         </div>
@@ -636,6 +658,13 @@ export default async function DashboardPage() {
             </Link>
           </div>
         </div>
+      )}
+
+      {/* ── État du jour ─────────────────────────────────────────────── */}
+      {(horses || []).length > 0 && (
+        <HorseQuickActions
+          horses={(horses || []).map((h) => ({ id: h.id, name: h.name, avatar_url: (h as any).avatar_url ?? null }))}
+        />
       )}
 
       {/* ── Quick actions ─────────────────────────────────────────────── */}

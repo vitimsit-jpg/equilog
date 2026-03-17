@@ -1,5 +1,7 @@
 export type UserPlan = "starter" | "pro" | "ecurie";
+export type HorseIndexMode = "IC" | "IE" | "IP" | "IR" | "IS" | "ICr";
 export type UserType = "loisir" | "competition" | "pro" | "gerant_cavalier" | "coach" | "gerant_ecurie";
+export type ProfileType = "loisir" | "competition" | "pro" | "gerant";
 export type HealthType = "vaccin" | "vermifuge" | "dentiste" | "osteo" | "ferrage" | "veterinaire" | "masseuse" | "autre";
 export type TrainingType = "dressage" | "saut" | "endurance" | "cso" | "cross" | "travail_a_pied" | "longe" | "galop" | "plat" | "marcheur" | "autre";
 export type WearableSource = "equisense" | "seaver" | "garmin" | "equilab" | "autre";
@@ -12,6 +14,12 @@ export interface User {
   name: string;
   plan: UserPlan;
   user_type: UserType | null;
+  profile_type: ProfileType | null;
+  profile_display_name: string | null;
+  module_coach: boolean;
+  module_gerant: boolean;
+  onboarding_step: number;
+  onboarding_completed: boolean;
   notify_health_reminders: boolean;
   notify_weekly_summary: boolean;
   created_at: string;
@@ -47,6 +55,10 @@ export interface Horse {
   morphologie_meteo: "sang_chaud" | "pur_sang" | "rustique" | null;
   etat_corporel: "normal" | "maigre" | null;
   trousseau: { label: string; grammage: number; impermeable: boolean }[] | null;
+  // Horse Index mode (migration 020)
+  horse_index_mode: HorseIndexMode | null;
+  horse_index_status: "actif" | "incomplet" | "calibrage" | null;
+  horse_index_mode_changed_at: string | null;
   created_at: string;
 }
 
@@ -135,13 +147,90 @@ export interface HorseScore {
 }
 
 export interface ScoreBreakdown {
-  regularite: number;
-  progression: number;
-  sante: number;
-  recuperation: number;
-  wearables: number;
+  // v2 pillar-based fields (new format)
+  version?: 2;
+  mode?: HorseIndexMode;
+  sante_score?: number | null;    // 0-100, null = no data
+  bienetre?: number | null;       // 0-100, null = no data
+  activite?: number | null;       // 0-100, null = no data
+  suivi_proprio?: number | null;  // 0-100
+  // v1 legacy fields (kept for reading old DB records)
+  regularite?: number;
+  progression?: number;
+  sante?: number;
+  recuperation?: number;
+  wearables?: number;
+  // common
   total: number;
   has_wearables: boolean;
+}
+
+export type HorseDailyLogEtat = "excellent" | "bien" | "normal" | "tendu" | "fatigue" | "douloureux";
+export type HorseDailyLogAppetit = "mange_bien" | "mange_peu" | "na_pas_mange";
+
+export type HistoryCategory = "boiterie" | "ulcere" | "colique" | "operation" | "vaccination" | "bilan_sanguin" | "soins_dentaires" | "osteo" | "radio" | "physio" | "traitement_long_terme" | "autre";
+export type DatePrecision = "exact" | "mois" | "annee" | "inconnue";
+
+export interface HorseDailyLog {
+  id: string;
+  horse_id: string;
+  date: string;
+  etat_general: HorseDailyLogEtat | null;
+  appetit: HorseDailyLogAppetit | null;
+  observations: string[] | null;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface HorseHistoryEvent {
+  id: string;
+  horse_id: string;
+  category: HistoryCategory;
+  title: string | null;
+  description: string | null;
+  date_precision: DatePrecision;
+  event_date: string | null;
+  event_month: number | null;
+  event_year: number | null;
+  vet_name: string | null;
+  clinic: string | null;
+  outcome: "gueri" | "chronique" | "suivi" | "inconnu" | null;
+  severity: "leger" | "modere" | "severe" | null;
+  document_url: string | null;
+  extracted_by_ai: boolean;
+  ai_confidence: Record<string, number> | null;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface HorsePedigree {
+  id: string;
+  horse_id: string;
+  pere_name: string | null;
+  pere_sire: string | null;
+  pere_breed: string | null;
+  mere_name: string | null;
+  mere_sire: string | null;
+  mere_breed: string | null;
+  gp_pat_pere_name: string | null;
+  gp_pat_pere_sire: string | null;
+  gp_pat_mere_name: string | null;
+  gp_pat_mere_sire: string | null;
+  gp_mat_pere_name: string | null;
+  gp_mat_pere_sire: string | null;
+  gp_mat_mere_name: string | null;
+  gp_mat_mere_sire: string | null;
+  agp_pp_pere_name: string | null;
+  agp_pp_mere_name: string | null;
+  agp_pm_pere_name: string | null;
+  agp_pm_mere_name: string | null;
+  agp_mp_pere_name: string | null;
+  agp_mp_mere_name: string | null;
+  agp_mm_pere_name: string | null;
+  agp_mm_mere_name: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export type ListingCategory = "cheval" | "materiel" | "service";
@@ -200,6 +289,9 @@ export interface Database {
       horse_scores: T<HorseScore>;
       ai_insights: T<AIInsight>;
       listings: T<Listing>;
+      horse_daily_logs: T<HorseDailyLog>;
+      horse_history_events: T<HorseHistoryEvent>;
+      horse_pedigree: T<HorsePedigree>;
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

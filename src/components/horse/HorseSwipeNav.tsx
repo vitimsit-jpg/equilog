@@ -4,7 +4,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { useRef } from "react";
 import { haptic } from "@/lib/haptic";
 
-const TAB_SUFFIXES = ["", "/health", "/training", "/competitions", "/budget"];
+const TAB_SUFFIXES = ["", "/health", "/training", "/competitions", "/budget", "/historique", "/genealogie"];
 
 export default function HorseSwipeNav({
   horseId,

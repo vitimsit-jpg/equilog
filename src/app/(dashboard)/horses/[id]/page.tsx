@@ -56,6 +56,13 @@ export default async function HorsePage({ params }: Props) {
   const currentScore = scores?.[0] ?? null;
   const breakdown = currentScore?.score_breakdown;
 
+  // HI-08/HI-10 : statut du cheval
+  const hiStatus = (horse as unknown as { horse_index_status?: string }).horse_index_status ?? "incomplet";
+  const modeChangedAt = (horse as unknown as { horse_index_mode_changed_at?: string }).horse_index_mode_changed_at;
+  const calibrageDaysIn = modeChangedAt
+    ? Math.floor((Date.now() - new Date(modeChangedAt).getTime()) / (1000 * 60 * 60 * 24))
+    : null;
+
   let parsedInsight: {
     summary?: string;
     insights?: string[];
@@ -93,12 +100,27 @@ export default async function HorsePage({ params }: Props) {
             )}
           </div>
 
-          {currentScore ? (
+          {currentScore && hiStatus !== "incomplet" ? (
             <>
               <HorseIndexGauge score={currentScore.score} size="lg" />
 
-              {(currentScore.percentile_region ||
-                currentScore.percentile_category) && (
+              {/* Score · Mode + calibrage badge */}
+              {breakdown?.version === 2 && breakdown.mode && (
+                <div className="flex flex-col items-center gap-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-lg font-black text-black">{currentScore.score}</span>
+                    <span className="text-gray-300 font-light">·</span>
+                    <span className="text-sm font-mono font-bold text-orange">{breakdown.mode}</span>
+                  </div>
+                  {hiStatus === "calibrage" && calibrageDaysIn !== null && (
+                    <span className="text-2xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                      En calibrage J+{calibrageDaysIn}/30
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {(currentScore.percentile_region || currentScore.percentile_category) && (
                 <div className="w-full p-3 rounded-xl bg-beige space-y-1.5">
                   {currentScore.percentile_category && (
                     <div className="flex justify-between text-xs">
@@ -120,10 +142,12 @@ export default async function HorsePage({ params }: Props) {
               )}
             </>
           ) : (
-            <div className="text-center py-6">
-              <div className="text-5xl font-black text-gray-200 mb-2">—</div>
-              <p className="text-xs text-gray-400 max-w-[160px] mx-auto">
-                Score calculé après 14 jours de données
+            /* HI-08 — Mode Incomplet : neutre, jamais alarmant */
+            <div className="text-center py-6 space-y-2">
+              <div className="text-5xl font-black text-gray-300 mb-1">—</div>
+              <p className="text-xs text-gray-400">Données insuffisantes</p>
+              <p className="text-2xs text-gray-400 max-w-[170px] mx-auto leading-relaxed">
+                Ajoutez une note pour {horse.name} pour recalculer son score
               </p>
             </div>
           )}
@@ -152,6 +176,7 @@ export default async function HorsePage({ params }: Props) {
               <ScoreBreakdownComponent
                 breakdown={breakdown}
                 horseId={horse.id}
+                scores={scores ?? undefined}
               />
             </div>
           )}

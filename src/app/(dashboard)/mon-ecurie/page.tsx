@@ -11,12 +11,15 @@ export default async function MonEcuriePage() {
 
   const { data: userProfile } = await supabase
     .from("users")
-    .select("user_type")
+    .select("user_type, profile_type, module_gerant")
     .eq("id", authUser.id)
     .single();
 
   const userType = userProfile?.user_type;
-  const isManager = ["gerant_ecurie", "gerant_cavalier"].includes(userType || "");
+  const isManager =
+    (userProfile as any)?.profile_type === "gerant" ||
+    (userProfile as any)?.module_gerant === true ||
+    ["gerant_ecurie", "gerant_cavalier"].includes(userType || "");
   if (!isManager) redirect("/dashboard");
 
   // Own horses

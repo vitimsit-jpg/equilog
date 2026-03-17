@@ -10,9 +10,8 @@ import { fr } from "date-fns/locale";
 import { Plus, Sparkles } from "lucide-react";
 import { TRAINING_TYPE_LABELS } from "@/lib/utils";
 import Button from "@/components/ui/Button";
-import Modal from "@/components/ui/Modal";
-import TrainingForm from "./TrainingForm";
 import TrainingList from "./TrainingList";
+import QuickTrainingModal from "./QuickTrainingModal";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 
@@ -248,13 +247,12 @@ export default function TrainingDashboard({ sessions, horseId, latestInsight }: 
       {/* Sessions list */}
       <TrainingList sessions={filtered} horseId={horseId} />
 
-      <Modal open={addOpen} onClose={() => setAddOpen(false)} title="Nouvelle séance">
-        <TrainingForm
-          horseId={horseId}
-          onSaved={() => { setAddOpen(false); router.refresh(); }}
-          onCancel={() => setAddOpen(false)}
-        />
-      </Modal>
+      <QuickTrainingModal
+        open={addOpen}
+        onClose={() => setAddOpen(false)}
+        horseId={horseId}
+        onSaved={() => { setAddOpen(false); router.refresh(); }}
+      />
     </div>
   );
 }

@@ -9,7 +9,7 @@ import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import Textarea from "@/components/ui/Textarea";
 import Button from "@/components/ui/Button";
-import { Edit2, Plus, Trash2, Cloud } from "lucide-react";
+import { Edit2, Plus, Trash2, Cloud, Activity } from "lucide-react";
 import type { Horse, Discipline } from "@/lib/supabase/types";
 import { DISCIPLINE_LABELS } from "@/lib/utils";
 import type { Couverture } from "@/lib/meteo";
@@ -62,6 +62,7 @@ export default function HorseEditModal({ horse }: Props) {
     tonte: horse.tonte || "",
     morphologie_meteo: horse.morphologie_meteo || "",
     etat_corporel: horse.etat_corporel || "",
+    horse_index_mode: horse.horse_index_mode || "IE",
   });
   const [trousseau, setTrousseau] = useState<Couverture[]>(horse.trousseau || []);
   const [newCouv, setNewCouv] = useState({ label: "", grammage: "", impermeable: false });
@@ -91,6 +92,10 @@ export default function HorseEditModal({ horse }: Props) {
         tonte: (form.tonte as Horse["tonte"]) || null,
         morphologie_meteo: (form.morphologie_meteo as Horse["morphologie_meteo"]) || null,
         etat_corporel: (form.etat_corporel as Horse["etat_corporel"]) || null,
+        horse_index_mode: form.horse_index_mode || "IE",
+        ...(form.horse_index_mode !== horse.horse_index_mode && {
+          horse_index_mode_changed_at: new Date().toISOString(),
+        }),
         trousseau: trousseau.length > 0 ? trousseau : [],
       })
       .eq("id", horse.id);
@@ -223,6 +228,49 @@ export default function HorseEditModal({ horse }: Props) {
               onChange={(e) => setForm({ ...form, fei_number: e.target.value })}
               placeholder="Ex : FRA12345"
             />
+          </div>
+
+          {/* ── Mode de vie (Horse Index) ── */}
+          <div className="pt-3 border-t border-gray-100">
+            <div className="flex items-center gap-2 mb-3">
+              <Activity className="h-4 w-4 text-orange" />
+              <h3 className="text-sm font-bold text-black">Mode de vie</h3>
+              <span className="text-xs text-gray-400">(pour le Horse Index)</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {([
+                { value: "IC",  emoji: "🏆", label: "Compétition",    desc: "En préparation ou en saison de concours" },
+                { value: "IE",  emoji: "🌿", label: "Loisir",          desc: "Monté régulièrement pour le plaisir" },
+                { value: "IP",  emoji: "🐾", label: "Semi-actif",      desc: "Monté occasionnellement, soins prioritaires" },
+                { value: "IR",  emoji: "💊", label: "Convalescence",   desc: "En récupération post-blessure ou opération" },
+                { value: "IS",  emoji: "🌸", label: "Retraite",        desc: "Plus travaillé, vie au pré ou en pension retraite" },
+                { value: "ICr", emoji: "🌱", label: "Poulain",         desc: "En développement, pas encore travaillé" },
+              ] as const).map((m) => (
+                <button
+                  key={m.value}
+                  type="button"
+                  onClick={() => {
+                    const isChange = form.horse_index_mode && form.horse_index_mode !== m.value;
+                    if (isChange && !confirm(`Changer le mode de vie recalibrera le Horse Index de ${form.name || "ce cheval"} sur 30 jours. Continuer ?`)) return;
+                    setForm({ ...form, horse_index_mode: m.value });
+                  }}
+                  className={`flex items-start gap-2 p-2.5 rounded-xl border text-left transition-colors ${
+                    form.horse_index_mode === m.value
+                      ? "border-orange bg-orange-light"
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span>{m.emoji}</span>
+                      <span className="text-xs font-bold text-black">{m.label}</span>
+                      <span className="text-2xs font-mono text-gray-400 bg-gray-100 px-1 rounded">{m.value}</span>
+                    </div>
+                    <p className="text-2xs text-gray-400 mt-0.5">{m.desc}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* ── Profil météo ── */}

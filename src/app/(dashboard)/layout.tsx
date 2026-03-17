@@ -24,7 +24,11 @@ export default async function DashboardLayout({
     .eq("id", authUser.id)
     .single();
 
-  if (userProfile && !userProfile.user_type) {
+  const isOnboarded =
+    (userProfile as any)?.onboarding_completed ||
+    userProfile?.user_type ||
+    (userProfile as any)?.profile_type;
+  if (userProfile && !isOnboarded) {
     redirect("/onboarding");
   }
 
@@ -57,6 +61,8 @@ export default async function DashboardLayout({
           horses={horses || []}
           currentHorseId={undefined}
           userType={userProfile?.user_type ?? null}
+          profileType={(userProfile as any)?.profile_type ?? null}
+          moduleGerant={(userProfile as any)?.module_gerant ?? false}
           overdueByHorse={overdueByHorse}
           isAdmin={userProfile?.is_admin ?? false}
         />

@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
-import type { User, UserType } from "@/lib/supabase/types";
+import type { User, ProfileType } from "@/lib/supabase/types";
 import Badge from "@/components/ui/Badge";
 import { Bell } from "lucide-react";
 import PushNotificationToggle from "./PushNotificationToggle";
@@ -22,13 +22,11 @@ const planLabels = {
   ecurie: "Écurie",
 };
 
-const USER_TYPE_OPTIONS: { type: UserType; emoji: string; label: string; subtitle: string }[] = [
-  { type: "loisir", emoji: "🌿", label: "Cavalier loisir", subtitle: "Je monte pour le plaisir" },
-  { type: "competition", emoji: "🏆", label: "Compétiteur amateur", subtitle: "Je concours régulièrement" },
-  { type: "pro", emoji: "⭐", label: "Cavalier professionnel", subtitle: "Haut niveau / semi-pro" },
-  { type: "gerant_cavalier", emoji: "🏠", label: "Gérant d'écurie + cavalier", subtitle: "Double casquette" },
-  { type: "coach", emoji: "🎯", label: "Coach indépendant", subtitle: "J'entraîne des cavaliers" },
-  { type: "gerant_ecurie", emoji: "🏢", label: "Gérant d'écurie", subtitle: "Gestion pure de structure" },
+const PROFILE_OPTIONS: { type: ProfileType; emoji: string; label: string; subtitle: string }[] = [
+  { type: "loisir",      emoji: "🌿", label: "Cavalier loisir",   subtitle: "Je monte pour le plaisir" },
+  { type: "competition", emoji: "🏆", label: "Compétiteur",       subtitle: "Je concours régulièrement" },
+  { type: "pro",         emoji: "⭐", label: "Professionnel",     subtitle: "Haut niveau / semi-pro" },
+  { type: "gerant",      emoji: "🏢", label: "Gérant d'écurie",   subtitle: "Gestion de structure équestre" },
 ];
 
 export default function SettingsForm({ user }: Props) {
@@ -37,7 +35,7 @@ export default function SettingsForm({ user }: Props) {
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState(user?.name || "");
-  const [userType] = useState<UserType | null>(user?.user_type || null);
+  const profileType = (user?.profile_type || null) as ProfileType | null;
 
   const [notifHealth, setNotifHealth] = useState(user?.notify_health_reminders ?? true);
   const [notifWeekly, setNotifWeekly] = useState(user?.notify_weekly_summary ?? true);
@@ -110,8 +108,8 @@ export default function SettingsForm({ user }: Props) {
       <div className="card">
         <h2 className="font-bold text-black mb-4">Mon profil utilisateur</h2>
 
-        {userType && (() => {
-          const current = USER_TYPE_OPTIONS.find((p) => p.type === userType);
+        {profileType && (() => {
+          const current = PROFILE_OPTIONS.find((p) => p.type === profileType);
           return current ? (
             <div className="flex items-center justify-between gap-3 p-4 rounded-xl bg-orange-light border border-orange/20">
               <div className="flex items-center gap-3">
@@ -120,6 +118,14 @@ export default function SettingsForm({ user }: Props) {
                   <p className="text-xs font-bold text-orange uppercase tracking-wide">Profil actuel</p>
                   <p className="text-sm font-bold text-black">{current.label}</p>
                   <p className="text-xs text-gray-500">{current.subtitle}</p>
+                  <div className="flex gap-1.5 mt-1">
+                    {user?.module_coach && (
+                      <span className="text-2xs font-semibold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">🎯 Coach</span>
+                    )}
+                    {user?.module_gerant && (
+                      <span className="text-2xs font-semibold px-1.5 py-0.5 rounded bg-purple-100 text-purple-700">🏢 Gérant</span>
+                    )}
+                  </div>
                 </div>
               </div>
               <button
@@ -138,10 +144,12 @@ export default function SettingsForm({ user }: Props) {
         </p>
       </div>
 
-      {profileModalOpen && userType && (
+      {profileModalOpen && profileType && (
         <ProfileChangeModal
           userId={user!.id}
-          currentType={userType}
+          currentProfile={profileType}
+          currentModuleCoach={user?.module_coach ?? false}
+          currentModuleGerant={user?.module_gerant ?? false}
           onClose={() => setProfileModalOpen(false)}
         />
       )}

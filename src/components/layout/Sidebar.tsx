@@ -19,7 +19,7 @@ import {
   Video,
   ShieldAlert,
 } from "lucide-react";
-import type { Horse, UserType } from "@/lib/supabase/types";
+import type { Horse, UserType, ProfileType } from "@/lib/supabase/types";
 import { useState } from "react";
 import HorseAvatar from "@/components/ui/HorseAvatar";
 
@@ -27,6 +27,8 @@ interface SidebarProps {
   horses: Horse[];
   currentHorseId?: string;
   userType?: UserType | null;
+  profileType?: ProfileType | null;
+  moduleGerant?: boolean;
   overdueByHorse?: Record<string, number>;
   isAdmin?: boolean;
 }
@@ -45,33 +47,28 @@ const horseNavItems = [
   { href: "video", icon: Video, label: "Analyse Vidéo" },
 ];
 
-// Profile-specific nav ordering and visibility
+// Profile-specific nav ordering and visibility (new profile_type system)
 const HORSE_NAV_BY_PROFILE: Record<string, string[]> = {
   loisir:          ["health", "training", "video", "budget", "competitions"],
   competition:     ["health", "competitions", "training", "video", "budget"],
   pro:             ["health", "training", "video", "competitions", "budget"],
+  gerant:          ["health", "budget", "training", "competitions"],
+  // legacy user_type fallbacks
   gerant_cavalier: ["health", "training", "video", "competitions", "budget"],
-  coach:           ["health", "training", "video", "competitions", "budget"],
   gerant_ecurie:   ["health", "budget", "training", "competitions"],
+  coach:           ["health", "training", "video", "competitions", "budget"],
 };
 
-// Items hidden (secondary) for certain profiles
-const HIDDEN_ITEMS: Record<string, string[]> = {
-  gerant_ecurie: ["competitions"],
-  coach: [],
-};
-
-export default function Sidebar({ horses, currentHorseId, userType, overdueByHorse = {}, isAdmin }: SidebarProps) {
+export default function Sidebar({ horses, currentHorseId, userType, profileType, moduleGerant, overdueByHorse = {}, isAdmin }: SidebarProps) {
   const pathname = usePathname();
   const [expanded, setExpanded] = useState<string | null>(currentHorseId || null);
 
-  const profileKey = userType || "loisir";
+  // Use new profileType when available, fall back to legacy userType
+  const profileKey = profileType || userType || "loisir";
   const navOrder = HORSE_NAV_BY_PROFILE[profileKey] || HORSE_NAV_BY_PROFILE.loisir;
-  const hiddenItems = HIDDEN_ITEMS[profileKey] || [];
-
   const orderedHorseNav = navOrder
     .map((href) => horseNavItems.find((item) => item.href === href)!)
-    .filter((item) => item && !hiddenItems.includes(item.href));
+    .filter((item) => item != null);
 
   const darkNavItem = "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-400 transition-all duration-150 hover:bg-white/10 hover:text-white";
   const darkNavItemActive = "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-white bg-orange";
@@ -105,7 +102,7 @@ export default function Sidebar({ horses, currentHorseId, userType, overdueByHor
         })}
 
         {/* Mon Écurie — gérants uniquement */}
-        {(userType === "gerant_ecurie" || userType === "gerant_cavalier") && (
+        {(profileType === "gerant" || moduleGerant || userType === "gerant_ecurie" || userType === "gerant_cavalier") && (
           <Link
             href="/mon-ecurie"
             className={cn(pathname === "/mon-ecurie" ? darkNavItemActive : darkNavItem)}

@@ -4,16 +4,14 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import type { UserType } from "@/lib/supabase/types";
+import type { ProfileType } from "@/lib/supabase/types";
 import { X, AlertTriangle, ArrowRight, Check, ShieldCheck } from "lucide-react";
 
-const PROFILES: { type: UserType; emoji: string; label: string; subtitle: string }[] = [
-  { type: "loisir",          emoji: "🌿", label: "Cavalier loisir",          subtitle: "Je monte pour le plaisir" },
-  { type: "competition",     emoji: "🏆", label: "Compétiteur amateur",       subtitle: "Je concours régulièrement" },
-  { type: "pro",             emoji: "⭐", label: "Cavalier professionnel",    subtitle: "Haut niveau / semi-pro" },
-  { type: "gerant_cavalier", emoji: "🏠", label: "Gérant d'écurie + cavalier", subtitle: "Double casquette" },
-  { type: "coach",           emoji: "🎯", label: "Coach indépendant",         subtitle: "J'entraîne des cavaliers" },
-  { type: "gerant_ecurie",   emoji: "🏢", label: "Gérant d'écurie",           subtitle: "Gestion pure de structure" },
+const PROFILES: { type: ProfileType; emoji: string; label: string; subtitle: string }[] = [
+  { type: "loisir",      emoji: "🌿", label: "Cavalier loisir",    subtitle: "Je monte pour le plaisir" },
+  { type: "competition", emoji: "🏆", label: "Compétiteur",        subtitle: "Je concours régulièrement" },
+  { type: "pro",         emoji: "⭐", label: "Professionnel",      subtitle: "Haut niveau / semi-pro" },
+  { type: "gerant",      emoji: "🏢", label: "Gérant d'écurie",    subtitle: "Gestion de structure équestre" },
 ];
 
 const CONSEQUENCES = [
@@ -25,26 +23,42 @@ const CONSEQUENCES = [
 
 interface Props {
   userId: string;
-  currentType: UserType;
+  currentProfile: ProfileType;
+  currentModuleCoach: boolean;
+  currentModuleGerant: boolean;
   onClose: () => void;
 }
 
-export default function ProfileChangeModal({ userId, currentType, onClose }: Props) {
+export default function ProfileChangeModal({ userId, currentProfile, currentModuleCoach, currentModuleGerant, onClose }: Props) {
   const supabase = createClient();
   const router = useRouter();
 
   const [step, setStep] = useState<1 | 2>(1);
-  const [selected, setSelected] = useState<UserType | null>(null);
+  const [selected, setSelected] = useState<ProfileType | null>(null);
+  const [moduleCoach, setModuleCoach] = useState(currentModuleCoach);
+  const [moduleGerant, setModuleGerant] = useState(currentModuleGerant);
   const [confirmed, setConfirmed] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const currentProfile = PROFILES.find((p) => p.type === currentType)!;
-  const selectedProfile = PROFILES.find((p) => p.type === selected);
+  const currentProfileData = PROFILES.find((p) => p.type === currentProfile)!;
+  const selectedProfileData = PROFILES.find((p) => p.type === selected);
 
   const handleConfirm = async () => {
     if (!selected || !confirmed) return;
     setLoading(true);
-    const { error } = await supabase.from("users").update({ user_type: selected }).eq("id", userId);
+
+    // Map to legacy user_type for backward compat
+    const legacyUserType = selected === "gerant"
+      ? (moduleGerant ? "gerant_ecurie" : "gerant_cavalier")
+      : selected;
+
+    const { error } = await supabase.from("users").update({
+      profile_type: selected,
+      module_coach: moduleCoach,
+      module_gerant: moduleGerant || selected === "gerant",
+      user_type: legacyUserType,
+    }).eq("id", userId);
+
     if (error) {
       toast.error("Erreur lors du changement de profil");
       setLoading(false);
@@ -104,10 +118,10 @@ export default function ProfileChangeModal({ userId, currentType, onClose }: Pro
             </div>
 
             <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
-              <span className="text-2xl">{currentProfile.emoji}</span>
+              <span className="text-2xl">{currentProfileData.emoji}</span>
               <div>
                 <p className="text-xs font-bold text-gray-400 uppercase tracking-wide">Profil actuel</p>
-                <p className="text-sm font-bold text-black">{currentProfile.label}</p>
+                <p className="text-sm font-bold text-black">{currentProfileData.label}</p>
               </div>
             </div>
 
@@ -123,20 +137,23 @@ export default function ProfileChangeModal({ userId, currentType, onClose }: Pro
           </div>
         )}
 
-        {/* ── Step 2 : Sélection + confirmation ── */}
+        {/* ── Step 2 : Sélection + modules + confirmation ── */}
         {step === 2 && (
           <div className="px-6 py-5 space-y-5">
             <div>
               <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Choisir votre nouveau profil</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {PROFILES.map((p) => {
-                  const isCurrent = p.type === currentType;
+                  const isCurrent = p.type === currentProfile;
                   const isSelected = selected === p.type;
                   return (
                     <button
                       key={p.type}
                       disabled={isCurrent}
-                      onClick={() => setSelected(p.type)}
+                      onClick={() => {
+                        setSelected(p.type);
+                        if (p.type === "gerant") setModuleGerant(true);
+                      }}
                       className={`text-left p-3 rounded-xl border-2 transition-all ${
                         isCurrent
                           ? "border-gray-100 bg-gray-50 opacity-40 cursor-not-allowed"
@@ -161,6 +178,33 @@ export default function ProfileChangeModal({ userId, currentType, onClose }: Pro
               </div>
             </div>
 
+            {/* Modules */}
+            <div>
+              <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">Modules actifs</p>
+              <div className="flex gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => setModuleCoach(!moduleCoach)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border-2 text-xs font-semibold transition-all ${
+                    moduleCoach ? "border-black bg-black text-white" : "border-gray-200 text-gray-500 hover:border-gray-400"
+                  }`}
+                >
+                  🎯 Coach
+                  {moduleCoach && <Check className="h-3 w-3" />}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setModuleGerant(!moduleGerant)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border-2 text-xs font-semibold transition-all ${
+                    moduleGerant ? "border-black bg-black text-white" : "border-gray-200 text-gray-500 hover:border-gray-400"
+                  }`}
+                >
+                  🏢 Gérant
+                  {moduleGerant && <Check className="h-3 w-3" />}
+                </button>
+              </div>
+            </div>
+
             {selected && (
               <label className="flex items-start gap-3 p-4 rounded-xl border-2 border-gray-200 hover:border-gray-300 cursor-pointer transition-all">
                 <div
@@ -173,7 +217,7 @@ export default function ProfileChangeModal({ userId, currentType, onClose }: Pro
                 </div>
                 <p className="text-sm text-gray-700 leading-relaxed">
                   Je comprends que passer au profil{" "}
-                  <span className="font-bold text-black">{selectedProfile?.label}</span>{" "}
+                  <span className="font-bold text-black">{selectedProfileData?.label}</span>{" "}
                   va modifier mon expérience sur Equistra. Mes données existantes sont conservées.
                 </p>
               </label>

@@ -8,7 +8,7 @@ import type { HealthRecord } from "@/lib/supabase/types";
 import HealthCategoryCard, { type CategoryConfig } from "./HealthCategoryCard";
 import HealthTimeline from "./HealthTimeline";
 import HealthTimeline30 from "./HealthTimeline30";
-import HealthEventModal from "./HealthEventModal";
+import QuickHealthModal from "./QuickHealthModal";
 
 const MANDATORY_CATEGORIES: CategoryConfig[] = [
   { type: "veterinaire", label: "Vétérinaire", emoji: "🩺", defaultInterval: null },
@@ -219,7 +219,8 @@ export default function HealthOverview({ records, horseId }: Props) {
       )}
 
       {showAdd && (
-        <HealthEventModal
+        <QuickHealthModal
+          open={showAdd}
           horseId={horseId}
           onClose={() => setShowAdd(false)}
           onSaved={() => { setShowAdd(false); router.refresh(); }}

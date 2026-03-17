@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import toast from "react-hot-toast";
 import type { ProfileType, HorseIndexMode } from "@/lib/supabase/types";
-import { Check, ArrowRight, ArrowLeft, ChevronRight, Plus, Trash2, Bell } from "lucide-react";
+import { Check, ArrowRight, ArrowLeft, ChevronRight, Plus, Trash2, Bell, ChevronDown } from "lucide-react";
 import PushNotificationToggle from "@/components/settings/PushNotificationToggle";
 
 // ─── Données statiques ──────────────────────────────────────────────────────
@@ -75,6 +75,9 @@ export default function OnboardingPage() {
   // Step 4 — trousseau
   const [trousseau, setTrousseau] = useState<Couverture[]>([]);
   const [newCouv, setNewCouv] = useState<{ grammage: string; impermeable: boolean }>({ grammage: "", impermeable: false });
+
+  // Step 3 — toggle détails
+  const [showHorseDetails, setShowHorseDetails] = useState(false);
 
   // Step 5 — notifs
   const [notifHealth, setNotifHealth] = useState(true);
@@ -496,64 +499,78 @@ export default function OnboardingPage() {
                 </div>
               </div>
 
-              {/* Sexe */}
-              <div>
-                <label className="label">Sexe <span className="text-gray-400 font-normal text-xs">(optionnel)</span></label>
-                <div className="flex gap-2 mt-1">
-                  {(["hongre", "jument", "etalon"] as const).map((s) => (
-                    <button
-                      key={s}
-                      type="button"
-                      onClick={() => setSexe(sexe === s ? "" : s)}
-                      className={`flex-1 py-2 rounded-xl border-2 text-sm font-medium capitalize transition-all ${
-                        sexe === s ? "border-black bg-black text-white" : "border-gray-200 hover:border-gray-400"
-                      }`}
-                    >
-                      {s}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              {/* Détails optionnels — accordéon */}
+              <button
+                type="button"
+                onClick={() => setShowHorseDetails((v) => !v)}
+                className="flex items-center justify-between w-full py-2 text-sm text-gray-500 hover:text-black transition-colors"
+              >
+                <span className="font-semibold">Détails optionnels</span>
+                <ChevronDown className={`h-4 w-4 transition-transform ${showHorseDetails ? "rotate-180" : ""}`} />
+              </button>
 
-              {/* Localisation écurie */}
-              <div>
-                <label className="label">Localisation de l&apos;écurie <span className="text-gray-400 font-normal text-xs">(pour la météo)</span></label>
-                <input
-                  type="text"
-                  value={ecurie}
-                  onChange={(e) => setEcurie(e.target.value)}
-                  placeholder="Ex : Écurie du Val, 75001 Paris"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-black mt-1"
-                />
-              </div>
+              {showHorseDetails && (
+                <div className="space-y-4 pt-2">
+                  {/* Sexe */}
+                  <div>
+                    <label className="label">Sexe</label>
+                    <div className="flex gap-2 mt-1">
+                      {(["hongre", "jument", "etalon"] as const).map((s) => (
+                        <button
+                          key={s}
+                          type="button"
+                          onClick={() => setSexe(sexe === s ? "" : s)}
+                          className={`flex-1 py-2 rounded-xl border-2 text-sm font-medium capitalize transition-all ${
+                            sexe === s ? "border-black bg-black text-white" : "border-gray-200 hover:border-gray-400"
+                          }`}
+                        >
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
-              {/* Logement + tonte */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="label">Logement <span className="text-gray-400 font-normal text-xs">(optionnel)</span></label>
-                  <div className="flex flex-col gap-1.5 mt-1">
-                    {([["box", "Box"], ["pre", "Pré"], ["box_paddock", "Mixte"]] as const).map(([val, lbl]) => (
-                      <button key={val} type="button" onClick={() => setLogement(logement === val ? "" : val)}
-                        className={`py-2 rounded-xl border-2 text-xs font-medium transition-all ${
-                          logement === val ? "border-black bg-black text-white" : "border-gray-200 hover:border-gray-300 text-gray-700"
-                        }`}
-                      >{lbl}</button>
-                    ))}
+                  {/* Localisation écurie */}
+                  <div>
+                    <label className="label">Localisation de l&apos;écurie <span className="text-gray-400 font-normal text-xs">(pour la météo)</span></label>
+                    <input
+                      type="text"
+                      value={ecurie}
+                      onChange={(e) => setEcurie(e.target.value)}
+                      placeholder="Ex : Écurie du Val, 75001 Paris"
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-black mt-1"
+                    />
+                  </div>
+
+                  {/* Logement + tonte */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="label">Logement</label>
+                      <div className="flex flex-col gap-1.5 mt-1">
+                        {([["box", "Box"], ["pre", "Pré"], ["box_paddock", "Mixte"]] as const).map(([val, lbl]) => (
+                          <button key={val} type="button" onClick={() => setLogement(logement === val ? "" : val)}
+                            className={`py-2 rounded-xl border-2 text-xs font-medium transition-all ${
+                              logement === val ? "border-black bg-black text-white" : "border-gray-200 hover:border-gray-300 text-gray-700"
+                            }`}
+                          >{lbl}</button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="label">Tonte</label>
+                      <div className="flex flex-col gap-1.5 mt-1">
+                        {([["non_tondu", "Non tondu"], ["partielle", "Partielle"], ["complete", "Complète"]] as const).map(([val, lbl]) => (
+                          <button key={val} type="button" onClick={() => setTonte(tonte === val ? "" : val)}
+                            className={`py-2 rounded-xl border-2 text-xs font-medium transition-all ${
+                              tonte === val ? "border-black bg-black text-white" : "border-gray-200 hover:border-gray-300 text-gray-700"
+                            }`}
+                          >{lbl}</button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <div>
-                  <label className="label">Tonte <span className="text-gray-400 font-normal text-xs">(optionnel)</span></label>
-                  <div className="flex flex-col gap-1.5 mt-1">
-                    {([["non_tondu", "Non tondu"], ["partielle", "Partielle"], ["complete", "Complète"]] as const).map(([val, lbl]) => (
-                      <button key={val} type="button" onClick={() => setTonte(tonte === val ? "" : val)}
-                        className={`py-2 rounded-xl border-2 text-xs font-medium transition-all ${
-                          tonte === val ? "border-black bg-black text-white" : "border-gray-200 hover:border-gray-300 text-gray-700"
-                        }`}
-                      >{lbl}</button>
-                    ))}
-                  </div>
-                </div>
-              </div>
+              )}
             </div>
 
             <div className="flex gap-3">

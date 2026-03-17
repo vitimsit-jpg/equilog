@@ -447,6 +447,36 @@ export default async function DashboardPage() {
         </Link>
       </div>
 
+      {/* ── Empty state 0 chevaux ─────────────────────────────────────── */}
+      {(horses || []).length === 0 && (
+        <div className="flex flex-col items-center justify-center py-12 px-6 rounded-2xl border-2 border-dashed border-gray-200 text-center bg-white">
+          <div className="text-5xl mb-4">🐴</div>
+          <h2 className="text-xl font-black text-black mb-2">Ajoutez votre premier cheval</h2>
+          <p className="text-sm text-gray-400 mb-6 max-w-sm leading-relaxed">
+            Créez la fiche de votre cheval pour activer le suivi santé, le journal de travail et le Horse Index.
+          </p>
+          <Link
+            href="/horses/new"
+            className="flex items-center gap-2 px-5 py-3 rounded-xl bg-black text-white font-bold text-sm hover:bg-gray-800 transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            Ajouter mon premier cheval
+          </Link>
+          <div className="grid grid-cols-3 gap-4 mt-8 w-full max-w-sm">
+            {[
+              { emoji: "🩺", label: "Carnet santé" },
+              { emoji: "📊", label: "Horse Index" },
+              { emoji: "🤖", label: "Coach IA" },
+            ].map((f) => (
+              <div key={f.label} className="flex flex-col items-center gap-1.5">
+                <div className="text-2xl">{f.emoji}</div>
+                <span className="text-xs font-semibold text-gray-400">{f.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* ── Checklist d'activation ────────────────────────────────────── */}
       <OnboardingChecklist
         hasHorse={(horses || []).length > 0}

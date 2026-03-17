@@ -209,20 +209,21 @@ export default function HealthCategoryCard({ config, records, horseId }: Props) 
             />
           )}
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowAdd(true)}
-              className="flex-1 flex items-center justify-center gap-1.5 text-xs font-medium text-gray-600 hover:text-black hover:bg-gray-50 rounded-lg py-1.5 transition-colors"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              Ajouter
-            </button>
-            {latest && (
+            {latest ? (
               <button
                 onClick={() => setShowEdit(true)}
                 className="flex-1 flex items-center justify-center gap-1.5 text-xs font-medium text-gray-600 hover:text-black hover:bg-gray-50 rounded-lg py-1.5 transition-colors"
               >
                 <Pencil className="h-3.5 w-3.5" />
                 Modifier
+              </button>
+            ) : (
+              <button
+                onClick={() => setShowAdd(true)}
+                className="flex-1 flex items-center justify-center gap-1.5 text-xs font-medium text-gray-600 hover:text-black hover:bg-gray-50 rounded-lg py-1.5 transition-colors"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Ajouter
               </button>
             )}
           </div>

@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { Competition } from "@/lib/supabase/types";
 import { formatDate, DISCIPLINE_LABELS } from "@/lib/utils";
 import Badge from "@/components/ui/Badge";
-import { Trophy, MapPin, Edit2, Trash2, ClipboardList } from "lucide-react";
+import { Trophy, MapPin, Edit2, Trash2 } from "lucide-react";
 import MediaGallery from "@/components/media/MediaGallery";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
@@ -15,10 +15,9 @@ import CompetitionForm from "./CompetitionForm";
 interface Props {
   competition: Competition;
   horseId: string;
-  onChecklist: () => void;
 }
 
-export default function CompetitionCard({ competition: c, horseId, onChecklist }: Props) {
+export default function CompetitionCard({ competition: c, horseId }: Props) {
   const supabase = createClient();
   const router = useRouter();
   const [editOpen, setEditOpen] = useState(false);
@@ -74,13 +73,6 @@ export default function CompetitionCard({ competition: c, horseId, onChecklist }
       <div className="mt-3 pt-3 border-t border-gray-50 space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button
-              onClick={onChecklist}
-              className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-orange transition-colors"
-            >
-              <ClipboardList className="h-3.5 w-3.5" />
-              Checklist J-7
-            </button>
             <MediaGallery
               entityType="competition"
               entityId={c.id}

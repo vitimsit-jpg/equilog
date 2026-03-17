@@ -1,13 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import type { Competition, HealthRecord, Horse } from "@/lib/supabase/types";
+import type { Competition, Horse } from "@/lib/supabase/types";
 import { Plus, Trophy } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import CompetitionForm from "./CompetitionForm";
 import CompetitionCard from "./CompetitionCard";
-import CompetitionChecklist from "./CompetitionChecklist";
 import { useRouter } from "next/navigation";
 import EmptyState from "@/components/ui/EmptyState";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
@@ -17,14 +16,12 @@ import { Calendar } from "lucide-react";
 
 interface Props {
   competitions: Competition[];
-  healthRecords: HealthRecord[];
   horse: Horse;
 }
 
-export default function CompetitionsDashboard({ competitions, healthRecords, horse }: Props) {
+export default function CompetitionsDashboard({ competitions, horse }: Props) {
   const router = useRouter();
   const [addOpen, setAddOpen] = useState(false);
-  const [checklistComp, setChecklistComp] = useState<Competition | null>(null);
 
   const withRank = competitions.filter((c) => c.result_rank && c.total_riders);
   const chartData = withRank
@@ -134,7 +131,7 @@ export default function CompetitionsDashboard({ competitions, healthRecords, hor
                         J-{daysLeft}
                       </span>
                     </div>
-                    <CompetitionCard competition={c} horseId={horse.id} onChecklist={() => setChecklistComp(c)} />
+                    <CompetitionCard competition={c} horseId={horse.id} />
                   </div>
                 );
               })}
@@ -151,7 +148,7 @@ export default function CompetitionsDashboard({ competitions, healthRecords, hor
                 </div>
               )}
               {past.map((c) => (
-                <CompetitionCard key={c.id} competition={c} horseId={horse.id} onChecklist={() => setChecklistComp(c)} />
+                <CompetitionCard key={c.id} competition={c} horseId={horse.id} />
               ))}
             </div>
           )}
@@ -166,21 +163,6 @@ export default function CompetitionsDashboard({ competitions, healthRecords, hor
         />
       </Modal>
 
-      {checklistComp && (
-        <Modal
-          open={true}
-          onClose={() => setChecklistComp(null)}
-          title={`Checklist — ${checklistComp.event_name}`}
-          size="md"
-        >
-          <CompetitionChecklist
-            competition={checklistComp}
-            healthRecords={healthRecords}
-            horse={horse}
-            onClose={() => setChecklistComp(null)}
-          />
-        </Modal>
-      )}
     </div>
   );
 }

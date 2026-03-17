@@ -26,17 +26,10 @@ export default async function CompetitionsPage({ params }: Props) {
     .eq("horse_id", horse.id)
     .order("date", { ascending: false });
 
-  const { data: healthRecords } = await supabase
-    .from("health_records")
-    .select("*")
-    .eq("horse_id", horse.id)
-    .order("date", { ascending: false });
-
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
       <CompetitionsDashboard
         competitions={competitions || []}
-        healthRecords={healthRecords || []}
         horse={horse}
       />
     </div>

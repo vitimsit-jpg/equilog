@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendWeeklySummary } from "@/lib/email";
+import { sendPushNotification } from "@/lib/webpush";
 
 function isAuthorized(request: NextRequest) {
   const auth = request.headers.get("authorization");
@@ -71,6 +72,30 @@ export async function GET(request: NextRequest) {
         horses: horseSummaries,
       });
       results.summaries++;
+
+      // Push notification résumé hebdo
+      const { data: pushSubs } = await supabase
+        .from("push_subscriptions")
+        .select("endpoint, p256dh, auth")
+        .eq("user_id", user.id);
+
+      const totalMin = horseSummaries.reduce((s, h) => s + h.totalMinutes, 0);
+      const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://equilog-i3nr-vitimsit-jpgs-projects.vercel.app";
+
+      for (const sub of pushSubs || []) {
+        try {
+          await sendPushNotification(sub, {
+            title: "Résumé de la semaine",
+            body: `${totalSessions} séance${totalSessions > 1 ? "s" : ""} · ${Math.floor(totalMin / 60)}h${totalMin % 60 > 0 ? `${totalMin % 60}min` : ""} cette semaine`,
+            url: `${APP_URL}/dashboard`,
+          });
+        } catch (err: unknown) {
+          const status = (err as { statusCode?: number })?.statusCode;
+          if (status === 410 || status === 404) {
+            await supabase.from("push_subscriptions").delete().eq("endpoint", sub.endpoint);
+          }
+        }
+      }
     } catch {
       results.errors++;
     }

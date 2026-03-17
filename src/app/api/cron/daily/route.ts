@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendHealthReminder, sendScoreAlert } from "@/lib/email";
 import { sendPushNotification } from "@/lib/webpush";
+import { HEALTH_TYPE_LABELS } from "@/lib/utils";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://equilog-i3nr-vitimsit-jpgs-projects.vercel.app";
 
@@ -55,11 +56,15 @@ export async function GET(request: NextRequest) {
         try {
           await sendPushNotification(sub, {
             title: `Rappel soin — ${horse.name}`,
-            body: `${care.type} prévu dans 7 jours`,
+            body: `${HEALTH_TYPE_LABELS[care.type] || care.type} prévu dans 7 jours`,
             url: `${APP_URL}/horses/${horse.id}/health`,
           });
-        } catch {
-          // Ignore individual push errors (expired subscriptions, etc.)
+        } catch (err: unknown) {
+          // 410 Gone = subscription expired, delete it
+          const status = (err as { statusCode?: number })?.statusCode;
+          if (status === 410 || status === 404) {
+            await supabase.from("push_subscriptions").delete().eq("endpoint", sub.endpoint);
+          }
         }
       }
     } catch {

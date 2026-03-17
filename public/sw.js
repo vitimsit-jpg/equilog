@@ -1,6 +1,19 @@
+self.addEventListener('install', function(event) {
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', function(event) {
+  event.waitUntil(clients.claim());
+});
+
 self.addEventListener('push', function(event) {
   if (!event.data) return;
-  const data = event.data.json();
+  let data;
+  try {
+    data = event.data.json();
+  } catch {
+    data = { title: 'Equistra', body: event.data.text() };
+  }
   event.waitUntil(
     self.registration.showNotification(data.title || 'Equistra', {
       body: data.body || '',
@@ -14,7 +27,20 @@ self.addEventListener('push', function(event) {
 
 self.addEventListener('notificationclick', function(event) {
   event.notification.close();
-  if (event.notification.data?.url) {
-    event.waitUntil(clients.openWindow(event.notification.data.url));
-  }
+  const url = event.notification.data?.url;
+  if (!url) return;
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(clientList) {
+      // If app is already open, focus it and navigate
+      for (const client of clientList) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          client.focus();
+          client.navigate(url);
+          return;
+        }
+      }
+      // Otherwise open a new window
+      return clients.openWindow(url);
+    })
+  );
 });

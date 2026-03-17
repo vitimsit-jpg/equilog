@@ -165,20 +165,22 @@ export default function HealthEventForm({ horseId, onSaved, onCancel, defaultVal
         />
       )}
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className={`grid gap-4 ${form.type === "veterinaire" ? "grid-cols-1" : "grid-cols-2"}`}>
         <Input
           label="Date du soin"
           type="date"
           value={form.date}
           onChange={(e) => handleDateChange(e.target.value)}
-          required
+          required={form.type !== "veterinaire"}
         />
-        <Input
-          label="Prochain rendez-vous"
-          type="date"
-          value={form.next_date}
-          onChange={(e) => setForm({ ...form, next_date: e.target.value })}
-        />
+        {form.type !== "veterinaire" && (
+          <Input
+            label="Prochain rendez-vous"
+            type="date"
+            value={form.next_date}
+            onChange={(e) => setForm({ ...form, next_date: e.target.value })}
+          />
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-4">

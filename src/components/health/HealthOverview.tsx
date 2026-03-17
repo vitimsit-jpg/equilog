@@ -11,7 +11,7 @@ import HealthTimeline30 from "./HealthTimeline30";
 import QuickHealthModal from "./QuickHealthModal";
 
 const VET_CATEGORIES: CategoryConfig[] = [
-  { type: "veterinaire", label: "Vétérinaire", emoji: "🩺", defaultInterval: null },
+  { type: "veterinaire", label: "Vétérinaire", emoji: "🩺", defaultInterval: null, hidePlanning: true },
 ];
 
 const MANDATORY_CATEGORIES: CategoryConfig[] = [

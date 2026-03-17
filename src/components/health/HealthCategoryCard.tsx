@@ -2,16 +2,18 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Pencil, Phone, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Pencil, Phone, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 import { formatDate, daysUntil } from "@/lib/utils";
 import type { HealthRecord, HealthType } from "@/lib/supabase/types";
 import HealthEventModal from "@/components/health/HealthEventModal";
+import { createClient } from "@/lib/supabase/client";
 
 export interface CategoryConfig {
   type: HealthType;
   label: string;
   emoji: string;
   defaultInterval: number | null;
+  hidePlanning?: boolean;
 }
 
 type Status = "en_retard" | "a_venir" | "a_jour" | "a_planifier" | "non_renseigne";
@@ -73,10 +75,16 @@ interface Props {
 }
 
 export default function HealthCategoryCard({ config, records, horseId }: Props) {
+  const supabase = createClient();
   const router = useRouter();
   const [showAdd, setShowAdd] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [expanded, setExpanded] = useState(false);
+
+  const handleRemoveNextDate = async (recordId: string) => {
+    await supabase.from("health_records").update({ next_date: null }).eq("id", recordId);
+    router.refresh();
+  };
 
   const sorted = [...records].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   const latest = sorted[0] ?? null;
@@ -94,7 +102,7 @@ export default function HealthCategoryCard({ config, records, horseId }: Props) 
             <span className="text-xl leading-none">{config.emoji}</span>
             <span className="text-sm font-bold text-black">{config.label}</span>
           </div>
-          <StatusBadge status={status} daysLeft={daysLeft} />
+          {!config.hidePlanning && <StatusBadge status={status} daysLeft={daysLeft} />}
         </div>
 
         {/* Body */}
@@ -121,7 +129,7 @@ export default function HealthCategoryCard({ config, records, horseId }: Props) 
                 </div>
               </div>
             )}
-            {latest.next_date && (
+            {latest.next_date && !config.hidePlanning && (
               <div className="flex items-center justify-between">
                 <span className="text-xs text-gray-400">Prochain</span>
                 <span className={`text-xs font-medium ${
@@ -135,6 +143,21 @@ export default function HealthCategoryCard({ config, records, horseId }: Props) 
                   {daysLeft !== null && daysLeft >= 0 && ` (${daysLeft}j)`}
                   {daysLeft !== null && daysLeft < 0 && ` (${Math.abs(daysLeft)}j de retard)`}
                 </span>
+              </div>
+            )}
+            {latest.next_date && config.hidePlanning && (
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-400">RDV planifié</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-medium text-gray-700">{formatDate(latest.next_date)}</span>
+                  <button
+                    onClick={() => handleRemoveNextDate(latest.id)}
+                    className="text-gray-400 hover:text-red-500 transition-colors"
+                    title="Supprimer ce RDV"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </button>
+                </div>
               </div>
             )}
             {latest.product_name && (

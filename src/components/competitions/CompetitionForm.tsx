@@ -13,7 +13,8 @@ import { DISCIPLINE_LABELS } from "@/lib/utils";
 import type { Competition } from "@/lib/supabase/types";
 import { trackEvent } from "@/lib/trackEvent";
 
-const disciplineOptions = Object.entries(DISCIPLINE_LABELS).map(([v, l]) => ({ value: v, label: l }));
+const COMPETITION_DISCIPLINES = ["CSO", "Dressage", "CCE", "Autre"];
+const disciplineOptions = COMPETITION_DISCIPLINES.map((v) => ({ value: v, label: DISCIPLINE_LABELS[v] ?? v }));
 
 type LevelGroup = { group: string; levels: string[] };
 

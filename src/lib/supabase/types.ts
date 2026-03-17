@@ -75,6 +75,7 @@ export interface HealthRecord {
   practitioner_email: string | null;
   product_name: string | null;
   urgency: "normal" | "urgent" | "critique" | null;
+  media_urls: string[] | null;
   created_at: string;
 }
 

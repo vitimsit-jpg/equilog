@@ -2,15 +2,28 @@
 
 import { useState, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Camera, Film, Plus, X, Loader2, ChevronDown, Play } from "lucide-react";
+import { Camera, Film, Plus, X, Loader2, ChevronDown, Play, FileText } from "lucide-react";
 import toast from "react-hot-toast";
 import Image from "next/image";
 
 interface Props {
-  entityType: "training" | "competition";
+  entityType: "training" | "competition" | "health";
   entityId: string;
   horseId: string;
   initialMediaUrls: string[];
+}
+
+function isPdf(url: string) {
+  return /\.pdf(\?|$)/i.test(url);
+}
+
+function getFileName(url: string) {
+  try {
+    const parts = new URL(url).pathname.split("/");
+    return decodeURIComponent(parts[parts.length - 1]);
+  } catch {
+    return url.split("/").pop() || "fichier";
+  }
 }
 
 function isVideo(url: string) {
@@ -24,7 +37,7 @@ export default function MediaGallery({ entityType, entityId, horseId, initialMed
   const [lightbox, setLightbox] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const tableName = entityType === "training" ? "training_sessions" : "competitions";
+  const tableName = entityType === "training" ? "training_sessions" : entityType === "competition" ? "competitions" : "health_records";
   const count = mediaUrls.length;
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -37,13 +50,14 @@ export default function MediaGallery({ entityType, entityId, horseId, initialMed
 
     for (const file of files) {
       const isVid = file.type.startsWith("video/");
-      const maxSize = isVid ? 100 * 1024 * 1024 : 10 * 1024 * 1024;
+      const isPdfFile = file.type === "application/pdf";
+      const maxSize = isVid ? 100 * 1024 * 1024 : 20 * 1024 * 1024;
 
       if (file.size > maxSize) {
-        toast.error(`${file.name} trop lourd (max ${isVid ? "100" : "10"} Mo)`);
+        toast.error(`${file.name} trop lourd (max ${isVid ? "100" : "20"} Mo)`);
         continue;
       }
-      if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
+      if (!file.type.startsWith("image/") && !file.type.startsWith("video/") && !isPdfFile) {
         toast.error(`Format non supporté : ${file.name}`);
         continue;
       }
@@ -51,8 +65,9 @@ export default function MediaGallery({ entityType, entityId, horseId, initialMed
       const ext = file.name.split(".").pop() || "bin";
       const path = `${horseId}/${entityType}/${entityId}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
 
+      const bucket = entityType === "health" ? "health-media" : "session-media";
       const { error } = await supabase.storage
-        .from("session-media")
+        .from(bucket)
         .upload(path, file, { upsert: false });
 
       if (error) {
@@ -60,7 +75,7 @@ export default function MediaGallery({ entityType, entityId, horseId, initialMed
         continue;
       }
 
-      const { data: { publicUrl } } = supabase.storage.from("session-media").getPublicUrl(path);
+      const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(path);
       newUrls.push(publicUrl);
     }
 
@@ -119,9 +134,14 @@ export default function MediaGallery({ entityType, entityId, horseId, initialMed
                 <div
                   key={i}
                   className="relative group aspect-square rounded-lg overflow-hidden bg-gray-100 cursor-pointer"
-                  onClick={() => setLightbox(url)}
+                  onClick={() => isPdf(url) ? window.open(url, "_blank") : setLightbox(url)}
                 >
-                  {isVideo(url) ? (
+                  {isPdf(url) ? (
+                    <div className="w-full h-full flex flex-col items-center justify-center gap-1 bg-red-50 p-1">
+                      <FileText className="h-6 w-6 text-red-400" />
+                      <span className="text-2xs text-red-400 text-center leading-tight line-clamp-2 px-1">{getFileName(url)}</span>
+                    </div>
+                  ) : isVideo(url) ? (
                     <div className="w-full h-full flex items-center justify-center bg-gray-900 relative">
                       <video src={url} className="absolute inset-0 w-full h-full object-cover opacity-50" muted />
                       <Play className="h-6 w-6 text-white relative z-10" />
@@ -155,13 +175,13 @@ export default function MediaGallery({ entityType, entityId, horseId, initialMed
             {uploading ? (
               <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Envoi en cours…</>
             ) : (
-              <><Plus className="h-3.5 w-3.5" /> Ajouter photos / vidéos</>
+              <><Plus className="h-3.5 w-3.5" /> Ajouter photos / fichiers</>
             )}
           </button>
           <input
             ref={inputRef}
             type="file"
-            accept="image/*,video/*"
+            accept="image/*,video/*,application/pdf"
             multiple
             className="hidden"
             onChange={handleFileChange}

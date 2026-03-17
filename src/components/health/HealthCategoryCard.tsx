@@ -6,6 +6,7 @@ import { Plus, Pencil, Phone, ChevronDown, ChevronUp, Trash2 } from "lucide-reac
 import { formatDate, daysUntil } from "@/lib/utils";
 import type { HealthRecord, HealthType } from "@/lib/supabase/types";
 import HealthEventModal from "@/components/health/HealthEventModal";
+import MediaGallery from "@/components/media/MediaGallery";
 import { createClient } from "@/lib/supabase/client";
 
 export interface CategoryConfig {
@@ -198,23 +199,33 @@ export default function HealthCategoryCard({ config, records, horseId }: Props) 
         )}
 
         {/* Actions */}
-        <div className="flex items-center gap-2 pt-1 border-t border-gray-50">
-          <button
-            onClick={() => setShowAdd(true)}
-            className="flex-1 flex items-center justify-center gap-1.5 text-xs font-medium text-gray-600 hover:text-black hover:bg-gray-50 rounded-lg py-1.5 transition-colors"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            Ajouter
-          </button>
+        <div className="pt-1 border-t border-gray-50 space-y-2">
           {latest && (
+            <MediaGallery
+              entityType="health"
+              entityId={latest.id}
+              horseId={horseId}
+              initialMediaUrls={latest.media_urls ?? []}
+            />
+          )}
+          <div className="flex items-center gap-2">
             <button
-              onClick={() => setShowEdit(true)}
+              onClick={() => setShowAdd(true)}
               className="flex-1 flex items-center justify-center gap-1.5 text-xs font-medium text-gray-600 hover:text-black hover:bg-gray-50 rounded-lg py-1.5 transition-colors"
             >
-              <Pencil className="h-3.5 w-3.5" />
-              Modifier
+              <Plus className="h-3.5 w-3.5" />
+              Ajouter
             </button>
-          )}
+            {latest && (
+              <button
+                onClick={() => setShowEdit(true)}
+                className="flex-1 flex items-center justify-center gap-1.5 text-xs font-medium text-gray-600 hover:text-black hover:bg-gray-50 rounded-lg py-1.5 transition-colors"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+                Modifier
+              </button>
+            )}
+          </div>
         </div>
       </div>
 

@@ -435,7 +435,19 @@ export default async function DashboardPage() {
       />
 
       {/* ── Météo ─────────────────────────────────────────────────────── */}
-      <WeatherWidget />
+      <WeatherWidget
+        horses={(horses || []).map((h) => ({
+          id: h.id,
+          name: h.name,
+          conditions_vie: (h as any).conditions_vie ?? null,
+          tonte: (h as any).tonte ?? null,
+          morphologie_meteo: (h as any).morphologie_meteo ?? null,
+          etat_corporel: (h as any).etat_corporel ?? null,
+          birth_year: h.birth_year ?? null,
+          trousseau: (h as any).trousseau ?? [],
+        }))}
+        ecurie={userEcuries[0] ?? null}
+      />
 
       {/* ── Stats strip ───────────────────────────────────────────────── */}
       {(horses || []).length > 0 && (

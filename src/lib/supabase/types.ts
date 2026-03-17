@@ -42,6 +42,11 @@ export interface Horse {
   assurance: string | null;
   sire_number: string | null;
   fei_number: string | null;
+  // Profil météo (migration 019)
+  tonte: "non_tondu" | "partielle" | "complete" | null;
+  morphologie_meteo: "sang_chaud" | "pur_sang" | "rustique" | null;
+  etat_corporel: "normal" | "maigre" | null;
+  trousseau: { label: string; grammage: number; impermeable: boolean }[] | null;
   created_at: string;
 }
 

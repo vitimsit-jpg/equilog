@@ -10,8 +10,11 @@ import HealthTimeline from "./HealthTimeline";
 import HealthTimeline30 from "./HealthTimeline30";
 import QuickHealthModal from "./QuickHealthModal";
 
-const MANDATORY_CATEGORIES: CategoryConfig[] = [
+const VET_CATEGORIES: CategoryConfig[] = [
   { type: "veterinaire", label: "Vétérinaire", emoji: "🩺", defaultInterval: null },
+];
+
+const MANDATORY_CATEGORIES: CategoryConfig[] = [
   { type: "vaccin", label: "Vaccin", emoji: "💉", defaultInterval: 180 },
   { type: "vermifuge", label: "Vermifuge", emoji: "🌿", defaultInterval: 90 },
   { type: "ferrage", label: "Parage", emoji: "🔨", defaultInterval: 35 },
@@ -24,7 +27,7 @@ const COMFORT_CATEGORIES: CategoryConfig[] = [
   { type: "autre", label: "Autre", emoji: "📋", defaultInterval: null },
 ];
 
-const CATEGORIES = [...MANDATORY_CATEGORIES, ...COMFORT_CATEGORIES];
+const CATEGORIES = [...VET_CATEGORIES, ...MANDATORY_CATEGORIES, ...COMFORT_CATEGORIES];
 
 function getLatestByType(records: HealthRecord[]): Record<string, HealthRecord | null> {
   const map: Record<string, HealthRecord | null> = {};
@@ -186,6 +189,19 @@ export default function HealthOverview({ records, horseId }: Props) {
           )}
 
           <div className="space-y-4">
+            <div>
+              <p className="text-2xs font-bold text-gray-400 uppercase tracking-wider mb-2 px-0.5">Vétérinaire</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {VET_CATEGORIES.map((cat) => (
+                  <HealthCategoryCard
+                    key={cat.type}
+                    config={cat}
+                    records={records.filter((r) => r.type === cat.type)}
+                    horseId={horseId}
+                  />
+                ))}
+              </div>
+            </div>
             <div>
               <p className="text-2xs font-bold text-gray-400 uppercase tracking-wider mb-2 px-0.5">Soins obligatoires</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">

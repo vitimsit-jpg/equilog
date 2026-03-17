@@ -115,7 +115,7 @@ export default function HistoriqueEventModal({ open, horseId, event, onClose, on
       <div className="relative bg-white w-full sm:max-w-lg sm:rounded-2xl rounded-t-2xl max-h-[92vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100 flex-shrink-0">
-          <h2 className="text-base font-bold text-black">{event ? "Modifier l&apos;événement" : "Ajouter un antécédent"}</h2>
+          <h2 className="text-base font-bold text-black">{event ? "Modifier l'événement" : "Ajouter un antécédent"}</h2>
           <button onClick={onClose} className="p-2 rounded-xl hover:bg-gray-100 transition-colors">
             <X className="h-4 w-4" />
           </button>
@@ -187,11 +187,11 @@ export default function HistoriqueEventModal({ open, horseId, event, onClose, on
                   <option value="">Mois</option>
                   {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
                 </select>
-                <input type="number" value={eventYear} onChange={(e) => setEventYear(e.target.value)} placeholder="Année" className="input w-28" min="1990" max="2026" />
+                <input type="number" value={eventYear} onChange={(e) => setEventYear(e.target.value)} placeholder="Année" className="input w-28" min="1990" max="2030" />
               </div>
             )}
             {datePrecision === "annee" && (
-              <input type="number" value={eventYear} onChange={(e) => setEventYear(e.target.value)} placeholder="Année (ex : 2021)" className="input mt-2" min="1990" max="2026" />
+              <input type="number" value={eventYear} onChange={(e) => setEventYear(e.target.value)} placeholder="Année (ex : 2021)" className="input mt-2" min="1990" max="2030" />
             )}
             {datePrecision === "inconnue" && (
               <div className="flex items-center gap-2 mt-2 px-3 py-2 bg-gray-50 rounded-xl">

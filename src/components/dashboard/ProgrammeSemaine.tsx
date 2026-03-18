@@ -15,6 +15,7 @@ interface Session {
   date: string;
   type: string;
   intensity: number;
+  coach_present?: boolean | null;
 }
 
 interface Horse {
@@ -96,11 +97,21 @@ export default function ProgrammeSemaine({ horses, sessions }: Props) {
               const isCurrentDay = isToday(day);
               const isFutureDay = isFuture(day) && !isCurrentDay;
 
+              const isCoachSession = daySessions.some((s) => s.coach_present);
+              const isCavalierSession = daySessions.some((s) => !s.coach_present);
+              const dotColor = hasSession
+                ? isCoachSession && !isCavalierSession
+                  ? "bg-blue-400"
+                  : isCoachSession && isCavalierSession
+                  ? "bg-orange"
+                  : "bg-orange"
+                : "";
+
               return (
                 <div key={i} className="flex items-center justify-center h-7">
                   {hasSession ? (
                     <div
-                      className="w-3 h-3 rounded-full bg-orange"
+                      className={`w-3 h-3 rounded-full ${dotColor}`}
                       title={daySessions.map((s) => s.type).join(", ")}
                     />
                   ) : isCurrentDay ? (
@@ -118,9 +129,15 @@ export default function ProgrammeSemaine({ horses, sessions }: Props) {
       </div>
 
       {/* Legend */}
-      <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-gray-50">
-        <div className="w-2.5 h-2.5 rounded-full bg-orange" />
-        <span className="text-2xs text-gray-400">Séance effectuée</span>
+      <div className="flex items-center gap-3 mt-3 pt-3 border-t border-gray-50">
+        <div className="flex items-center gap-1.5">
+          <div className="w-2.5 h-2.5 rounded-full bg-orange" />
+          <span className="text-2xs text-gray-400">Cavalier</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-2.5 h-2.5 rounded-full bg-blue-400" />
+          <span className="text-2xs text-gray-400">Coach</span>
+        </div>
       </div>
     </div>
   );

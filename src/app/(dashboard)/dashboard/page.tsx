@@ -44,6 +44,7 @@ type BlockKey =
   | "programme"
   | "concours"
   | "plan_ia"
+  | "notes_seance"
   | "sessions"
   | "ecurie"
   | "todo"
@@ -51,13 +52,13 @@ type BlockKey =
 
 function getBlockOrder(hour: number): BlockKey[] {
   if (hour >= 6 && hour < 11) {
-    return ["header", "alertes", "chevaux", "todo", "programme", "concours", "plan_ia", "sessions", "ecurie"];
+    return ["header", "alertes", "chevaux", "todo", "programme", "notes_seance", "concours", "plan_ia", "sessions", "ecurie"];
   } else if (hour >= 11 && hour < 15) {
-    return ["header", "alertes", "chevaux", "todo", "programme", "plan_ia", "concours", "sessions", "ecurie"];
+    return ["header", "alertes", "chevaux", "todo", "programme", "notes_seance", "plan_ia", "concours", "sessions", "ecurie"];
   } else if (hour >= 15 && hour < 21) {
-    return ["header", "alertes", "programme", "chevaux", "todo", "plan_ia", "concours", "sessions", "ecurie"];
+    return ["header", "alertes", "programme", "chevaux", "notes_seance", "todo", "plan_ia", "concours", "sessions", "ecurie"];
   } else {
-    return ["header", "alertes", "chevaux", "todo", "programme", "plan_ia", "sessions", "ecurie"];
+    return ["header", "alertes", "chevaux", "todo", "programme", "notes_seance", "plan_ia", "sessions", "ecurie"];
   }
 }
 
@@ -181,7 +182,7 @@ export default async function DashboardPage({
     horseIds.length
       ? supabase
           .from("training_sessions")
-          .select("id, horse_id, date, type, intensity")
+          .select("id, horse_id, date, type, intensity, coach_present")
           .in("horse_id", horseIds)
           .gte("date", weekStartStr)
           .lte("date", weekEndStr)
@@ -195,6 +196,22 @@ export default async function DashboardPage({
           .eq("date", todayStr)
       : Promise.resolve({ data: [] }),
   ]);
+
+  // Last session per horse (for notes block + >14j message)
+  const lastSessionByHorse: Record<string, { date: string; notes: string | null; type: string }> = {};
+  if (horseIds.length) {
+    const { data: lastSessions } = await supabase
+      .from("training_sessions")
+      .select("horse_id, date, notes, type")
+      .in("horse_id", horseIds)
+      .order("date", { ascending: false })
+      .limit(horseIds.length * 2);
+    (lastSessions || []).forEach((s) => {
+      if (!lastSessionByHorse[s.horse_id]) {
+        lastSessionByHorse[s.horse_id] = { date: s.date, notes: s.notes, type: s.type };
+      }
+    });
+  }
 
   let ecurieTodos: EcurieTodo[] = [];
   if (moduleGerant || profileType === "pro") {
@@ -291,7 +308,15 @@ export default async function DashboardPage({
 
   // Hour for temporal ordering (server-side)
   const hour = now.getHours();
-  const blockOrder = getBlockOrder(hour);
+  let blockOrder = getBlockOrder(hour);
+
+  // Prochain concours remonte en position 3 si J≤14
+  const daysToUpcomingComp = upcomingComp ? daysUntil(upcomingComp.date) : null;
+  if (daysToUpcomingComp !== null && daysToUpcomingComp >= 0 && daysToUpcomingComp <= 14) {
+    blockOrder = blockOrder.filter((k) => k !== "concours");
+    const headerIdx = blockOrder.indexOf("header");
+    blockOrder.splice(headerIdx + 2, 0, "concours");
+  }
 
   // Quick actions
   const firstHorse = (horses || [])[0];
@@ -400,6 +425,11 @@ export default async function DashboardPage({
           const overdue = overdueRecords.filter((r) => (r as any).horse_id === horse.id).length;
           const avatarUrl = (horse as any).avatar_url;
           const coachNote = (horse as any).coach_note;
+          const lastSession = lastSessionByHorse[horse.id];
+          const daysSinceSession = lastSession
+            ? differenceInDays(now, new Date(lastSession.date))
+            : null;
+          const showInactiveMsg = daysSinceSession === null || daysSinceSession > 14;
           return (
             <div className="card p-5">
               <div className="flex gap-4">
@@ -452,6 +482,13 @@ export default async function DashboardPage({
                   {coachNote && (
                     <p className="text-xs text-gray-500 italic bg-gray-50 rounded-lg px-3 py-2 mt-2 border-l-2 border-orange/30">
                       {coachNote}
+                    </p>
+                  )}
+                  {showInactiveMsg && (
+                    <p className="text-xs text-gray-400 bg-gray-50 rounded-lg px-3 py-2 mt-2">
+                      {daysSinceSession === null
+                        ? `Comment va ${horse.name} ? Ajoutez une note rapide 🌿`
+                        : `Aucune séance depuis ${daysSinceSession}j — comment va ${horse.name} ? 🌿`}
                     </p>
                   )}
                   <div className="flex flex-wrap items-center gap-2 mt-3">
@@ -736,6 +773,7 @@ export default async function DashboardPage({
           date: string;
           type: string;
           intensity: number;
+          coach_present?: boolean | null;
         }[]}
       />
     ) : null;
@@ -814,6 +852,41 @@ export default async function DashboardPage({
         );
       })()
     : null;
+
+  // Notes dernière séance — visible P2/P3, au moins 1 cheval avec notes
+  const horsesWithNotes = (horses || []).filter(
+    (h) => lastSessionByHorse[h.id]?.notes
+  );
+  const notesDerniereSeanceBlock =
+    horsesWithNotes.length > 0 && ["competition", "pro"].includes(profileType)
+      ? (
+        <div>
+          <h2 className="font-bold text-black mb-3">Notes dernière séance</h2>
+          <div className="space-y-2">
+            {horsesWithNotes.map((horse) => {
+              const last = lastSessionByHorse[horse.id];
+              return (
+                <div key={horse.id} className="card p-4">
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div>
+                      <p className="text-sm font-bold text-black">{horse.name}</p>
+                      <p className="text-xs text-gray-400">{last.type} · {formatDate(last.date)}</p>
+                    </div>
+                    <Link
+                      href={`/horses/${horse.id}/training`}
+                      className="text-xs text-orange hover:underline flex-shrink-0"
+                    >
+                      Voir →
+                    </Link>
+                  </div>
+                  <p className="text-sm text-gray-700 italic line-clamp-3">{last.notes}</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )
+      : null;
 
   const sessionsBlock =
     (recentSessions || []).length > 0 || (recentInsights || []).length > 0 ? (
@@ -1028,6 +1101,7 @@ export default async function DashboardPage({
     programme: programmeBlock,
     concours: concoursBlock,
     plan_ia: planIABlock,
+    notes_seance: notesDerniereSeanceBlock,
     sessions: sessionsBlock,
     ecurie: ecurieBlock,
     alertes: alertesBlock,

@@ -340,6 +340,11 @@ export default function WeatherWidget({ horses, ecurie }: Props) {
                           <Droplets className="h-2.5 w-2.5" />{Math.round(h.rainProb)}%
                         </span>
                       )}
+                      {h.humidity !== undefined && h.humidity > 0 && (
+                        <span className={`text-2xs font-medium ${isNow ? "text-gray-300" : "text-gray-400"}`}>
+                          {Math.round(h.humidity)}%hum
+                        </span>
+                      )}
                     </div>
                   );
                 })}

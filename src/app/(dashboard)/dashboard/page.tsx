@@ -37,7 +37,9 @@ import ProgrammeSemaine from "@/components/dashboard/ProgrammeSemaine";
 import DashboardModeToggle from "@/components/dashboard/DashboardModeToggle";
 import TodoEcurie from "@/components/dashboard/TodoEcurie";
 import AlerteCheval from "@/components/horses/AlerteCheval";
-import type { EcurieTodo, HorseAlert } from "@/lib/supabase/types";
+import CoursAujourdhui from "@/components/dashboard/CoursAujourdhui";
+import NotifierProprietaire from "@/components/horses/NotifierProprietaire";
+import type { EcurieTodo, HorseAlert, CoachStudent, CoachPlannedSession } from "@/lib/supabase/types";
 
 type BlockKey =
   | "header"
@@ -49,15 +51,16 @@ type BlockKey =
   | "sessions"
   | "ecurie"
   | "todo"
-  | "alertes";
+  | "alertes"
+  | "coach";
 
 function getBlockOrder(hour: number): BlockKey[] {
   if (hour >= 6 && hour < 11) {
-    return ["header", "alertes", "chevaux", "todo", "programme", "notes_seance", "concours", "plan_ia", "sessions", "ecurie"];
+    return ["header", "alertes", "chevaux", "todo", "programme", "notes_seance", "concours", "plan_ia", "coach", "sessions", "ecurie"];
   } else if (hour >= 11 && hour < 15) {
-    return ["header", "alertes", "chevaux", "todo", "programme", "notes_seance", "plan_ia", "concours", "sessions", "ecurie"];
+    return ["header", "alertes", "chevaux", "todo", "programme", "notes_seance", "plan_ia", "coach", "concours", "sessions", "ecurie"];
   } else if (hour >= 15 && hour < 21) {
-    return ["header", "alertes", "programme", "chevaux", "notes_seance", "todo", "plan_ia", "concours", "sessions", "ecurie"];
+    return ["header", "alertes", "programme", "chevaux", "notes_seance", "todo", "coach", "plan_ia", "concours", "sessions", "ecurie"];
   } else {
     return ["header", "alertes", "chevaux", "todo", "programme", "notes_seance", "plan_ia", "sessions", "ecurie"];
   }
@@ -268,6 +271,19 @@ export default async function DashboardPage({
       if (!horseAlertsMap[a.horse_id]) horseAlertsMap[a.horse_id] = [];
       horseAlertsMap[a.horse_id].push(a as HorseAlert);
     });
+  }
+
+  // Coach students and today sessions
+  type SessionWithStudent = CoachPlannedSession & { coach_students: CoachStudent };
+  let coachStudents: CoachStudent[] = [];
+  let coachTodaySessions: SessionWithStudent[] = [];
+  if (moduleCoach) {
+    const [{ data: studentsData }, { data: sessionsData }] = await Promise.all([
+      supabase.from("coach_students").select("*").eq("coach_id", authUser.id).eq("active", true).order("student_name"),
+      supabase.from("coach_planned_sessions").select("*, coach_students(*)").eq("coach_id", authUser.id).eq("date", todayStr).order("time_slot"),
+    ]);
+    coachStudents = (studentsData as CoachStudent[]) || [];
+    coachTodaySessions = (sessionsData as SessionWithStudent[]) || [];
   }
 
   let ecurieTodos: EcurieTodo[] = [];
@@ -1144,6 +1160,16 @@ export default async function DashboardPage({
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-black truncate">{horse.name}</p>
                 <p className="text-xs text-gray-400 truncate">{horse.ecurie}</p>
+                {(horse as any).owner_email && (
+                  <div className="mt-1">
+                    <NotifierProprietaire
+                      horseId={horse.id}
+                      horseName={horse.name}
+                      ownerEmail={(horse as any).owner_email}
+                      ownerName={(horse as any).owner_name}
+                    />
+                  </div>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 {isOverdue && (
@@ -1166,6 +1192,14 @@ export default async function DashboardPage({
     </div>
   ) : null;
 
+  const coachBlock = moduleCoach ? (
+    <CoursAujourdhui
+      todaySessions={coachTodaySessions}
+      students={coachStudents}
+      today={todayStr}
+    />
+  ) : null;
+
   const blockMap: Partial<Record<BlockKey, React.ReactNode>> = {
     header: headerBlock,
     chevaux: chevauxBlock,
@@ -1177,6 +1211,7 @@ export default async function DashboardPage({
     ecurie: ecurieBlock,
     alertes: alertesBlock,
     todo: todoBlock,
+    coach: coachBlock,
   };
 
   return (
@@ -1305,6 +1340,7 @@ export default async function DashboardPage({
       {(horses || []).length > 0 && (() => {
         // P6 Mode CAVALIER: hide gerant-specific blocks
         const cavalierExclude: BlockKey[] = ["alertes", "todo", "ecurie"];
+        // Note: "coach" is intentionally NOT excluded from cavalierExclude
         // P6 Mode GÉRANT: hide cavalier-specific blocks
         const gerantExclude: BlockKey[] = ["chevaux", "programme", "concours", "plan_ia", "sessions"];
 

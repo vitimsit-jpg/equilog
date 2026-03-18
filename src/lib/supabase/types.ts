@@ -62,6 +62,8 @@ export interface Horse {
   // migration 031
   is_confie: boolean | null;
   owner_name: string | null;
+  // migration 033
+  owner_email: string | null;
   created_at: string;
 }
 
@@ -149,6 +151,29 @@ export interface HorseAlert {
   description: string;
   urgency: AlertUrgency;
   resolved: boolean;
+  created_at: string;
+}
+
+export interface CoachStudent {
+  id: string;
+  coach_id: string;
+  student_name: string;
+  student_email: string | null;
+  horse_name: string | null;
+  notes: string | null;
+  active: boolean;
+  created_at: string;
+}
+
+export interface CoachPlannedSession {
+  id: string;
+  coach_id: string;
+  student_id: string;
+  date: string;
+  time_slot: string | null;
+  duration_min: number | null;
+  notes: string | null;
+  completed: boolean;
   created_at: string;
 }
 
@@ -324,6 +349,8 @@ export interface Database {
       horse_pedigree: T<HorsePedigree>;
       ecurie_todos: T<EcurieTodo>;
       horse_alerts: T<HorseAlert>;
+      coach_students: T<CoachStudent>;
+      coach_planned_sessions: T<CoachPlannedSession>;
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

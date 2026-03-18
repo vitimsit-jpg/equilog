@@ -164,6 +164,33 @@ export async function sendWelcomeEmail(p: { to: string; userName: string }) {
   });
 }
 
+interface OwnerNotificationParams {
+  to: string;
+  ownerName: string;
+  horseName: string;
+  gerantName: string;
+  message: string;
+}
+
+export async function sendOwnerNotification({ to, ownerName, horseName, gerantName, message }: OwnerNotificationParams) {
+  const resend = getResend();
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `Mise à jour concernant ${horseName}`,
+    html: `
+      <div style="font-family:sans-serif;max-width:560px;margin:0 auto">
+        <h2 style="color:#111">Bonjour ${ownerName},</h2>
+        <p style="color:#444">${gerantName} vous envoie une mise à jour concernant <strong>${horseName}</strong> :</p>
+        <div style="background:#f9f9f9;border-left:3px solid #f97316;padding:12px 16px;border-radius:8px;margin:16px 0">
+          <p style="color:#333;margin:0">${message}</p>
+        </div>
+        <p style="color:#888;font-size:13px;margin-top:24px">— L'équipe Equistra</p>
+      </div>
+    `,
+  });
+}
+
 export async function sendWeeklySummary(p: WeeklySummaryParams) {
   const totalSessions = p.horses.reduce((s, h) => s + h.sessionCount, 0);
   const totalMinutes = p.horses.reduce((s, h) => s + h.totalMinutes, 0);

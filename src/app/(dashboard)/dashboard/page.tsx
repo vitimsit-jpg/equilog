@@ -34,6 +34,7 @@ import OnboardingChecklist from "@/components/dashboard/OnboardingChecklist";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import PaddockToggle from "@/components/dashboard/PaddockToggle";
 import ProgrammeSemaine from "@/components/dashboard/ProgrammeSemaine";
+import DashboardModeToggle from "@/components/dashboard/DashboardModeToggle";
 import TodoEcurie from "@/components/dashboard/TodoEcurie";
 import type { EcurieTodo } from "@/lib/supabase/types";
 
@@ -60,7 +61,11 @@ function getBlockOrder(hour: number): BlockKey[] {
   }
 }
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams?: { mode?: string };
+}) {
   const supabase = createClient();
   const {
     data: { user: authUser },
@@ -81,6 +86,11 @@ export default async function DashboardPage() {
   const userType = userProfile?.user_type || "loisir";
   const moduleCoach = userProfile?.module_coach ?? false;
   const moduleGerant = userProfile?.module_gerant ?? false;
+
+  // P6 toggle: only shown when user has both module_gerant and has own horses
+  const isP6 = moduleGerant && (profileType === "pro" || profileType === "gerant" || moduleCoach);
+  const dashMode: "cavalier" | "gerant" =
+    isP6 && searchParams?.mode === "gerant" ? "gerant" : "cavalier";
 
   const { data: horses } = await supabase
     .from("horses")
@@ -1119,14 +1129,40 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {/* ── Dynamic blocks in temporal order ─────────────────────────── */}
-      {(horses || []).length > 0 &&
-        blockOrder.map((key) =>
-          blockMap[key] ? <div key={key}>{blockMap[key]}</div> : null
-        )}
+      {/* ── P6 Mode toggle ─────────────────────────────────────────────── */}
+      {isP6 && (horses || []).length > 0 && (
+        <DashboardModeToggle currentMode={dashMode} />
+      )}
 
-      {/* ── Pensionnaires (gérant only) ────────────────────────────────── */}
-      {pensionnairesBlock && <div>{pensionnairesBlock}</div>}
+      {/* ── Dynamic blocks in temporal order ─────────────────────────── */}
+      {(horses || []).length > 0 && (() => {
+        // P6 Mode CAVALIER: hide gerant-specific blocks
+        const cavalierExclude: BlockKey[] = ["alertes", "todo", "ecurie"];
+        // P6 Mode GÉRANT: hide cavalier-specific blocks
+        const gerantExclude: BlockKey[] = ["chevaux", "programme", "concours", "plan_ia", "sessions"];
+
+        const filtered = isP6
+          ? blockOrder.filter((k) =>
+              dashMode === "cavalier"
+                ? !cavalierExclude.includes(k)
+                : !gerantExclude.includes(k)
+            )
+          : blockOrder;
+
+        return filtered.map((key) =>
+          blockMap[key] ? <div key={key}>{blockMap[key]}</div> : null
+        );
+      })()}
+
+      {/* ── Pensionnaires: in gérant mode or non-P6 gérant ─────────────── */}
+      {pensionnairesBlock && (dashMode === "gerant" || !isP6) && (
+        <div>{pensionnairesBlock}</div>
+      )}
+
+      {/* ── P6 Mode GÉRANT: own horses at bottom ───────────────────────── */}
+      {isP6 && dashMode === "gerant" && chevauxBlock && (
+        <div className="opacity-75">{chevauxBlock}</div>
+      )}
 
       {/* ── Quick actions ─────────────────────────────────────────────── */}
       {quickActions.length > 0 && (horses || []).length > 0 && (

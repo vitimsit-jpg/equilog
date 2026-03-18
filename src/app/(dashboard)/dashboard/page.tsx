@@ -36,7 +36,8 @@ import PaddockToggle from "@/components/dashboard/PaddockToggle";
 import ProgrammeSemaine from "@/components/dashboard/ProgrammeSemaine";
 import DashboardModeToggle from "@/components/dashboard/DashboardModeToggle";
 import TodoEcurie from "@/components/dashboard/TodoEcurie";
-import type { EcurieTodo } from "@/lib/supabase/types";
+import AlerteCheval from "@/components/horses/AlerteCheval";
+import type { EcurieTodo, HorseAlert } from "@/lib/supabase/types";
 
 type BlockKey =
   | "header"
@@ -210,6 +211,62 @@ export default async function DashboardPage({
       if (!lastSessionByHorse[s.horse_id]) {
         lastSessionByHorse[s.horse_id] = { date: s.date, notes: s.notes, type: s.type };
       }
+    });
+  }
+
+  // Vérification vaccins FEI — pour profils compétition/pro
+  const vaccinsAlerte: { horseName: string; horseId: string; daysToComp: number }[] = [];
+  if (fetchCompetitions && horseIds.length) {
+    const { data: vaccins } = await supabase
+      .from("health_records")
+      .select("horse_id, next_date, product_name")
+      .in("horse_id", horseIds)
+      .eq("type", "vaccin")
+      .order("date", { ascending: false });
+
+    // Latest vaccine per horse
+    const latestVaccinByHorse: Record<string, { next_date: string | null }> = {};
+    (vaccins || []).forEach((v) => {
+      if (!latestVaccinByHorse[v.horse_id]) {
+        latestVaccinByHorse[v.horse_id] = { next_date: v.next_date };
+      }
+    });
+
+    // Check horses with competition ≤21 days
+    const twentyOneDaysFromNow = format(addDays(now, 21), "yyyy-MM-dd");
+    const horsesWithImmComp = (upcomingCompetitions || []).filter(
+      (c) => c.date <= twentyOneDaysFromNow && daysUntil(c.date) >= 0
+    );
+
+    horsesWithImmComp.forEach((comp) => {
+      const horseId = (comp as any).horse_id;
+      const vaccin = latestVaccinByHorse[horseId];
+      const vaccinOk = vaccin?.next_date && daysUntil(vaccin.next_date) >= 0;
+      if (!vaccinOk) {
+        const horse = (horses || []).find((h) => h.id === horseId);
+        if (horse && !vaccinsAlerte.find((v) => v.horseId === horseId)) {
+          vaccinsAlerte.push({
+            horseName: horse.name,
+            horseId,
+            daysToComp: daysUntil(comp.date),
+          });
+        }
+      }
+    });
+  }
+
+  // Active horse alerts for dashboard
+  const horseAlertsMap: Record<string, HorseAlert[]> = {};
+  if (horseIds.length) {
+    const { data: alertsData } = await supabase
+      .from("horse_alerts")
+      .select("*")
+      .in("horse_id", horseIds)
+      .eq("resolved", false)
+      .order("created_at", { ascending: false });
+    (alertsData || []).forEach((a) => {
+      if (!horseAlertsMap[a.horse_id]) horseAlertsMap[a.horse_id] = [];
+      horseAlertsMap[a.horse_id].push(a as HorseAlert);
     });
   }
 
@@ -503,6 +560,13 @@ export default async function DashboardPage({
                       </span>
                     )}
                   </div>
+                  <div className="mt-3">
+                    <AlerteCheval
+                      horseId={horse.id}
+                      horseName={horse.name}
+                      initialAlerts={horseAlertsMap[horse.id] ?? []}
+                    />
+                  </div>
                   <div className="flex items-center gap-4 mt-3 pt-3 border-t border-gray-50">
                     <Link
                       href={`/horses/${horse.id}/training`}
@@ -608,6 +672,13 @@ export default async function DashboardPage({
                     horseId={horse.id}
                     initialChecked={paddockStatus[horse.id] ?? false}
                   />
+                  <div className="mt-2">
+                    <AlerteCheval
+                      horseId={horse.id}
+                      horseName={horse.name}
+                      initialAlerts={horseAlertsMap[horse.id] ?? []}
+                    />
+                  </div>
                 </div>
               );
             })}
@@ -1200,6 +1271,28 @@ export default async function DashboardPage({
               );
             })}
           </div>
+        </div>
+      )}
+
+      {/* ── Alerte vaccins FEI non silençable ─────────────────────── */}
+      {vaccinsAlerte.length > 0 && (
+        <div className="rounded-2xl border-2 border-red-400 bg-red-50 p-4 space-y-2">
+          <div className="flex items-center gap-2">
+            <span className="text-red-600 font-black text-sm uppercase tracking-wide">⚠ Vaccins FEI requis</span>
+          </div>
+          {vaccinsAlerte.map((a) => (
+            <div key={a.horseId} className="flex items-center justify-between">
+              <p className="text-sm text-red-700">
+                <span className="font-bold">{a.horseName}</span> — vaccin non à jour, concours dans <span className="font-bold">J-{a.daysToComp}</span>
+              </p>
+              <Link
+                href={`/horses/${a.horseId}/health`}
+                className="text-xs font-bold text-red-600 underline underline-offset-2 flex-shrink-0 ml-3"
+              >
+                Mettre à jour →
+              </Link>
+            </div>
+          ))}
         </div>
       )}
 

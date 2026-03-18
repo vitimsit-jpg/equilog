@@ -140,6 +140,18 @@ export interface EcurieTodo {
   created_at: string;
 }
 
+export type AlertUrgency = "normal" | "urgent" | "critique";
+
+export interface HorseAlert {
+  id: string;
+  horse_id: string;
+  reporter_id: string;
+  description: string;
+  urgency: AlertUrgency;
+  resolved: boolean;
+  created_at: string;
+}
+
 export interface WearableData {
   id: string;
   horse_id: string;
@@ -311,6 +323,7 @@ export interface Database {
       horse_history_events: T<HorseHistoryEvent>;
       horse_pedigree: T<HorsePedigree>;
       ecurie_todos: T<EcurieTodo>;
+      horse_alerts: T<HorseAlert>;
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

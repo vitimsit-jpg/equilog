@@ -34,6 +34,8 @@ import OnboardingChecklist from "@/components/dashboard/OnboardingChecklist";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import PaddockToggle from "@/components/dashboard/PaddockToggle";
 import ProgrammeSemaine from "@/components/dashboard/ProgrammeSemaine";
+import TodoEcurie from "@/components/dashboard/TodoEcurie";
+import type { EcurieTodo } from "@/lib/supabase/types";
 
 type BlockKey =
   | "header"
@@ -42,17 +44,19 @@ type BlockKey =
   | "concours"
   | "plan_ia"
   | "sessions"
-  | "ecurie";
+  | "ecurie"
+  | "todo"
+  | "alertes";
 
 function getBlockOrder(hour: number): BlockKey[] {
   if (hour >= 6 && hour < 11) {
-    return ["header", "chevaux", "programme", "concours", "plan_ia", "sessions", "ecurie"];
+    return ["header", "alertes", "chevaux", "todo", "programme", "concours", "plan_ia", "sessions", "ecurie"];
   } else if (hour >= 11 && hour < 15) {
-    return ["header", "chevaux", "programme", "plan_ia", "concours", "sessions", "ecurie"];
+    return ["header", "alertes", "chevaux", "todo", "programme", "plan_ia", "concours", "sessions", "ecurie"];
   } else if (hour >= 15 && hour < 21) {
-    return ["header", "programme", "chevaux", "plan_ia", "concours", "sessions", "ecurie"];
+    return ["header", "alertes", "programme", "chevaux", "todo", "plan_ia", "concours", "sessions", "ecurie"];
   } else {
-    return ["header", "chevaux", "programme", "plan_ia", "sessions", "ecurie"];
+    return ["header", "alertes", "chevaux", "todo", "programme", "plan_ia", "sessions", "ecurie"];
   }
 }
 
@@ -182,6 +186,16 @@ export default async function DashboardPage() {
       : Promise.resolve({ data: [] }),
   ]);
 
+  let ecurieTodos: EcurieTodo[] = [];
+  if (moduleGerant || profileType === "pro") {
+    const { data: todosData } = await supabase
+      .from("ecurie_todos")
+      .select("*")
+      .eq("user_id", authUser.id)
+      .order("created_at", { ascending: true });
+    ecurieTodos = (todosData as EcurieTodo[]) || [];
+  }
+
   const scoresByHorse: Record<string, number> = {};
   (latestScores || []).forEach((s) => {
     if (!scoresByHorse[s.horse_id]) scoresByHorse[s.horse_id] = s.score;
@@ -224,6 +238,22 @@ export default async function DashboardPage() {
     return days <= 30;
   });
   const overdueRecords = alerts.filter((h) => daysUntil(h.next_date!) < 0);
+
+  // For pro/gérant profile: compute horse status (RAS/soin prévu/soin en retard/en compétition)
+  function getHorseStatus(horseId: string): "ras" | "soin_prevu" | "soin_retard" | "en_competition" {
+    const isInComp = (upcomingCompetitions || []).some(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (c) => (c as any).horse_id === horseId && daysUntil(c.date) >= 0 && daysUntil(c.date) <= 7
+    );
+    if (isInComp) return "en_competition";
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const overdue = overdueRecords.some((r) => (r as any).horse_id === horseId);
+    if (overdue) return "soin_retard";
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const soon = alerts.some((r) => (r as any).horse_id === horseId && daysUntil((r as any).next_date) >= 0);
+    if (soon) return "soin_prevu";
+    return "ras";
+  }
 
   const nextAlert = (upcomingHealth || []).find(
     (h) => h.next_date && daysUntil(h.next_date) >= 0
@@ -495,6 +525,37 @@ export default async function DashboardPage() {
                     <p className="text-xs text-gray-400 mt-0.5 truncate">
                       {[horse.breed, horse.discipline].filter(Boolean).join(" · ") || "—"}
                     </p>
+                    {(profileType === "pro" || moduleGerant) && (() => {
+                      const status = getHorseStatus(horse.id);
+                      const isConfie = (horse as any).is_confie;
+                      const ownerName = (horse as any).owner_name;
+                      return (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {isConfie && ownerName && (
+                            <span className="text-2xs text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded-full">
+                              Prop. {ownerName}
+                            </span>
+                          )}
+                          <span className={`inline-flex items-center gap-1 text-2xs font-medium px-1.5 py-0.5 rounded-full ${
+                            status === "soin_retard" ? "text-red-600 bg-red-50" :
+                            status === "soin_prevu" ? "text-orange bg-orange-light" :
+                            status === "en_competition" ? "text-blue-600 bg-blue-50" :
+                            "text-green-700 bg-green-50"
+                          }`}>
+                            <span className={`w-1 h-1 rounded-full inline-block ${
+                              status === "soin_retard" ? "bg-red-500" :
+                              status === "soin_prevu" ? "bg-orange" :
+                              status === "en_competition" ? "bg-blue-500" :
+                              "bg-green-500"
+                            }`} />
+                            {status === "soin_retard" ? "Soin retard" :
+                             status === "soin_prevu" ? "Soin prévu" :
+                             status === "en_competition" ? "En compétition" :
+                             "RAS"}
+                          </span>
+                        </div>
+                      );
+                    })()}
                   </div>
                   <PaddockToggle
                     horseId={horse.id}
@@ -582,6 +643,37 @@ export default async function DashboardPage() {
                         <p className="text-xs text-gray-400 truncate">
                           {[horse.breed, horse.discipline].filter(Boolean).join(" · ") || "—"}
                         </p>
+                        {(profileType === "pro" || moduleGerant) && (() => {
+                          const status = getHorseStatus(horse.id);
+                          const isConfie = (horse as any).is_confie;
+                          const ownerName = (horse as any).owner_name;
+                          return (
+                            <div className="flex flex-wrap gap-1 mt-0.5">
+                              {isConfie && ownerName && (
+                                <span className="text-2xs text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded-full">
+                                  Prop. {ownerName}
+                                </span>
+                              )}
+                              <span className={`inline-flex items-center gap-1 text-2xs font-medium px-1.5 py-0.5 rounded-full ${
+                                status === "soin_retard" ? "text-red-600 bg-red-50" :
+                                status === "soin_prevu" ? "text-orange bg-orange-light" :
+                                status === "en_competition" ? "text-blue-600 bg-blue-50" :
+                                "text-green-700 bg-green-50"
+                              }`}>
+                                <span className={`w-1 h-1 rounded-full inline-block ${
+                                  status === "soin_retard" ? "bg-red-500" :
+                                  status === "soin_prevu" ? "bg-orange" :
+                                  status === "en_competition" ? "bg-blue-500" :
+                                  "bg-green-500"
+                                }`} />
+                                {status === "soin_retard" ? "Soin retard" :
+                                 status === "soin_prevu" ? "Soin prévu" :
+                                 status === "en_competition" ? "En compétition" :
+                                 "RAS"}
+                              </span>
+                            </div>
+                          );
+                        })()}
                       </div>
                     </Link>
                     <div className="flex items-center gap-2 flex-shrink-0">
@@ -834,6 +926,92 @@ export default async function DashboardPage() {
       </div>
     ) : null;
 
+  const alertesBlock = (moduleGerant || profileType === "pro") && overdueRecords.length > 0 ? (
+    <div>
+      <div className="flex items-center gap-2 mb-3">
+        <h2 className="font-bold text-black">Alertes urgentes</h2>
+        <span className="text-xs font-bold text-white bg-red-500 rounded-full px-1.5 py-0.5 leading-none">
+          {overdueRecords.length}
+        </span>
+      </div>
+      <div className="card divide-y divide-gray-50">
+        {overdueRecords.slice(0, 5).map((record) => {
+          const h = record as any;
+          const days = Math.abs(daysUntil(h.next_date));
+          return (
+            <div key={h.id} className="flex items-center justify-between p-3">
+              <div>
+                <p className="text-sm font-medium text-black">{h.horses?.name || "—"}</p>
+                <p className="text-xs text-gray-400">{HEALTH_TYPE_LABELS[h.type]}</p>
+              </div>
+              <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full">
+                {days}j de retard
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  ) : null;
+
+  const todoBlock = (moduleGerant || profileType === "pro") ? (
+    <TodoEcurie initialTodos={ecurieTodos} />
+  ) : null;
+
+  const pensionnairesBlock = moduleGerant && rankedEcurieHorses.length > 0 ? (
+    <div>
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="font-bold text-black">Mes pensionnaires</h2>
+        <span className="text-xs text-gray-400">{rankedEcurieHorses.length} cheval{rankedEcurieHorses.length > 1 ? "x" : ""}</span>
+      </div>
+      <div className="card divide-y divide-gray-50">
+        {rankedEcurieHorses.slice(0, 10).map((horse) => {
+          const score = ecurieScoreByHorse[horse.id];
+          const isOverdue = (upcomingHealth || []).some(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (r) => (r as any).horse_id === horse.id && daysUntil((r as any).next_date) < 0
+          );
+          const isSoon = (upcomingHealth || []).some(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (r) => (r as any).horse_id === horse.id && daysUntil((r as any).next_date) >= 0 && daysUntil((r as any).next_date) <= 7
+          );
+          return (
+            <div key={horse.id} className="flex items-center gap-3 p-3">
+              <div className="w-8 h-8 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
+                {horse.avatar_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={horse.avatar_url} alt={horse.name} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center">
+                    <span className="text-white font-black text-xs">{horse.name[0]}</span>
+                  </div>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-black truncate">{horse.name}</p>
+                <p className="text-xs text-gray-400 truncate">{horse.ecurie}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                {isOverdue && (
+                  <span className="text-2xs font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded-full">Retard</span>
+                )}
+                {!isOverdue && isSoon && (
+                  <span className="text-2xs font-bold text-orange bg-orange-light px-1.5 py-0.5 rounded-full">Prévu</span>
+                )}
+                {!isOverdue && !isSoon && (
+                  <span className="text-2xs font-bold text-green-700 bg-green-50 px-1.5 py-0.5 rounded-full">RAS</span>
+                )}
+                {score !== undefined && (
+                  <span className="text-xs font-black" style={{ color: getScoreColor(score) }}>{score}</span>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  ) : null;
+
   const blockMap: Partial<Record<BlockKey, React.ReactNode>> = {
     header: headerBlock,
     chevaux: chevauxBlock,
@@ -842,6 +1020,8 @@ export default async function DashboardPage() {
     plan_ia: planIABlock,
     sessions: sessionsBlock,
     ecurie: ecurieBlock,
+    alertes: alertesBlock,
+    todo: todoBlock,
   };
 
   return (
@@ -944,6 +1124,9 @@ export default async function DashboardPage() {
         blockOrder.map((key) =>
           blockMap[key] ? <div key={key}>{blockMap[key]}</div> : null
         )}
+
+      {/* ── Pensionnaires (gérant only) ────────────────────────────────── */}
+      {pensionnairesBlock && <div>{pensionnairesBlock}</div>}
 
       {/* ── Quick actions ─────────────────────────────────────────────── */}
       {quickActions.length > 0 && (horses || []).length > 0 && (

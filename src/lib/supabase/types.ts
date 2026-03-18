@@ -59,6 +59,9 @@ export interface Horse {
   horse_index_mode: HorseIndexMode | null;
   horse_index_status: "actif" | "incomplet" | "calibrage" | null;
   horse_index_mode_changed_at: string | null;
+  // migration 031
+  is_confie: boolean | null;
+  owner_name: string | null;
   created_at: string;
 }
 
@@ -120,6 +123,20 @@ export interface BudgetEntry {
   category: BudgetCategory;
   amount: number;
   description: string | null;
+  created_at: string;
+}
+
+export type TodoFrequency = "quotidien" | "hebdo" | "mensuel" | "ponctuel";
+export type TodoStatus = "a_faire" | "en_cours" | "fait";
+
+export interface EcurieTodo {
+  id: string;
+  user_id: string;
+  title: string;
+  frequency: TodoFrequency;
+  status: TodoStatus;
+  assigned_to_name: string | null;
+  last_done_at: string | null;
   created_at: string;
 }
 
@@ -293,6 +310,7 @@ export interface Database {
       horse_daily_logs: T<HorseDailyLog>;
       horse_history_events: T<HorseHistoryEvent>;
       horse_pedigree: T<HorsePedigree>;
+      ecurie_todos: T<EcurieTodo>;
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

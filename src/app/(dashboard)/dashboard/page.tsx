@@ -39,6 +39,9 @@ import TodoEcurie from "@/components/dashboard/TodoEcurie";
 import AlerteCheval from "@/components/horses/AlerteCheval";
 import CoursAujourdhui from "@/components/dashboard/CoursAujourdhui";
 import NotifierProprietaire from "@/components/horses/NotifierProprietaire";
+import AgendaSemaine from "@/components/dashboard/AgendaSemaine";
+import SuggestionIA from "@/components/dashboard/SuggestionIA";
+import FeedMiniDashboard from "@/components/dashboard/FeedMiniDashboard";
 import type { EcurieTodo, HorseAlert, CoachStudent, CoachPlannedSession } from "@/lib/supabase/types";
 
 type BlockKey =
@@ -52,17 +55,20 @@ type BlockKey =
   | "ecurie"
   | "todo"
   | "alertes"
-  | "coach";
+  | "coach"
+  | "agenda"
+  | "suggestion"
+  | "feed";
 
 function getBlockOrder(hour: number): BlockKey[] {
   if (hour >= 6 && hour < 11) {
-    return ["header", "alertes", "chevaux", "todo", "programme", "notes_seance", "concours", "plan_ia", "coach", "sessions", "ecurie"];
+    return ["header", "alertes", "chevaux", "todo", "programme", "agenda", "suggestion", "notes_seance", "concours", "plan_ia", "coach", "sessions", "feed", "ecurie"];
   } else if (hour >= 11 && hour < 15) {
-    return ["header", "alertes", "chevaux", "todo", "programme", "notes_seance", "plan_ia", "coach", "concours", "sessions", "ecurie"];
+    return ["header", "alertes", "chevaux", "todo", "programme", "agenda", "suggestion", "notes_seance", "plan_ia", "coach", "concours", "sessions", "feed", "ecurie"];
   } else if (hour >= 15 && hour < 21) {
-    return ["header", "alertes", "programme", "chevaux", "notes_seance", "todo", "coach", "plan_ia", "concours", "sessions", "ecurie"];
+    return ["header", "alertes", "programme", "agenda", "chevaux", "suggestion", "notes_seance", "todo", "coach", "plan_ia", "concours", "sessions", "ecurie"];
   } else {
-    return ["header", "alertes", "chevaux", "todo", "programme", "notes_seance", "plan_ia", "sessions", "ecurie"];
+    return ["header", "alertes", "chevaux", "todo", "programme", "agenda", "notes_seance", "plan_ia", "sessions", "ecurie"];
   }
 }
 
@@ -286,6 +292,66 @@ export default async function DashboardPage({
     coachTodaySessions = (sessionsData as SessionWithStudent[]) || [];
   }
 
+  // Agenda semaine (P3/P4) — 7 days ahead
+  const sevenDaysFromNow = format(addDays(now, 7), "yyyy-MM-dd");
+
+  type AgendaItem = { date: string; type: "competition" | "health" | "cours"; label: string; sub?: string; href: string };
+  const agendaItems: AgendaItem[] = [];
+
+  if (["pro", "gerant"].includes(profileType) || moduleGerant) {
+    // Competitions next 7 days
+    (upcomingCompetitions || [])
+      .filter((c) => c.date <= sevenDaysFromNow)
+      .forEach((c) => {
+        const horseName = (c as any).horses?.name;
+        agendaItems.push({
+          date: c.date,
+          type: "competition",
+          label: c.event_name,
+          sub: horseName ? `${horseName} · ${c.discipline}` : c.discipline,
+          href: `/horses/${(c as any).horse_id || horseIds[0]}/competitions`,
+        });
+      });
+
+    // Health appointments next 7 days
+    (upcomingHealth || [])
+      .filter((h) => h.next_date && h.next_date >= todayStr && h.next_date <= sevenDaysFromNow)
+      .forEach((h) => {
+        const horseName = (h as any).horses?.name;
+        agendaItems.push({
+          date: h.next_date!,
+          type: "health",
+          label: HEALTH_TYPE_LABELS[h.type],
+          sub: horseName || undefined,
+          href: `/horses/${(h as any).horse_id || horseIds[0]}/health`,
+        });
+      });
+
+    // Coach sessions next 7 days
+    if (moduleCoach) {
+      const { data: weekCoachSessions } = await supabase
+        .from("coach_planned_sessions")
+        .select("*, coach_students(student_name, horse_name)")
+        .eq("coach_id", authUser.id)
+        .gte("date", todayStr)
+        .lte("date", sevenDaysFromNow)
+        .eq("completed", false)
+        .order("date");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (weekCoachSessions || []).forEach((s: any) => {
+        agendaItems.push({
+          date: s.date,
+          type: "cours",
+          label: s.coach_students?.student_name || "Cours",
+          sub: [s.coach_students?.horse_name, s.time_slot].filter(Boolean).join(" · ") || undefined,
+          href: "/dashboard",
+        });
+      });
+    }
+
+    agendaItems.sort((a, b) => a.date.localeCompare(b.date));
+  }
+
   let ecurieTodos: EcurieTodo[] = [];
   if (moduleGerant || profileType === "pro") {
     const { data: todosData } = await supabase
@@ -328,6 +394,35 @@ export default async function DashboardPage({
   ecurieScores.forEach((s) => {
     if (!ecurieScoreByHorse[s.horse_id]) ecurieScoreByHorse[s.horse_id] = s.score;
   });
+
+  // Feed communauté (P1, optionnel)
+  type DashFeedItem = { id: string; type: "session" | "competition"; horseName: string; label: string; date: string };
+  let feedItems: DashFeedItem[] = [];
+  if (profileType === "loisir" && userEcuries.length > 0 && ecurieHorses.length > 0) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const otherEcurieIds = ecurieHorses.map((h: any) => h.id).filter((id: string) => !horseIds.includes(id));
+    if (otherEcurieIds.length > 0) {
+      const fiveDaysAgo = format(subDays(now, 5), "yyyy-MM-dd");
+      const [{ data: feedSessions }, { data: feedComps }] = await Promise.all([
+        supabase.from("training_sessions").select("id, horse_id, date, type").in("horse_id", otherEcurieIds).gte("date", fiveDaysAgo).order("date", { ascending: false }).limit(6),
+        supabase.from("competitions").select("id, horse_id, date, event_name").in("horse_id", otherEcurieIds).gte("date", fiveDaysAgo).order("date", { ascending: false }).limit(4),
+      ]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const horseById: Record<string, any> = {};
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ecurieHorses.forEach((h: any) => { horseById[h.id] = h; });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (feedSessions || []).forEach((s: any) => {
+        feedItems.push({ id: s.id, type: "session", horseName: horseById[s.horse_id]?.name || "—", label: s.type, date: s.date });
+      });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (feedComps || []).forEach((c: any) => {
+        feedItems.push({ id: c.id, type: "competition", horseName: horseById[c.horse_id]?.name || "—", label: c.event_name, date: c.date });
+      });
+      feedItems.sort((a, b) => b.date.localeCompare(a.date));
+      feedItems = feedItems.slice(0, 4);
+    }
+  }
 
   const rankedEcurieHorses = [...ecurieHorses].sort(
     (a, b) => (ecurieScoreByHorse[b.id] ?? 0) - (ecurieScoreByHorse[a.id] ?? 0)
@@ -1200,6 +1295,30 @@ export default async function DashboardPage({
     />
   ) : null;
 
+  const agendaBlock = (["pro", "gerant"].includes(profileType) || moduleGerant) && agendaItems.length > 0 ? (
+    <AgendaSemaine items={agendaItems} />
+  ) : null;
+
+  const suggestionBlock = profileType === "loisir" && (horses || []).length > 0 && firstHorse ? (() => {
+    const last = lastSessionByHorse[firstHorse.id];
+    const daysSince = last ? differenceInDays(now, new Date(last.date)) : null;
+    const nextHealth = (upcomingHealth || []).find((h) => (h as any).horse_id === firstHorse.id && h.next_date && daysUntil(h.next_date) >= 0);
+    const healthDaysVal = nextHealth ? daysUntil(nextHealth.next_date!) : undefined;
+    return (
+      <SuggestionIA
+        horseName={firstHorse.name}
+        daysSinceSession={daysSince}
+        hasUpcomingHealth={!!nextHealth}
+        healthType={nextHealth ? HEALTH_TYPE_LABELS[(nextHealth as any).type] : undefined}
+        healthDays={healthDaysVal ?? undefined}
+      />
+    );
+  })() : null;
+
+  const feedBlock = profileType === "loisir" && feedItems.length > 0 ? (
+    <FeedMiniDashboard items={feedItems} />
+  ) : null;
+
   const blockMap: Partial<Record<BlockKey, React.ReactNode>> = {
     header: headerBlock,
     chevaux: chevauxBlock,
@@ -1212,6 +1331,9 @@ export default async function DashboardPage({
     alertes: alertesBlock,
     todo: todoBlock,
     coach: coachBlock,
+    agenda: agendaBlock,
+    suggestion: suggestionBlock,
+    feed: feedBlock,
   };
 
   return (

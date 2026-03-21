@@ -99,7 +99,12 @@ export default async function ClassementsPage({ searchParams }: Props) {
                   <span className="text-xl mb-1">{medals[podiumIdx]}</span>
                   <HorseAvatar name={horse.name} photoUrl={horse.avatar_url} size="sm" rounded="full" className="mb-1" />
                   <p className="text-xs font-bold text-black truncate px-2 text-center">{horse.name}</p>
-                  <p className="text-lg font-black" style={{ color: getScoreColor(s.score) }}>{s.score}</p>
+                  <div className="flex items-center gap-1">
+                    <p className="text-lg font-black" style={{ color: getScoreColor(s.score) }}>{s.score}</p>
+                    {(s as any).score_breakdown?.mode && (
+                      <span className="text-xs font-mono font-bold text-orange">{(s as any).score_breakdown.mode}</span>
+                    )}
+                  </div>
                 </Link>
               );
             })}
@@ -146,7 +151,15 @@ export default async function ClassementsPage({ searchParams }: Props) {
 
                   {/* Score */}
                   <div className="text-right flex-shrink-0">
-                    <p className="text-xl font-black" style={{ color: getScoreColor(s.score) }}>{s.score}</p>
+                    <div className="flex items-center justify-end gap-1.5">
+                      <p className="text-xl font-black" style={{ color: getScoreColor(s.score) }}>{s.score}</p>
+                      {(s as any).score_breakdown?.mode && (
+                        <>
+                          <span className="text-gray-300 font-light">·</span>
+                          <span className="text-sm font-mono font-bold text-orange">{(s as any).score_breakdown.mode}</span>
+                        </>
+                      )}
+                    </div>
                     <p className="text-2xs text-gray-400">{getScoreLabel(s.score)}</p>
                   </div>
                 </Link>

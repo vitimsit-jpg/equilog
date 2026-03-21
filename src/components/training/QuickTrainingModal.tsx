@@ -3,25 +3,36 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import toast from "react-hot-toast";
-import { format } from "date-fns";
-import type { TrainingType } from "@/lib/supabase/types";
+import { format, subDays } from "date-fns";
+import { fr } from "date-fns/locale";
+import type { TrainingType, TrainingRider, TrainingPlannedSession, RehabProtocol, HorseIndexMode } from "@/lib/supabase/types";
 import { trackEvent } from "@/lib/trackEvent";
 import Modal from "@/components/ui/Modal";
 import TrainingForm from "./TrainingForm";
 import VoiceButton from "./VoiceButton";
 import Button from "@/components/ui/Button";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { ClipboardList, HeartPulse, AlertTriangle, Link2 } from "lucide-react";
 
 const DISCIPLINE_ITEMS: { type: TrainingType; emoji: string; label: string }[] = [
-  { type: "cso",           emoji: "🟣", label: "CSO" },
-  { type: "dressage",      emoji: "🏆", label: "Dressage" },
-  { type: "cross",         emoji: "🟤", label: "CCE" },
-  { type: "galop",         emoji: "🚶", label: "Balade" },
-  { type: "longe",         emoji: "🌀", label: "Longe" },
-  { type: "travail_a_pied",emoji: "🧘", label: "Travail à pied" },
-  { type: "marcheur",      emoji: "💪", label: "Prépa physique" },
-  { type: "endurance",     emoji: "🏃", label: "Endurance" },
-  { type: "autre",         emoji: "⚪", label: "Autre" },
+  { type: "dressage",              emoji: "🎯", label: "Dressage" },
+  { type: "plat",                  emoji: "🏇", label: "Plat" },
+  { type: "stretching",            emoji: "🤸", label: "Stretching" },
+  { type: "barres_sol",            emoji: "📏", label: "Barres au sol" },
+  { type: "cavalettis",            emoji: "🔲", label: "Cavalettis" },
+  { type: "meca_obstacles",        emoji: "🚧", label: "Méca obstacles" },
+  { type: "obstacles_enchainement",emoji: "🏁", label: "Obstacles enchaînés" },
+  { type: "cross_entrainement",    emoji: "🌲", label: "Cross entraîn." },
+  { type: "longe",                 emoji: "🌀", label: "Longe" },
+  { type: "longues_renes",         emoji: "🪢", label: "Longues rênes" },
+  { type: "travail_a_pied",        emoji: "🦶", label: "Trav. à pied" },
+  { type: "balade",                emoji: "🌿", label: "Balade" },
+  { type: "trotting",              emoji: "🏃", label: "Trotting" },
+  { type: "galop",                 emoji: "💨", label: "Galop" },
+  { type: "marcheur",              emoji: "⚙️", label: "Marcheur" },
+  { type: "concours",              emoji: "🏆", label: "Concours" },
+  { type: "autre",                 emoji: "✳️", label: "Autre" },
 ];
 
 const INTENSITY_OPTIONS = [
@@ -30,7 +41,6 @@ const INTENSITY_OPTIONS = [
   { value: 5, label: "Intense", inactive: "bg-red-50 text-red-600 border-red-200",        active: "bg-red-500 text-white border-red-500" },
 ];
 
-// Track by index so Tendu (2) and Fatigué (2) are distinct
 const FEELING_OPTIONS = [
   { value: 5, emoji: "😄", label: "Très bien" },
   { value: 4, emoji: "🙂", label: "Bien" },
@@ -40,83 +50,216 @@ const FEELING_OPTIONS = [
   { value: 1, emoji: "🤕", label: "Douleur" },
 ];
 
+const RIDER_OPTIONS: { value: TrainingRider; label: string; emoji: string }[] = [
+  { value: "owner",             emoji: "🧑", label: "Moi seule" },
+  { value: "owner_with_coach",  emoji: "🎓", label: "Cours coach" },
+  { value: "coach",             emoji: "👤", label: "Coach seul·e" },
+  { value: "longe",             emoji: "🌀", label: "Longe" },
+  { value: "travail_a_pied",    emoji: "🧘", label: "À pied" },
+];
+
 const DURATION_PICKS = [20, 30, 45, 60, 90];
+
+type DateMode = "today" | "yesterday" | "custom";
 
 interface Props {
   open: boolean;
   onClose: () => void;
   horseId: string;
+  horseName?: string;
   onSaved: () => void;
+  todayPlanned?: TrainingPlannedSession | null;
+  rehabProtocol?: RehabProtocol | null;
+  horseMode?: HorseIndexMode | null;
+  competitions?: { id: string; event_name: string; date: string }[] | null;
 }
 
-export default function QuickTrainingModal({ open, onClose, horseId, onSaved }: Props) {
+export default function QuickTrainingModal({ open, onClose, horseId, horseName, onSaved, todayPlanned, rehabProtocol, horseMode, competitions }: Props) {
   const supabase = createClient();
   const router = useRouter();
   const [mode, setMode] = useState<"quick" | "detail">("quick");
   const [loading, setLoading] = useState(false);
+  const [showHealthBridge, setShowHealthBridge] = useState(false);
 
+  // Form state
   const [discipline, setDiscipline] = useState<TrainingType | null>(null);
+  const [riderIdx, setRiderIdx] = useState(0); // default: "Moi seule"
   const [intensityIdx, setIntensityIdx] = useState(1); // default Normal
   const [feelingIdx, setFeelingIdx] = useState(1);     // default Bien
   const [duration, setDuration] = useState(45);
   const [customDuration, setCustomDuration] = useState("");
   const [showCustom, setShowCustom] = useState(false);
   const [notes, setNotes] = useState("");
+  const [linkedCompetitionId, setLinkedCompetitionId] = useState<string | null>(null);
+  const [dateMode, setDateMode] = useState<DateMode>("today");
+  const [customDate, setCustomDate] = useState(format(new Date(), "yyyy-MM-dd"));
 
   const effectiveDuration = showCustom && customDuration ? parseInt(customDuration) || 45 : duration;
 
-  const handleVoiceResult = (data: { type: TrainingType; duration_min: number; intensity: 1|2|3|4|5; feeling: 1|2|3|4|5; notes: string | null }) => {
+  const effectiveDate = dateMode === "today"
+    ? format(new Date(), "yyyy-MM-dd")
+    : dateMode === "yesterday"
+    ? format(subDays(new Date(), 1), "yyyy-MM-dd")
+    : customDate;
+
+  const handleVoiceResult = (data: {
+    type?: TrainingType | null;
+    duration_min?: number | null;
+    intensity?: 1|2|3|4|5 | null;
+    feeling?: 1|2|3|4|5 | null;
+    notes?: string | null;
+    rider?: string | null;
+  }) => {
     if (data.type) setDiscipline(data.type);
     if (data.duration_min) {
       const pick = DURATION_PICKS.indexOf(data.duration_min);
       if (pick >= 0) { setDuration(DURATION_PICKS[pick]); setShowCustom(false); }
       else { setCustomDuration(String(data.duration_min)); setShowCustom(true); }
     }
-    if (data.intensity) {
+    if (data.intensity != null) {
+      const intensity = data.intensity;
       const idx = INTENSITY_OPTIONS.reduce((best, opt, i) =>
-        Math.abs(opt.value - data.intensity) < Math.abs(INTENSITY_OPTIONS[best].value - data.intensity) ? i : best, 0);
+        Math.abs(opt.value - intensity) < Math.abs(INTENSITY_OPTIONS[best].value - intensity) ? i : best, 0);
       setIntensityIdx(idx);
     }
     if (data.feeling) {
       const idx = FEELING_OPTIONS.findIndex(f => f.value === data.feeling);
       if (idx >= 0) setFeelingIdx(idx);
     }
+    if (data.rider) {
+      const idx = RIDER_OPTIONS.findIndex(r => r.value === data.rider);
+      if (idx >= 0) setRiderIdx(idx);
+    }
     if (data.notes) setNotes(data.notes);
+  };
+
+  const copyFromPlanned = () => {
+    if (!todayPlanned) return;
+    setDiscipline(todayPlanned.type as TrainingType);
+    // scroll to duration is handled by browser naturally after state update
   };
 
   const handleSave = async () => {
     if (!discipline) { toast.error("Sélectionnez une discipline"); return; }
     setLoading(true);
-    const { error } = await supabase.from("training_sessions").insert({
+
+    const rider = RIDER_OPTIONS[riderIdx].value;
+    const feelingValue = FEELING_OPTIONS[feelingIdx].value;
+
+    const payload = {
       horse_id: horseId,
-      date: format(new Date(), "yyyy-MM-dd"),
+      date: effectiveDate,
       type: discipline,
       duration_min: effectiveDuration,
-      intensity: INTENSITY_OPTIONS[intensityIdx].value as any,
-      feeling: FEELING_OPTIONS[feelingIdx].value as any,
+      intensity: INTENSITY_OPTIONS[intensityIdx].value as 1|2|3|4|5,
+      feeling: feelingValue as 1|2|3|4|5,
       notes: notes || null,
-      objectif: null, lieu: null, coach_present: false,
-      equipement_recuperation: null, wearable_source: null,
+      rider,
+      coach_present: rider === "owner_with_coach" || rider === "coach",
+      objectif: null,
+      lieu: null,
+      equipement_recuperation: null,
+      wearable_source: null,
+      linked_competition_id: linkedCompetitionId || null,
+    };
+
+    // Offline: enqueue and return
+    if (!navigator.onLine) {
+      const { enqueue } = await import("@/lib/offlineQueue");
+      await enqueue({ table: "training_sessions", method: "insert", payload });
+      toast.success("Séance sauvegardée hors ligne 📴 — sera synchronisée à la reconnexion");
+      trackEvent({ event_name: "training_created_offline", event_category: "training", properties: { type: discipline } });
+      reset();
+      onSaved();
+      setLoading(false);
+      return;
+    }
+
+    const { error } = await supabase.from("training_sessions").insert(payload);
+
+    if (error) {
+      toast.error("Erreur lors de l'enregistrement");
+      setLoading(false);
+      return;
+    }
+
+    toast.success("Séance enregistrée !");
+    trackEvent({
+      event_name: "training_created",
+      event_category: "training",
+      properties: { type: discipline, mode: "quick", duration_min: effectiveDuration, rider },
     });
-    if (error) { toast.error("Erreur lors de l'enregistrement"); }
-    else {
-      toast.success("Séance enregistrée !");
-      trackEvent({ event_name: "training_created", event_category: "training", properties: { type: discipline, mode: "quick", duration_min: effectiveDuration } });
-      reset(); onSaved();
+
+    // Pont Travail→Santé : si feeling = Douleur
+    if (feelingValue === 1) {
+      setShowHealthBridge(true);
+      onSaved(); // refresh parent data in background
+    } else {
+      reset();
+      onSaved();
     }
     setLoading(false);
   };
 
   const reset = () => {
-    setDiscipline(null); setIntensityIdx(1); setFeelingIdx(1);
-    setDuration(45); setShowCustom(false); setCustomDuration(""); setNotes("");
+    setDiscipline(null);
+    setRiderIdx(0);
+    setIntensityIdx(1);
+    setFeelingIdx(1);
+    setDuration(45);
+    setShowCustom(false);
+    setCustomDuration("");
+    setNotes("");
+    setDateMode("today");
+    setCustomDate(format(new Date(), "yyyy-MM-dd"));
+    setShowHealthBridge(false);
+    setLinkedCompetitionId(null);
   };
 
   const handleClose = () => { setMode("quick"); reset(); onClose(); };
 
   return (
-    <Modal open={open} onClose={handleClose} title={mode === "detail" ? "Nouvelle séance — Détails" : "Logger une séance"}>
-      {mode === "detail" ? (
+    <Modal
+      open={open}
+      onClose={handleClose}
+      title={mode === "detail" ? "Nouvelle séance — Détails" : horseName ? `Logger — ${horseName}` : "Logger une séance"}
+    >
+      {/* Pont Travail→Santé */}
+      {showHealthBridge ? (
+        <div className="space-y-4">
+          <div className="flex flex-col items-center text-center gap-3 py-4">
+            <div className="w-14 h-14 rounded-full bg-orange-light flex items-center justify-center">
+              <HeartPulse className="h-7 w-7 text-orange" />
+            </div>
+            <div>
+              <p className="font-bold text-black text-base">
+                {horseName ? `${horseName} semble en douleur` : "Cheval en douleur"}
+              </p>
+              <p className="text-sm text-gray-500 mt-1 leading-relaxed">
+                Ajouter un soin au carnet de santé pour garder une trace et alerter votre vétérinaire ?
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <Button
+              type="button"
+              variant="secondary"
+              className="flex-1"
+              onClick={handleClose}
+            >
+              Ignorer
+            </Button>
+            <Link
+              href={`/horses/${horseId}/health`}
+              className="flex-1 btn-primary flex items-center justify-center gap-2 text-sm font-semibold"
+              onClick={handleClose}
+            >
+              <HeartPulse className="h-4 w-4" />
+              Ajouter un soin →
+            </Link>
+          </div>
+        </div>
+      ) : mode === "detail" ? (
         <TrainingForm
           horseId={horseId}
           onSaved={() => { setMode("quick"); reset(); router.refresh(); onSaved(); }}
@@ -128,16 +271,90 @@ export default function QuickTrainingModal({ open, onClose, horseId, onSaved }: 
           {/* Voice */}
           <VoiceButton onResult={handleVoiceResult} />
 
+          {/* IR rehab protocol banner */}
+          {(() => {
+            const currentPhase = rehabProtocol?.phases?.[rehabProtocol.current_phase_index] ?? null;
+            const isOverIntensity = currentPhase ? INTENSITY_OPTIONS[intensityIdx].value > currentPhase.max_intensity : false;
+            const isOverDuration = currentPhase ? effectiveDuration > currentPhase.max_duration_min : false;
+            return horseMode === "IR" && currentPhase ? (
+              <div className={`flex items-start gap-3 px-3 py-2.5 rounded-xl border ${isOverIntensity || isOverDuration ? "bg-red-50 border-red-200" : "bg-beige border-gray-100"}`}>
+                <AlertTriangle className={`h-4 w-4 flex-shrink-0 mt-0.5 ${isOverIntensity || isOverDuration ? "text-danger" : "text-gray-400"}`} />
+                <div>
+                  <p className={`text-xs font-bold ${isOverIntensity || isOverDuration ? "text-danger" : "text-gray-600"}`}>
+                    Phase {rehabProtocol!.current_phase_index + 1} — {currentPhase.name}
+                  </p>
+                  <p className="text-2xs text-gray-500 mt-0.5">
+                    Max {currentPhase.max_duration_min}min · Intensité ≤ {currentPhase.max_intensity}/5
+                    {(isOverIntensity || isOverDuration) && " · ⚠ Limites dépassées"}
+                  </p>
+                </div>
+              </div>
+            ) : null;
+          })()}
+
+          {/* Copier séance prévue — visible uniquement si plannedSession aujourd'hui */}
+          {todayPlanned && (
+            <button
+              type="button"
+              onClick={copyFromPlanned}
+              className="w-full flex items-center gap-2.5 px-4 py-3 rounded-xl border border-dashed border-gray-300 bg-gray-50 hover:bg-orange-light hover:border-orange transition-all text-left"
+            >
+              <ClipboardList className="h-4 w-4 text-gray-400 flex-shrink-0" />
+              <div>
+                <p className="text-xs font-semibold text-gray-600">
+                  Copier séance prévue :{" "}
+                  <span className="text-orange capitalize">
+                    {todayPlanned.type.replace(/_/g, " ")}
+                  </span>
+                </p>
+                {todayPlanned.duration_min_target && (
+                  <p className="text-2xs text-gray-400">{todayPlanned.duration_min_target}min prévu</p>
+                )}
+              </div>
+            </button>
+          )}
+
+          {/* Date */}
+          <div>
+            <p className="text-2xs font-bold uppercase tracking-widest text-gray-400 mb-2">Date</p>
+            <div className="flex gap-2">
+              {(["today", "yesterday", "custom"] as DateMode[]).map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => setDateMode(d)}
+                  className={`flex-1 py-2.5 rounded-xl border-2 text-xs font-bold transition-all ${
+                    dateMode === d
+                      ? "border-orange bg-orange-light text-orange"
+                      : "border-gray-100 bg-gray-50 text-gray-600 hover:border-gray-200"
+                  }`}
+                >
+                  {d === "today" ? "Aujourd'hui" : d === "yesterday" ? "Hier" : "Autre"}
+                </button>
+              ))}
+            </div>
+            {dateMode === "custom" && (
+              <input
+                type="date"
+                value={customDate}
+                onChange={(e) => setCustomDate(e.target.value)}
+                max={format(new Date(), "yyyy-MM-dd")}
+                className="mt-2 w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-orange"
+                autoFocus
+              />
+            )}
+          </div>
+
           {/* Discipline */}
           <div>
-            <p className="text-2xs font-bold uppercase tracking-widest text-gray-400 mb-2">Discipline</p>
+            <p className="text-2xs font-bold uppercase tracking-widest text-gray-400 mb-2">Type de travail</p>
             <div className="grid grid-cols-3 gap-2">
               {DISCIPLINE_ITEMS.map((item) => (
                 <button
                   key={item.type}
                   type="button"
                   onClick={() => setDiscipline(item.type)}
-                  className={`flex flex-col items-center gap-1 py-3 rounded-xl border-2 text-xs font-semibold transition-all min-h-[64px] ${
+                  className={`tap-scale-sm flex flex-col items-center gap-1 py-3 rounded-xl border-2 text-xs font-semibold min-h-[64px] ${
                     discipline === item.type
                       ? "border-orange bg-orange-light text-orange"
                       : "border-gray-100 bg-gray-50 text-gray-600 hover:border-gray-200"
@@ -150,48 +367,68 @@ export default function QuickTrainingModal({ open, onClose, horseId, onSaved }: 
             </div>
           </div>
 
-          {/* Intensity */}
-          <div>
-            <p className="text-2xs font-bold uppercase tracking-widest text-gray-400 mb-2">Intensité</p>
-            <div className="grid grid-cols-3 gap-2">
-              {INTENSITY_OPTIONS.map((opt, i) => (
+          {/* Lier à un concours — visible uniquement si type=concours et competitions disponibles */}
+          {discipline === "concours" && competitions && competitions.length > 0 && (
+            <div>
+              <p className="text-2xs font-bold uppercase tracking-widest text-gray-400 mb-2 flex items-center gap-1.5">
+                <Link2 className="h-3 w-3" /> Lier à un concours
+              </p>
+              <div className="space-y-1.5">
                 <button
-                  key={i}
                   type="button"
-                  onClick={() => setIntensityIdx(i)}
-                  className={`py-3 rounded-xl border-2 text-sm font-bold transition-all ${
-                    intensityIdx === i ? opt.active : opt.inactive
+                  onClick={() => setLinkedCompetitionId(null)}
+                  className={`w-full text-left px-3 py-2 rounded-xl border-2 text-xs font-medium transition-all ${
+                    !linkedCompetitionId
+                      ? "border-orange bg-orange-light text-orange"
+                      : "border-gray-100 bg-gray-50 text-gray-500 hover:border-gray-200"
                   }`}
                 >
-                  {opt.label}
+                  Ne pas lier
                 </button>
-              ))}
+                {competitions.slice(0, 8).map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => setLinkedCompetitionId(c.id)}
+                    className={`w-full text-left px-3 py-2 rounded-xl border-2 text-xs font-medium transition-all ${
+                      linkedCompetitionId === c.id
+                        ? "border-orange bg-orange-light text-orange"
+                        : "border-gray-100 bg-gray-50 text-gray-500 hover:border-gray-200"
+                    }`}
+                  >
+                    <span className="font-semibold">{c.event_name}</span>
+                    <span className="ml-2 text-gray-400 font-normal">
+                      {format(new Date(c.date), "d MMM yyyy", { locale: fr })}
+                    </span>
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Feeling */}
+          {/* Qui monte */}
           <div>
-            <p className="text-2xs font-bold uppercase tracking-widest text-gray-400 mb-2">Humeur du cheval</p>
+            <p className="text-2xs font-bold uppercase tracking-widest text-gray-400 mb-2">Qui monte</p>
             <div className="grid grid-cols-3 gap-2">
-              {FEELING_OPTIONS.map((opt, i) => (
+              {RIDER_OPTIONS.map((opt, i) => (
                 <button
-                  key={i}
+                  key={opt.value}
                   type="button"
-                  onClick={() => setFeelingIdx(i)}
-                  className={`flex flex-col items-center gap-0.5 py-2.5 rounded-xl border-2 text-xs font-medium transition-all ${
-                    feelingIdx === i
+                  onClick={() => setRiderIdx(i)}
+                  className={`flex flex-col items-center gap-1 py-2.5 rounded-xl border-2 text-xs font-semibold transition-all ${
+                    riderIdx === i
                       ? "border-orange bg-orange-light text-orange"
                       : "border-gray-100 bg-gray-50 text-gray-600 hover:border-gray-200"
                   }`}
                 >
-                  <span className="text-lg">{opt.emoji}</span>
-                  <span>{opt.label}</span>
+                  <span className="text-base">{opt.emoji}</span>
+                  <span className="leading-tight text-center">{opt.label}</span>
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Duration */}
+          {/* Durée */}
           <div>
             <p className="text-2xs font-bold uppercase tracking-widest text-gray-400 mb-2">Durée</p>
             <div className="flex flex-wrap gap-2">
@@ -237,7 +474,58 @@ export default function QuickTrainingModal({ open, onClose, horseId, onSaved }: 
             )}
           </div>
 
-          {/* Notes */}
+          {/* Intensité */}
+          <div>
+            <p className="text-2xs font-bold uppercase tracking-widest text-gray-400 mb-2">Intensité</p>
+            <div className="grid grid-cols-3 gap-2">
+              {INTENSITY_OPTIONS.map((opt, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => setIntensityIdx(i)}
+                  className={`py-3 rounded-xl border-2 text-sm font-bold transition-all ${
+                    intensityIdx === i ? opt.active : opt.inactive
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Humeur du cheval */}
+          <div>
+            <p className="text-2xs font-bold uppercase tracking-widest text-gray-400 mb-2">
+              {horseMode === "IR" ? "Tolérance du travail" : "Humeur du cheval"}
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              {FEELING_OPTIONS.map((opt, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => setFeelingIdx(i)}
+                  className={`flex flex-col items-center gap-0.5 py-2.5 rounded-xl border-2 text-xs font-medium transition-all ${
+                    feelingIdx === i
+                      ? opt.value === 1
+                        ? "border-danger bg-red-50 text-danger"
+                        : "border-orange bg-orange-light text-orange"
+                      : "border-gray-100 bg-gray-50 text-gray-600 hover:border-gray-200"
+                  }`}
+                >
+                  <span className="text-lg">{opt.emoji}</span>
+                  <span>{opt.label}</span>
+                </button>
+              ))}
+            </div>
+            {/* Alerte visuelle si Douleur sélectionné */}
+            {FEELING_OPTIONS[feelingIdx].value === 1 && (
+              <p className="mt-2 text-xs text-danger font-medium px-1">
+                ⚠ En douleur — pensez à consulter votre vétérinaire
+              </p>
+            )}
+          </div>
+
+          {/* Note rapide */}
           <div>
             <p className="text-2xs font-bold uppercase tracking-widest text-gray-400 mb-1">
               Note rapide <span className="font-normal normal-case text-gray-300">(optionnel)</span>

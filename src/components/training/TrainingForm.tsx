@@ -79,7 +79,16 @@ export default function TrainingForm({ horseId, onSaved, onCancel, defaultValues
     if (error) toast.error("Erreur lors de l'enregistrement");
     else {
       toast.success("Séance enregistrée !");
-      if (!defaultValues?.id) trackEvent({ event_name: "training_created", event_category: "training", properties: { type: form.type, intensity: parseInt(form.intensity), duration_min: parseInt(form.duration_min) } });
+      if (!defaultValues?.id) {
+        trackEvent({ event_name: "training_created", event_category: "training", properties: { type: form.type, intensity: parseInt(form.intensity), duration_min: parseInt(form.duration_min) } });
+      } else {
+        // Notify owner if a coach is editing
+        fetch("/api/notify-coach-modification", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ horseId, element: "une séance" }),
+        }).catch(() => {});
+      }
       onSaved();
     }
     setLoading(false);

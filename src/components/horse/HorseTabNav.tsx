@@ -1,44 +1,71 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { haptic } from "@/lib/haptic";
 
-const TABS = [
+const TABS: {
+  suffix: string;
+  label: string;
+  hideForModes?: string[];
+  labelForMode?: Partial<Record<string, string>>;
+}[] = [
   { suffix: "", label: "Aperçu" },
   { suffix: "/health", label: "Santé" },
-  { suffix: "/training", label: "Travail" },
-  { suffix: "/competitions", label: "Concours" },
+  { suffix: "/training", label: "Travail", hideForModes: ["IS", "ICr"], labelForMode: { IR: "Rééducation" } },
+  { suffix: "/competitions", label: "Concours", hideForModes: ["IP", "IR", "IS", "ICr"], labelForMode: { IE: "Allégé" } },
   { suffix: "/budget", label: "Budget" },
   { suffix: "/historique", label: "Historique" },
   { suffix: "/genealogie", label: "Généalogie" },
   { suffix: "/video", label: "Vidéo" },
 ];
 
-export default function HorseTabNav({ horseId }: { horseId: string }) {
+export default function HorseTabNav({ horseId, horseIndexMode }: { horseId: string; horseIndexMode?: string | null }) {
   const pathname = usePathname();
+  const router = useRouter();
   const base = `/horses/${horseId}`;
+  const storageKey = `last_tab_${horseId}`;
+
+  useEffect(() => {
+    if (pathname === base) {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) router.replace(`${base}${saved}`);
+    }
+  }, []);
+
+  const visibleTabs = TABS.filter(
+    (tab) => !tab.hideForModes || !horseIndexMode || !tab.hideForModes.includes(horseIndexMode)
+  );
 
   return (
     <div className="flex overflow-x-auto bg-white border-b border-gray-100 sticky top-14 z-20 px-4 md:px-6" style={{ scrollbarWidth: "none" }}>
-      {TABS.map((tab) => {
+      {visibleTabs.map((tab) => {
         const href = `${base}${tab.suffix}`;
         const isActive =
           tab.suffix === ""
             ? pathname === base
             : pathname.startsWith(`${base}${tab.suffix}`);
+        const label = (horseIndexMode && tab.labelForMode?.[horseIndexMode]) || tab.label;
         return (
           <Link
             key={tab.suffix}
             href={href}
-            onClick={() => !isActive && haptic("light")}
+            onClick={() => {
+              if (!isActive) haptic("light");
+              if (tab.suffix === "") {
+                localStorage.removeItem(storageKey);
+              } else {
+                localStorage.setItem(storageKey, tab.suffix);
+              }
+            }}
             className={`flex-shrink-0 px-4 py-3.5 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${
               isActive
                 ? "text-orange border-orange"
                 : "text-gray-400 border-transparent hover:text-black"
             }`}
           >
-            {tab.label}
+            {label}
           </Link>
         );
       })}

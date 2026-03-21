@@ -57,7 +57,7 @@ body {
   }
 
   .card-hover {
-    @apply card transition-all duration-200 hover:shadow-card-hover hover:-translate-y-px cursor-pointer;
+    @apply card transition-all duration-200 hover:shadow-card-hover hover:-translate-y-px cursor-pointer tap-scale;
   }
 
   .input {
@@ -181,8 +181,47 @@ body {
 .stagger-children > *:nth-child(6) { animation-delay: 300ms; }
 .stagger-children > *:nth-child(n+7) { animation-delay: 360ms; }
 
-/* Respect prefers-reduced-motion */
+/* ── Tap scale — mobile-friendly press feedback ──────────────────────────── */
+/* Apply to any interactive card or button for native-feeling tap response.   */
+.tap-scale {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: transform 150ms ease, box-shadow 150ms ease;
+  cursor: pointer;
+}
+.tap-scale:active {
+  transform: scale(0.96);
+}
+
+/* Discipline grid buttons & similar pill buttons */
+.tap-scale-sm:active {
+  transform: scale(0.94);
+}
+.tap-scale-sm {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: transform 120ms ease;
+}
+
+/* ── Slide-out (swipe-to-delete farewell) ────────────────────────────────── */
+@keyframes slideOut {
+  to { transform: translateX(-100%); opacity: 0; }
+}
+.animate-slide-out {
+  animation: slideOut 0.28s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+/* ── Fade-in ────────────────────────────────────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Respect prefers-reduced-motion ─────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   .skeleton { animation: none; }
   .stagger-children > * { opacity: 1; animation: none; }
+  .tap-scale:active,
+  .tap-scale-sm:active { transform: none; }
+  .animate-slide-out { animation: none; }
 }

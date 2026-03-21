@@ -13,7 +13,6 @@ import {
   ChevronDown,
   Plus,
   Star,
-  Medal,
   Users,
   Building2,
   Video,
@@ -35,8 +34,7 @@ interface SidebarProps {
 
 const mainNav = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { href: "/communaute", icon: Users, label: "Réseaux" },
-  { href: "/classements", icon: Medal, label: "Classements" },
+  { href: "/communaute", icon: Users, label: "Communauté" },
 ];
 
 const horseNavItems = [
@@ -220,9 +218,9 @@ export default function Sidebar({ horses, currentHorseId, userType, profileType,
             Admin
           </Link>
         )}
-        <Link href="/settings" className={cn(pathname === "/settings" ? darkNavItemActive : darkNavItem)}>
+        <Link href="/profil" className={cn(pathname === "/profil" ? darkNavItemActive : darkNavItem)}>
           <Settings className="h-4 w-4" />
-          Paramètres
+          Mon profil
         </Link>
       </div>
     </aside>

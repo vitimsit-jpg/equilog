@@ -3,7 +3,8 @@ export type HorseIndexMode = "IC" | "IE" | "IP" | "IR" | "IS" | "ICr";
 export type UserType = "loisir" | "competition" | "pro" | "gerant_cavalier" | "coach" | "gerant_ecurie";
 export type ProfileType = "loisir" | "competition" | "pro" | "gerant";
 export type HealthType = "vaccin" | "vermifuge" | "dentiste" | "osteo" | "ferrage" | "veterinaire" | "masseuse" | "autre";
-export type TrainingType = "dressage" | "saut" | "endurance" | "cso" | "cross" | "travail_a_pied" | "longe" | "galop" | "plat" | "marcheur" | "autre";
+export type TrainingType = "dressage" | "plat" | "stretching" | "barres_sol" | "cavalettis" | "meca_obstacles" | "obstacles_enchainement" | "cross_entrainement" | "longe" | "longues_renes" | "travail_a_pied" | "balade" | "trotting" | "galop" | "marcheur" | "concours" | "autre";
+export type TrainingRider = "owner" | "owner_with_coach" | "coach" | "longe" | "travail_a_pied";
 export type WearableSource = "equisense" | "seaver" | "garmin" | "equilab" | "autre";
 export type BudgetCategory = "pension" | "soins" | "concours" | "equipement" | "maréchalerie" | "alimentation" | "transport" | "autre";
 export type Discipline = "CSO" | "Dressage" | "CCE" | "Endurance" | "Attelage" | "Voltige" | "TREC" | "Hunter" | "Equitation_Western" | "Autre";
@@ -96,9 +97,11 @@ export interface TrainingSession {
   objectif: string | null;
   lieu: string | null;
   coach_present: boolean | null;
+  rider: TrainingRider | null;
   equipement_recuperation: string | null;
   wearable_source: WearableSource | null;
   media_urls: string[] | null;
+  linked_competition_id: string | null;
   created_at: string;
 }
 
@@ -174,6 +177,19 @@ export interface CoachPlannedSession {
   duration_min: number | null;
   notes: string | null;
   completed: boolean;
+  created_at: string;
+}
+
+export interface TrainingPlannedSession {
+  id: string;
+  horse_id: string;
+  date: string;
+  type: TrainingType;
+  duration_min_target: number | null;
+  intensity_target: 1 | 2 | 3 | 4 | 5 | null;
+  notes: string | null;
+  status: "planned" | "skipped";
+  linked_session_id: string | null;
   created_at: string;
 }
 
@@ -323,6 +339,33 @@ export interface AIInsight {
   created_at: string;
 }
 
+export interface RehabPhase {
+  index: number;
+  name: string;
+  duration_weeks: number;
+  sessions_per_week: number;
+  max_duration_min: number;
+  max_intensity: 1 | 2 | 3;
+  allowed_types: TrainingType[];
+  description: string;
+  progression_criteria: string;
+}
+
+export interface RehabProtocol {
+  id: string;
+  horse_id: string;
+  user_id: string;
+  injury_description: string;
+  phases: RehabPhase[];
+  current_phase_index: number;
+  status: "active" | "completed" | "paused" | "abandoned";
+  vet_validated: boolean;
+  notes: string | null;
+  generated_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type T<R = any> = {
   Row: R;
@@ -351,6 +394,8 @@ export interface Database {
       horse_alerts: T<HorseAlert>;
       coach_students: T<CoachStudent>;
       coach_planned_sessions: T<CoachPlannedSession>;
+      training_planned_sessions: T<TrainingPlannedSession>;
+      rehab_protocols: T<RehabProtocol>;
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

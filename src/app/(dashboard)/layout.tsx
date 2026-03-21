@@ -4,6 +4,7 @@ import Sidebar from "@/components/layout/Sidebar";
 import Header from "@/components/layout/Header";
 import MobileBottomNav from "@/components/layout/MobileBottomNav";
 import ServiceWorkerRegistrar from "@/components/layout/ServiceWorkerRegistrar";
+import OfflineBanner from "@/components/pwa/OfflineBanner";
 
 export default async function DashboardLayout({
   children,
@@ -70,6 +71,7 @@ export default async function DashboardLayout({
       </div>
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header user={userProfile} />
+        <OfflineBanner />
         <main className="flex-1 overflow-y-auto p-4 md:p-6 pb-20 md:pb-6 scroll-smooth">{children}</main>
       </div>
       <MobileBottomNav horses={horses || []} overdueByHorse={overdueByHorse} />

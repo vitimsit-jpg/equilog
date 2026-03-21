@@ -20,17 +20,29 @@ export default async function CompetitionsPage({ params }: Props) {
 
   if (!horse) return notFound();
 
-  const { data: competitions } = await supabase
-    .from("competitions")
-    .select("*")
-    .eq("horse_id", horse.id)
-    .order("date", { ascending: false });
+  const [{ data: competitions }, { data: linkedSessions }] = await Promise.all([
+    supabase
+      .from("competitions")
+      .select("*")
+      .eq("horse_id", horse.id)
+      .order("date", { ascending: false }),
+    supabase
+      .from("training_sessions")
+      .select("linked_competition_id")
+      .eq("horse_id", horse.id)
+      .not("linked_competition_id", "is", null),
+  ]);
+
+  const linkedSessionCompetitionIds = new Set<string>(
+    (linkedSessions || []).map((s) => s.linked_competition_id as string)
+  );
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
       <CompetitionsDashboard
         competitions={competitions || []}
         horse={horse}
+        linkedSessionCompetitionIds={linkedSessionCompetitionIds}
       />
     </div>
   );

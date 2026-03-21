@@ -56,7 +56,7 @@ export default function Header({ user }: HeaderProps) {
                 <p className="text-xs text-gray-400 truncate">{user?.email}</p>
               </div>
               <Link
-                href="/settings"
+                href="/profil"
                 onClick={() => setOpen(false)}
                 className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-black transition-colors"
               >

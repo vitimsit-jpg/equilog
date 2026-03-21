@@ -157,7 +157,7 @@ export default async function HorseLayout({ children, params }: Props) {
         </div>
 
         {/* Tab navigation */}
-        <HorseTabNav horseId={horse.id} />
+        <HorseTabNav horseId={horse.id} horseIndexMode={(horse as any).horse_index_mode ?? null} />
       </div>
 
       {/* Page content — swipeable between tabs on mobile */}

@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
   }
 
   const supabase = createAdminClient();
-  const results = { healthReminders: 0, scoreAlerts: 0, errors: 0 };
+  const results = { healthReminders: 0, scoreAlerts: 0, rehabCompleted: 0, errors: 0 };
 
   // ── 1. Rappels soins J-7 ──────────────────────────────────────────────────
   const today = new Date();
@@ -109,6 +109,58 @@ export async function GET(request: NextRequest) {
       } catch {
         results.errors++;
       }
+    }
+  }
+
+  // ── 3. IR fin de protocole ────────────────────────────────────────────────
+  const { data: activeProtocols } = await supabase
+    .from("rehab_protocols")
+    .select("id, horse_id, user_id, phases, created_at, horses(id, name, users(email, name))")
+    .eq("status", "active");
+
+  const todayMs = new Date().setHours(0, 0, 0, 0);
+
+  for (const protocol of activeProtocols || []) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const horse = (protocol as any).horses;
+    const user = horse?.users;
+    if (!horse || !user) continue;
+
+    // Total duration from phases
+    const phases = (protocol.phases as Array<{ duration_weeks: number }>) || [];
+    const estimatedDays = phases.reduce((sum, p) => sum + (p.duration_weeks || 0) * 7, 0);
+    if (estimatedDays === 0) continue;
+
+    const startMs = new Date(protocol.created_at).setHours(0, 0, 0, 0);
+    const endMs = startMs + estimatedDays * 24 * 60 * 60 * 1000;
+
+    if (todayMs < endMs) continue; // not yet finished
+
+    try {
+      // Push notification — NEVER auto-complete, owner must act manually
+      const { data: pushSubs } = await supabase
+        .from("push_subscriptions")
+        .select("endpoint, p256dh, auth")
+        .eq("user_id", protocol.user_id);
+
+      for (const sub of pushSubs || []) {
+        try {
+          await sendPushNotification(sub, {
+            title: `${horse.name} a terminé sa rééducation 🎉`,
+            body: "Passer en mode Loisir ou Semi-actif ?",
+            url: `${APP_URL}/horses/${horse.id}/training`,
+          });
+        } catch (err: unknown) {
+          const status = (err as { statusCode?: number })?.statusCode;
+          if (status === 410 || status === 404) {
+            await supabase.from("push_subscriptions").delete().eq("endpoint", sub.endpoint);
+          }
+        }
+      }
+
+      results.rehabCompleted++;
+    } catch {
+      results.errors++;
     }
   }
 

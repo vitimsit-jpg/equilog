@@ -35,9 +35,11 @@ export async function GET(request: NextRequest) {
 
     if (!horses || horses.length === 0) continue;
 
+    const todayStr = new Date().toISOString().split("T")[0];
+
     const horseSummaries = await Promise.all(
       horses.map(async (horse) => {
-        const [{ data: sessions }, { data: latestScore }] = await Promise.all([
+        const [{ data: sessions }, { data: latestScore }, { data: plannedDone }] = await Promise.all([
           supabase
             .from("training_sessions")
             .select("duration_min")
@@ -49,7 +51,20 @@ export async function GET(request: NextRequest) {
             .eq("horse_id", horse.id)
             .order("computed_at", { ascending: false })
             .limit(1),
+          supabase
+            .from("training_planned_sessions")
+            .select("id, status")
+            .eq("horse_id", horse.id)
+            .gte("date", weekAgoStr)
+            .lte("date", todayStr),
         ]);
+
+        const plannedTotal = plannedDone?.length ?? 0;
+        const plannedSkipped = (plannedDone || []).filter((p) => p.status === "skipped").length;
+        const completionPct =
+          plannedTotal > 0
+            ? Math.round(((sessions?.length ?? 0) / (plannedTotal - plannedSkipped + (sessions?.length ?? 0))) * 100)
+            : null;
 
         return {
           name: horse.name,
@@ -57,6 +72,7 @@ export async function GET(request: NextRequest) {
           sessionCount: sessions?.length ?? 0,
           totalMinutes: (sessions || []).reduce((s, t) => s + (t.duration_min || 0), 0),
           score: latestScore?.[0]?.score ?? null,
+          completionPct,
         };
       })
     );

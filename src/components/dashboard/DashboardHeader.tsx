@@ -3,6 +3,7 @@ import { Plus } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { daysUntil } from "@/lib/utils";
+import type { ReactNode } from "react";
 
 interface Props {
   userName: string;
@@ -14,6 +15,7 @@ interface Props {
   nextHealthType: string | null;
   upcomingCompetition: { event_name: string; date: string } | null;
   horsesCount: number;
+  quickAddSlot?: ReactNode;
 }
 
 const PROFILE_BADGE: Record<string, { label: string; classes: string }> = {
@@ -40,6 +42,7 @@ export default function DashboardHeader({
   nextHealthType,
   upcomingCompetition,
   horsesCount,
+  quickAddSlot,
 }: Props) {
   const today = format(new Date(), "EEEE d MMMM", { locale: fr });
 
@@ -88,14 +91,17 @@ export default function DashboardHeader({
         <p className="text-sm text-gray-600">{contextualPhrase}</p>
       </div>
       {horsesCount > 0 && (
-        <Link
-          href="/horses/new"
-          className="btn-primary flex-shrink-0"
-        >
-          <Plus className="h-4 w-4" />
-          <span className="hidden sm:inline">Nouveau cheval</span>
-          <span className="sm:hidden">+</span>
-        </Link>
+        <div className="flex flex-col items-end gap-2 flex-shrink-0">
+          <Link
+            href="/horses/new"
+            className="btn-primary"
+          >
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">Nouveau cheval</span>
+            <span className="sm:hidden">+</span>
+          </Link>
+          {quickAddSlot}
+        </div>
       )}
     </div>
   );

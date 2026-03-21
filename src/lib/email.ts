@@ -32,6 +32,7 @@ interface HorseSummary {
   sessionCount: number;
   totalMinutes: number;
   score: number | null;
+  completionPct?: number | null;
 }
 
 interface WeeklySummaryParams {
@@ -209,6 +210,11 @@ export async function sendWeeklySummary(p: WeeklySummaryParams) {
         <td style="padding:10px 0;border-bottom:1px solid #f0f0f0;text-align:center;">
           <span style="font-size:14px;color:#444;">${h.totalMinutes} min</span>
         </td>
+        <td style="padding:10px 0;border-bottom:1px solid #f0f0f0;text-align:center;">
+          ${h.completionPct !== null && h.completionPct !== undefined
+            ? `<span style="font-size:13px;font-weight:600;color:${h.completionPct >= 80 ? "#22c55e" : h.completionPct >= 50 ? "#f97316" : "#ef4444"};">${h.completionPct}%</span>`
+            : '<span style="font-size:13px;color:#ccc;">—</span>'}
+        </td>
         <td style="padding:10px 0;border-bottom:1px solid #f0f0f0;text-align:right;">
           ${h.score !== null ? `<span style="font-size:14px;font-weight:700;color:#FF6B35;">${h.score}<span style="font-size:11px;font-weight:400;color:#999;">/100</span></span>` : '<span style="font-size:13px;color:#ccc;">—</span>'}
         </td>
@@ -241,6 +247,7 @@ export async function sendWeeklySummary(p: WeeklySummaryParams) {
           <th style="padding:8px 0;text-align:left;font-size:11px;color:#999;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;">Cheval</th>
           <th style="padding:8px 0;text-align:center;font-size:11px;color:#999;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;">Séances</th>
           <th style="padding:8px 0;text-align:center;font-size:11px;color:#999;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;">Durée</th>
+          <th style="padding:8px 0;text-align:center;font-size:11px;color:#999;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;">Programme</th>
           <th style="padding:8px 0;text-align:right;font-size:11px;color:#999;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;">Index</th>
         </tr>
       </thead>

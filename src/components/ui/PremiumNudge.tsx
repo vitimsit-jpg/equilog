@@ -58,7 +58,7 @@ export default function PremiumNudge({ userPlan, userType, context }: Props) {
         </div>
       </div>
       <Link
-        href="/settings"
+        href="/profil"
         className="shrink-0 text-xs font-bold text-white bg-orange rounded-xl px-3 py-1.5 shadow-orange hover:bg-orange-hover transition-all whitespace-nowrap"
       >
         {nudge.cta} · {priceLabel}

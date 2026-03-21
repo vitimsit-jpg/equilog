@@ -11,6 +11,9 @@ interface VoiceResult {
   intensity: 1 | 2 | 3 | 4 | 5;
   feeling: 1 | 2 | 3 | 4 | 5;
   notes: string | null;
+  rider?: string | null;
+  lieu?: string | null;
+  objectif?: string | null;
 }
 
 interface Props {
@@ -66,10 +69,15 @@ export default function VoiceButton({ onResult }: Props) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ transcript: text }),
         });
-        if (!res.ok) throw new Error();
         const data = await res.json();
+        // Route always returns 200 (EMPTY_RESULT on failure) — check if at least one field was extracted
+        const hasData = data.type || data.duration_min || data.intensity;
         onResult(data);
-        toast.success("Séance pré-remplie depuis votre description !");
+        if (hasData) {
+          toast.success("Séance pré-remplie depuis votre description !");
+        } else {
+          toast("Dictée reçue — vérifiez les champs", { icon: "✏️" });
+        }
       } catch {
         toast.error("Erreur lors de l'analyse vocale");
       }
@@ -92,56 +100,44 @@ export default function VoiceButton({ onResult }: Props) {
 
   if (!supported) {
     return (
-      <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
-        <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
-          <Mic className="h-4 w-4 text-gray-400" />
-        </div>
+      <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gray-100 border border-gray-200 w-full">
+        <MicOff className="h-5 w-5 text-gray-400 flex-shrink-0" />
         <div className="min-w-0">
           <p className="text-xs font-semibold text-gray-500">Saisie vocale non disponible</p>
-          <p className="text-xs text-gray-400">Utilisez Chrome ou Safari pour dicter vos séances.</p>
+          <p className="text-2xs text-gray-400">Utilisez Chrome ou Safari pour dicter vos séances.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex items-center gap-3 p-3 rounded-xl bg-beige border border-orange/20">
-      <button
-        type="button"
-        onClick={state === "recording" ? stopRecording : startRecording}
-        disabled={state === "processing"}
-        className={`w-10 h-10 rounded-full flex items-center justify-center transition-all flex-shrink-0 ${
-          state === "recording"
-            ? "bg-red-500 text-white animate-pulse shadow-lg"
-            : state === "processing"
-            ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-            : "bg-orange text-white hover:bg-orange/90"
-        }`}
-      >
-        {state === "processing" ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : state === "recording" ? (
-          <MicOff className="h-4 w-4" />
-        ) : (
-          <Mic className="h-4 w-4" />
-        )}
-      </button>
-      <div className="min-w-0">
-        <p className="text-xs font-semibold text-black">
-          {state === "recording"
-            ? "Enregistrement en cours... (cliquez pour arrêter)"
-            : state === "processing"
-            ? "Analyse IA en cours..."
-            : "Dicter votre séance"}
-        </p>
-        <p className="text-xs text-gray-400 truncate">
-          {state === "idle"
-            ? "Ex : \"Dressage 45 min, intensité moyenne, bon ressenti, transitions\""
-            : state === "recording"
-            ? "Parlez naturellement, décrivez la séance..."
-            : "Claude structure vos données..."}
-        </p>
-      </div>
-    </div>
+    <button
+      type="button"
+      onClick={state === "recording" ? stopRecording : startRecording}
+      disabled={state === "processing"}
+      className={`w-full flex items-center justify-center gap-3 rounded-xl font-bold text-sm transition-all ${
+        state === "recording"
+          ? "bg-red-500 text-white animate-pulse shadow-lg"
+          : state === "processing"
+          ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+          : "bg-orange text-white hover:bg-orange/90 active:scale-[0.98]"
+      }`}
+      style={{ minHeight: 64 }}
+    >
+      {state === "processing" ? (
+        <Loader2 className="h-5 w-5 animate-spin flex-shrink-0" />
+      ) : state === "recording" ? (
+        <MicOff className="h-5 w-5 flex-shrink-0" />
+      ) : (
+        <Mic className="h-5 w-5 flex-shrink-0" />
+      )}
+      <span>
+        {state === "recording"
+          ? "Enregistrement… Appuyez pour arrêter"
+          : state === "processing"
+          ? "Analyse en cours…"
+          : "🎤 Dicter ma séance"}
+      </span>
+    </button>
   );
 }

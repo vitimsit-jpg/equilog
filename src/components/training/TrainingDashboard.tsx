@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import type { TrainingSession, AIInsight } from "@/lib/supabase/types";
+import { useState, useEffect } from "react";
+import type { TrainingSession, TrainingPlannedSession, AIInsight } from "@/lib/supabase/types";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
@@ -20,10 +20,13 @@ type Range = "30" | "90" | "180";
 interface Props {
   sessions: TrainingSession[];
   horseId: string;
+  horseName?: string;
   latestInsight: AIInsight | null;
+  hideAddButton?: boolean;
+  todayPlanned?: TrainingPlannedSession | null;
 }
 
-export default function TrainingDashboard({ sessions, horseId, latestInsight }: Props) {
+export default function TrainingDashboard({ sessions, horseId, horseName, latestInsight, hideAddButton, todayPlanned }: Props) {
   const router = useRouter();
   const [range, setRange] = useState<Range>("30");
   const [addOpen, setAddOpen] = useState(false);
@@ -105,6 +108,8 @@ export default function TrainingDashboard({ sessions, horseId, latestInsight }: 
     setGeneratingInsight(false);
   };
 
+  const hasNoSessions = sessions.length === 0;
+
   let parsedInsight: { summary?: string; insights?: string[]; alerts?: string[] } = {};
   try {
     if (latestInsight?.content) parsedInsight = JSON.parse(latestInsight.content);
@@ -127,83 +132,99 @@ export default function TrainingDashboard({ sessions, horseId, latestInsight }: 
       )}
 
       {/* Header stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { label: "Séances", value: totalSessions, suffix: `/ ${range}j` },
-          { label: "Intensité moy.", value: avgIntensity, suffix: "/ 5" },
-          { label: "Ressenti moy.", value: avgFeeling, suffix: "/ 5" },
-          { label: "Heures total", value: `${totalHours}h`, suffix: `${totalMinutes % 60}min` },
-        ].map((stat) => (
-          <div key={stat.label} className="stat-card">
-            <span className="text-2xl font-black text-black">{stat.value}</span>
-            <span className="text-2xs text-gray-400">{stat.suffix}</span>
-            <span className="section-title mt-1">{stat.label}</span>
-          </div>
-        ))}
-      </div>
+      {!hasNoSessions && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[
+            { label: "Séances", value: totalSessions, suffix: `/ ${range}j` },
+            { label: "Intensité moy.", value: avgIntensity, suffix: "/ 5" },
+            { label: "Ressenti moy.", value: avgFeeling, suffix: "/ 5" },
+            { label: "Heures total", value: `${totalHours}h`, suffix: `${totalMinutes % 60}min` },
+          ].map((stat) => (
+            <div key={stat.label} className="stat-card">
+              <span className="text-2xl font-black text-black">{stat.value}</span>
+              <span className="text-2xs text-gray-400">{stat.suffix}</span>
+              <span className="section-title mt-1">{stat.label}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Actions */}
       <div className="flex items-center justify-between">
-        <div className="flex gap-1 bg-white rounded-lg p-1 shadow-card">
-          {(["30", "90", "180"] as Range[]).map((r) => (
-            <button
-              key={r}
-              onClick={() => setRange(r)}
-              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
-                range === r ? "bg-black text-white" : "text-gray-500 hover:text-black"
-              }`}
-            >
-              {r}j
-            </button>
-          ))}
-        </div>
+        {!hasNoSessions ? (
+          <div className="flex gap-1 bg-white rounded-lg p-1 shadow-card">
+            {(["30", "90", "180"] as Range[]).map((r) => (
+              <button
+                key={r}
+                onClick={() => setRange(r)}
+                className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                  range === r ? "bg-black text-white" : "text-gray-500 hover:text-black"
+                }`}
+              >
+                {r}j
+              </button>
+            ))}
+          </div>
+        ) : <div />}
         <div className="flex gap-2">
-          <Button variant="secondary" size="sm" onClick={generateInsight} loading={generatingInsight}>
-            <Sparkles className="h-3.5 w-3.5" />
-            Analyse IA
-          </Button>
-          <Button size="sm" onClick={() => setAddOpen(true)}>
-            <Plus className="h-4 w-4" />
-            Ajouter séance
-          </Button>
+          {!hasNoSessions && (
+            <Button variant="secondary" size="sm" onClick={generateInsight} loading={generatingInsight}>
+              <Sparkles className="h-3.5 w-3.5" />
+              Analyse IA
+            </Button>
+          )}
+          {!hideAddButton && (
+            <Button size="sm" onClick={() => setAddOpen(true)}>
+              <Plus className="h-4 w-4" />
+              Ajouter séance
+            </Button>
+          )}
         </div>
       </div>
 
       {/* Chart */}
-      <div className="card">
-        <h3 className="font-bold text-black text-sm mb-4">Intensité & ressenti</h3>
-        {chartPoints.length >= 3 ? (
-          <>
-            <ResponsiveContainer width="100%" height={160}>
-              <LineChart data={chartPoints} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F0" vertical={false} />
-                <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#9CA3AF" }} tickLine={false} axisLine={false} />
-                <YAxis domain={[1, 5]} ticks={[1, 3, 5]} tick={{ fontSize: 10, fill: "#9CA3AF" }} tickLine={false} axisLine={false} />
-                <Tooltip
-                  contentStyle={{ background: "#1A1A1A", border: "none", borderRadius: 8, fontSize: 12 }}
-                  labelStyle={{ color: "#9CA3AF" }}
-                />
-                <Line type="monotone" dataKey="intensity" stroke="#E8440A" strokeWidth={2} dot={false} name="Intensité" />
-                <Line type="monotone" dataKey="feeling" stroke="#16A34A" strokeWidth={2} dot={false} name="Ressenti" />
-              </LineChart>
-            </ResponsiveContainer>
-            <div className="flex gap-4 mt-2 justify-center">
-              <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                <div className="w-3 h-0.5 rounded bg-orange" /> Intensité
+      {hasNoSessions ? (
+        <div className="card flex flex-col items-center justify-center py-10 text-center">
+          <div className="text-4xl mb-3">📊</div>
+          <p className="text-sm font-bold text-black">Ajoutez 3 séances pour débloquer l&apos;analyse</p>
+          <p className="text-xs text-gray-400 mt-1">Le graphique intensité & ressenti apparaîtra automatiquement.</p>
+        </div>
+      ) : (
+        <div className="card">
+          <h3 className="font-bold text-black text-sm mb-4">Intensité & ressenti</h3>
+          {chartPoints.length >= 3 ? (
+            <>
+              <ResponsiveContainer width="100%" height={160}>
+                <LineChart data={chartPoints} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F0" vertical={false} />
+                  <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#9CA3AF" }} tickLine={false} axisLine={false} />
+                  <YAxis domain={[1, 5]} ticks={[1, 3, 5]} tick={{ fontSize: 10, fill: "#9CA3AF" }} tickLine={false} axisLine={false} />
+                  <Tooltip
+                    contentStyle={{ background: "#1A1A1A", border: "none", borderRadius: 8, fontSize: 12 }}
+                    labelStyle={{ color: "#9CA3AF" }}
+                  />
+                  <Line type="monotone" dataKey="intensity" stroke="#E8440A" strokeWidth={2} dot={false} name="Intensité" />
+                  <Line type="monotone" dataKey="feeling" stroke="#16A34A" strokeWidth={2} dot={false} name="Ressenti" />
+                </LineChart>
+              </ResponsiveContainer>
+              <div className="flex gap-4 mt-2 justify-center">
+                <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                  <div className="w-3 h-0.5 rounded bg-orange" /> Intensité
+                </div>
+                <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                  <div className="w-3 h-0.5 rounded bg-success" /> Ressenti
+                </div>
               </div>
-              <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                <div className="w-3 h-0.5 rounded bg-success" /> Ressenti
-              </div>
+            </>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+              <div className="text-3xl mb-2">📈</div>
+              <p className="text-sm font-semibold text-gray-400">Pas encore assez de données</p>
+              <p className="text-xs text-gray-300 mt-1">Le graphique apparaîtra après 3 séances enregistrées sur cette période.</p>
             </div>
-          </>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-8 text-center">
-            <div className="text-3xl mb-2">📈</div>
-            <p className="text-sm font-semibold text-gray-400">Pas encore assez de données</p>
-            <p className="text-xs text-gray-300 mt-1">Le graphique apparaîtra après 3 séances enregistrées sur cette période.</p>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
       {/* Type breakdown */}
       {typeBreakdownSorted.length > 0 && (
@@ -251,6 +272,8 @@ export default function TrainingDashboard({ sessions, horseId, latestInsight }: 
         open={addOpen}
         onClose={() => setAddOpen(false)}
         horseId={horseId}
+        horseName={horseName}
+        todayPlanned={todayPlanned}
         onSaved={() => { setAddOpen(false); router.refresh(); }}
       />
     </div>

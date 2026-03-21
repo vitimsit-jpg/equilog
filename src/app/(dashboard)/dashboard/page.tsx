@@ -16,6 +16,7 @@ import {
   formatDate,
   daysUntil,
   HEALTH_TYPE_LABELS,
+  TRAINING_TYPE_LABELS,
   getScoreColor,
   DISCIPLINE_LABELS,
 } from "@/lib/utils";
@@ -42,6 +43,7 @@ import NotifierProprietaire from "@/components/horses/NotifierProprietaire";
 import AgendaSemaine from "@/components/dashboard/AgendaSemaine";
 import SuggestionIA from "@/components/dashboard/SuggestionIA";
 import FeedMiniDashboard from "@/components/dashboard/FeedMiniDashboard";
+import DashboardQuickAdd from "@/components/dashboard/DashboardQuickAdd";
 import type { EcurieTodo, HorseAlert, CoachStudent, CoachPlannedSession } from "@/lib/supabase/types";
 
 type BlockKey =
@@ -62,13 +64,13 @@ type BlockKey =
 
 function getBlockOrder(hour: number): BlockKey[] {
   if (hour >= 6 && hour < 11) {
-    return ["header", "alertes", "chevaux", "todo", "programme", "agenda", "suggestion", "notes_seance", "concours", "plan_ia", "coach", "sessions", "feed", "ecurie"];
+    return ["alertes", "chevaux", "todo", "programme", "agenda", "suggestion", "notes_seance", "concours", "plan_ia", "coach", "sessions", "feed", "ecurie"];
   } else if (hour >= 11 && hour < 15) {
-    return ["header", "alertes", "chevaux", "todo", "programme", "agenda", "suggestion", "notes_seance", "plan_ia", "coach", "concours", "sessions", "feed", "ecurie"];
+    return ["alertes", "chevaux", "todo", "programme", "agenda", "suggestion", "notes_seance", "plan_ia", "coach", "concours", "sessions", "feed", "ecurie"];
   } else if (hour >= 15 && hour < 21) {
-    return ["header", "alertes", "programme", "agenda", "chevaux", "suggestion", "notes_seance", "todo", "coach", "plan_ia", "concours", "sessions", "ecurie"];
+    return ["alertes", "programme", "agenda", "chevaux", "suggestion", "notes_seance", "todo", "coach", "plan_ia", "concours", "sessions", "ecurie"];
   } else {
-    return ["header", "alertes", "chevaux", "todo", "programme", "agenda", "notes_seance", "plan_ia", "sessions", "ecurie"];
+    return ["alertes", "chevaux", "todo", "programme", "agenda", "notes_seance", "plan_ia", "sessions", "ecurie"];
   }
 }
 
@@ -362,9 +364,14 @@ export default async function DashboardPage({
     ecurieTodos = (todosData as EcurieTodo[]) || [];
   }
 
-  const scoresByHorse: Record<string, number> = {};
+  const scoresByHorse: Record<string, { score: number; mode: string | null }> = {};
   (latestScores || []).forEach((s) => {
-    if (!scoresByHorse[s.horse_id]) scoresByHorse[s.horse_id] = s.score;
+    if (!scoresByHorse[s.horse_id]) {
+      scoresByHorse[s.horse_id] = {
+        score: s.score,
+        mode: (s as any).score_breakdown?.mode ?? null,
+      };
+    }
   });
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -478,12 +485,16 @@ export default async function DashboardPage({
   const hour = now.getHours();
   let blockOrder = getBlockOrder(hour);
 
-  // Prochain concours remonte en position 3 si J≤14
+  // P2 (competition): ordre fixe prioritaire
+  if (profileType === "competition") {
+    blockOrder = ["alertes", "chevaux", "programme", "sessions", "concours", "plan_ia", "notes_seance", "coach", "suggestion", "feed", "ecurie"];
+  }
+
+  // Prochain concours remonte en position 3 si J≤14 (hors P2 qui a déjà concours bien placé)
   const daysToUpcomingComp = upcomingComp ? daysUntil(upcomingComp.date) : null;
-  if (daysToUpcomingComp !== null && daysToUpcomingComp >= 0 && daysToUpcomingComp <= 14) {
+  if (profileType !== "competition" && daysToUpcomingComp !== null && daysToUpcomingComp >= 0 && daysToUpcomingComp <= 14) {
     blockOrder = blockOrder.filter((k) => k !== "concours");
-    const headerIdx = blockOrder.indexOf("header");
-    blockOrder.splice(headerIdx + 2, 0, "concours");
+    blockOrder.splice(2, 0, "concours");
   }
 
   // Quick actions
@@ -569,6 +580,18 @@ export default async function DashboardPage({
           : null
       }
       horsesCount={horseCount}
+      quickAddSlot={
+        horseCount > 0 ? (
+          <DashboardQuickAdd
+            horses={(horses || []).map((h) => ({
+              id: h.id,
+              name: h.name,
+              avatar_url: (h as any).avatar_url ?? null,
+              horse_index_mode: (h as any).horse_index_mode ?? null,
+            }))}
+          />
+        ) : null
+      }
     />
   );
 
@@ -585,6 +608,36 @@ export default async function DashboardPage({
             Ajouter
           </Link>
         </div>
+
+        {/* ── Consolidated summary (2+ horses) ─────────────────────────── */}
+        {horseCount >= 2 && (() => {
+          const horsesActiveThisWeek = new Set((weekSessions || []).map((s) => s.horse_id)).size;
+          const weekSessionCount = (weekSessions || []).length;
+          const totalOverdue = overdueRecords.length;
+          return (
+            <div className="grid grid-cols-3 gap-2 mb-4">
+              <div className="stat-card items-center text-center">
+                <span className="text-xl font-black text-black">{weekSessionCount}</span>
+                <span className="text-2xs text-gray-400">séances</span>
+                <span className="text-2xs text-gray-300">cette semaine</span>
+              </div>
+              <div className="stat-card items-center text-center">
+                <span className={`text-xl font-black ${horsesActiveThisWeek === horseCount ? "text-success" : "text-black"}`}>
+                  {horsesActiveThisWeek}/{horseCount}
+                </span>
+                <span className="text-2xs text-gray-400">actifs</span>
+                <span className="text-2xs text-gray-300">cette semaine</span>
+              </div>
+              <div className="stat-card items-center text-center">
+                <span className={`text-xl font-black ${totalOverdue > 0 ? "text-danger" : "text-success"}`}>
+                  {totalOverdue}
+                </span>
+                <span className="text-2xs text-gray-400">soin{totalOverdue !== 1 ? "s" : ""}</span>
+                <span className="text-2xs text-gray-300">en retard</span>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* 1 horse: full-width horizontal card */}
         {horseCount === 1 && (() => {
@@ -637,12 +690,17 @@ export default async function DashboardPage({
                     </div>
                     {score !== undefined && (
                       <div className="flex flex-col items-center bg-gray-50 rounded-xl px-2.5 py-1.5 flex-shrink-0">
-                        <span
-                          className="text-xl font-black leading-none"
-                          style={{ color: getScoreColor(score) }}
-                        >
-                          {score}
-                        </span>
+                        <div className="flex items-baseline gap-1">
+                          <span
+                            className="text-xl font-black leading-none"
+                            style={{ color: getScoreColor(score.score) }}
+                          >
+                            {score.score}
+                          </span>
+                          {score.mode && (
+                            <span className="text-xs font-bold text-orange leading-none">{score.mode}</span>
+                          )}
+                        </div>
                         <span className="text-2xs text-gray-400 leading-none mt-0.5">Index</span>
                       </div>
                     )}
@@ -726,13 +784,9 @@ export default async function DashboardPage({
                       </div>
                     )}
                     {score !== undefined && (
-                      <div className="absolute top-2 right-2 bg-black/40 backdrop-blur-sm rounded-lg px-2 py-1">
-                        <span
-                          className="font-black text-sm"
-                          style={{ color: getScoreColor(score) }}
-                        >
-                          {score}
-                        </span>
+                      <div className="absolute top-2 right-2 bg-black/40 backdrop-blur-sm rounded-lg px-2 py-1 flex items-baseline gap-1">
+                        <span className="font-black text-sm" style={{ color: getScoreColor(score.score) }}>{score.score}</span>
+                        {score.mode && <span className="text-2xs font-bold text-orange">{score.mode}</span>}
                       </div>
                     )}
                     {overdue > 0 && (
@@ -747,6 +801,29 @@ export default async function DashboardPage({
                     <p className="text-xs text-gray-400 mt-0.5 truncate">
                       {[horse.breed, horse.discipline].filter(Boolean).join(" · ") || "—"}
                     </p>
+                    {/* Activity badge */}
+                    {(() => {
+                      const ls = lastSessionByHorse[horse.id];
+                      const workedToday = (weekSessions || []).some(
+                        (s) => s.horse_id === horse.id && s.date === format(now, "yyyy-MM-dd")
+                      );
+                      const daysSince = ls ? differenceInDays(now, new Date(ls.date)) : null;
+                      if (workedToday) return (
+                        <span className="inline-flex items-center gap-1 mt-1 text-2xs font-semibold px-1.5 py-0.5 rounded-full bg-green-50 text-success">
+                          ✓ Travaillé aujourd&apos;hui
+                        </span>
+                      );
+                      if (daysSince !== null) return (
+                        <span className={`inline-flex items-center gap-1 mt-1 text-2xs font-semibold px-1.5 py-0.5 rounded-full ${daysSince > 7 ? "bg-red-50 text-danger" : "bg-gray-100 text-gray-500"}`}>
+                          {daysSince <= 1 ? "Travaillé hier" : `${daysSince}j sans séance`}
+                        </span>
+                      );
+                      return (
+                        <span className="inline-flex items-center gap-1 mt-1 text-2xs font-semibold px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-400">
+                          Aucune séance
+                        </span>
+                      );
+                    })()}
                     {(profileType === "pro" || moduleGerant) && (() => {
                       const status = getHorseStatus(horse.id);
                       const isConfie = (horse as any).is_confie;
@@ -829,13 +906,9 @@ export default async function DashboardPage({
                       )}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                       {score !== undefined && (
-                        <div className="absolute top-2 right-2 bg-black/40 backdrop-blur-sm rounded-lg px-2 py-1">
-                          <span
-                            className="font-black text-sm"
-                            style={{ color: getScoreColor(score) }}
-                          >
-                            {score}
-                          </span>
+                        <div className="absolute top-2 right-2 bg-black/40 backdrop-blur-sm rounded-lg px-2 py-1 flex items-baseline gap-1">
+                          <span className="font-black text-sm" style={{ color: getScoreColor(score.score) }}>{score.score}</span>
+                          {score.mode && <span className="text-2xs font-bold text-orange">{score.mode}</span>}
                         </div>
                       )}
                       {overdue > 0 && (
@@ -860,6 +933,11 @@ export default async function DashboardPage({
                 const overdue = overdueRecords.filter(
                   (r) => (r as any).horse_id === horse.id
                 ).length;
+                const ls = lastSessionByHorse[horse.id];
+                const workedToday = (weekSessions || []).some(
+                  (s) => s.horse_id === horse.id && s.date === format(now, "yyyy-MM-dd")
+                );
+                const daysSince = ls ? differenceInDays(now, new Date(ls.date)) : null;
                 return (
                   <div key={horse.id} className="flex items-center gap-3 px-4 py-3">
                     <Link
@@ -872,6 +950,17 @@ export default async function DashboardPage({
                         <p className="text-xs text-gray-400 truncate">
                           {[horse.breed, horse.discipline].filter(Boolean).join(" · ") || "—"}
                         </p>
+                        <span className={`inline-flex items-center gap-1 mt-0.5 text-2xs font-semibold px-1.5 py-0.5 rounded-full ${
+                          workedToday ? "bg-green-50 text-success" :
+                          daysSince !== null && daysSince > 7 ? "bg-red-50 text-danger" :
+                          daysSince !== null ? "bg-gray-100 text-gray-500" :
+                          "bg-gray-100 text-gray-400"
+                        }`}>
+                          {workedToday ? "✓ Aujourd'hui" :
+                           daysSince === 0 ? "Hier" :
+                           daysSince !== null ? `${daysSince}j sans séance` :
+                           "Jamais"}
+                        </span>
                         {(profileType === "pro" || moduleGerant) && (() => {
                           const status = getHorseStatus(horse.id);
                           const isConfie = (horse as any).is_confie;
@@ -913,11 +1002,14 @@ export default async function DashboardPage({
                         </span>
                       )}
                       {score !== undefined && (
-                        <span
-                          className="text-lg font-black"
-                          style={{ color: getScoreColor(score) }}
-                        >
-                          {score}
+                        <span className="flex items-baseline gap-0.5">
+                          <span
+                            className="text-lg font-black"
+                            style={{ color: getScoreColor(score.score) }}
+                          >
+                            {score.score}
+                          </span>
+                          {score.mode && <span className="text-xs font-bold text-orange">{score.mode}</span>}
                         </span>
                       )}
                       <PaddockToggle
@@ -1070,75 +1162,45 @@ export default async function DashboardPage({
       )
       : null;
 
-  const sessionsBlock =
-    (recentSessions || []).length > 0 || (recentInsights || []).length > 0 ? (
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {(recentSessions || []).length > 0 && (
-          <div className="card">
-            <div className="flex items-center gap-2 mb-4">
-              <Dumbbell className="h-4 w-4 text-gray-400" />
-              <h2 className="font-bold text-black">Séances récentes</h2>
-            </div>
-            <div className="space-y-2">
-              {(recentSessions || []).slice(0, 4).map((s) => {
-                const horseName = (s as any).horses?.name;
-                return (
-                  <div key={s.id} className="flex items-center justify-between py-1.5">
-                    <div>
-                      <span className="text-sm font-medium text-black">{horseName}</span>
-                      <p className="text-xs text-gray-400">
-                        {s.type} · {s.duration_min}min
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <div className="flex gap-1">
-                        {Array.from({ length: 5 }).map((_, i) => (
-                          <div
-                            key={i}
-                            className={`w-1.5 h-3 rounded-full ${
-                              i < s.intensity ? "bg-orange" : "bg-gray-200"
-                            }`}
-                          />
-                        ))}
-                      </div>
-                      <p className="text-xs text-gray-400 mt-0.5">{formatDate(s.date)}</p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+  // BLOC_SÉANCE — Dernière séance loggée (toutes disciplines confondues)
+  const lastLoggedSession = (recentSessions || [])[0] ?? null;
+  const sessionsBlock = lastLoggedSession ? (() => {
+    const horseName = (lastLoggedSession as any).horses?.name;
+    const horseId = (lastLoggedSession as any).horse_id || horseIds[0];
+    return (
+      <div className="card">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Dumbbell className="h-4 w-4 text-gray-400" />
+            <h2 className="font-bold text-black text-sm">Dernière séance</h2>
           </div>
-        )}
-        {(recentInsights || []).length > 0 && (
-          <div className="card">
-            <div className="flex items-center gap-2 mb-4">
-              <TrendingUp className="h-4 w-4 text-orange" />
-              <h2 className="font-bold text-black">Insights IA</h2>
-            </div>
-            <div className="space-y-3">
-              {(recentInsights || []).map((insight) => {
-                const horseName = (insight as any).horses?.name;
-                let parsed: { summary?: string } = {};
-                try {
-                  parsed = JSON.parse(insight.content);
-                } catch {}
-                return (
-                  <div
-                    key={insight.id}
-                    className="p-3 rounded-xl bg-orange-light border border-orange/10"
-                  >
-                    <p className="text-xs font-semibold text-orange mb-1">{horseName}</p>
-                    <p className="text-xs text-gray-700 leading-relaxed">
-                      {parsed.summary || insight.content.substring(0, 120)}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
+          {horseId && (
+            <Link href={`/horses/${horseId}/training`} className="text-xs text-orange font-semibold hover:underline">
+              Journal →
+            </Link>
+          )}
+        </div>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-bold text-black">{horseName || "—"}</p>
+            <p className="text-xs text-gray-400 mt-0.5">
+              {TRAINING_TYPE_LABELS[lastLoggedSession.type] || lastLoggedSession.type}
+              {" · "}{lastLoggedSession.duration_min}min
+              {" · "}{formatDate(lastLoggedSession.date)}
+            </p>
           </div>
-        )}
+          <div className="flex gap-0.5">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div
+                key={i}
+                className={`w-1.5 h-4 rounded-full ${i < lastLoggedSession.intensity ? "bg-orange" : "bg-gray-200"}`}
+              />
+            ))}
+          </div>
+        </div>
       </div>
-    ) : null;
+    );
+  })() : null;
 
   const ecurieBlock =
     rankedEcurieHorses.length > 0 && userEcuries[0] ? (
@@ -1320,7 +1382,6 @@ export default async function DashboardPage({
   ) : null;
 
   const blockMap: Partial<Record<BlockKey, React.ReactNode>> = {
-    header: headerBlock,
     chevaux: chevauxBlock,
     programme: programmeBlock,
     concours: concoursBlock,
@@ -1338,6 +1399,9 @@ export default async function DashboardPage({
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 animate-fade-in">
+
+      {/* ── Header Bonjour ─────────────────────────────────────────────── */}
+      {headerBlock}
 
       {/* ── Empty state 0 chevaux ─────────────────────────────────────── */}
       {(horses || []).length === 0 && (

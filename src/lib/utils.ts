@@ -58,16 +58,27 @@ export const HEALTH_TYPE_LABELS: Record<string, string> = {
 
 export const TRAINING_TYPE_LABELS: Record<string, string> = {
   dressage: "Dressage",
+  plat: "Plat",
+  stretching: "Stretching & récup",
+  barres_sol: "Barres au sol",
+  cavalettis: "Cavalettis",
+  meca_obstacles: "Méca obstacles",
+  obstacles_enchainement: "Obstacles enchaînés",
+  cross_entrainement: "Cross entraînement",
+  longe: "Longe",
+  longues_renes: "Longues rênes",
+  travail_a_pied: "Travail à pied",
+  balade: "Balade",
+  trotting: "Trotting",
+  galop: "Galop",
+  marcheur: "Marcheur",
+  concours: "Concours",
+  autre: "Autre",
+  // Legacy keys — kept for existing data rows
   saut: "Saut d'obstacles",
   endurance: "Endurance",
   cso: "CSO",
   cross: "Cross",
-  travail_a_pied: "Travail à pied",
-  longe: "Longe",
-  galop: "Galop",
-  plat: "Plat",
-  marcheur: "Marcheur",
-  autre: "Autre",
 };
 
 export const BUDGET_CATEGORY_LABELS: Record<string, string> = {

@@ -17,9 +17,10 @@ import { Calendar } from "lucide-react";
 interface Props {
   competitions: Competition[];
   horse: Horse;
+  linkedSessionCompetitionIds?: Set<string>;
 }
 
-export default function CompetitionsDashboard({ competitions, horse }: Props) {
+export default function CompetitionsDashboard({ competitions, horse, linkedSessionCompetitionIds }: Props) {
   const router = useRouter();
   const [addOpen, setAddOpen] = useState(false);
 
@@ -131,7 +132,7 @@ export default function CompetitionsDashboard({ competitions, horse }: Props) {
                         J-{daysLeft}
                       </span>
                     </div>
-                    <CompetitionCard competition={c} horseId={horse.id} />
+                    <CompetitionCard competition={c} horseId={horse.id} hasLinkedSession={linkedSessionCompetitionIds?.has(c.id)} />
                   </div>
                 );
               })}
@@ -148,7 +149,7 @@ export default function CompetitionsDashboard({ competitions, horse }: Props) {
                 </div>
               )}
               {past.map((c) => (
-                <CompetitionCard key={c.id} competition={c} horseId={horse.id} />
+                <CompetitionCard key={c.id} competition={c} horseId={horse.id} hasLinkedSession={linkedSessionCompetitionIds?.has(c.id)} />
               ))}
             </div>
           )}

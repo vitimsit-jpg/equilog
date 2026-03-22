@@ -29,10 +29,26 @@ const sexeOptions = [
 ];
 
 const conditionsVieOptions = [
-  { value: "box", label: "Box" },
-  { value: "paddock", label: "Paddock" },
-  { value: "pre", label: "Pré" },
-  { value: "box_paddock", label: "Box + Paddock" },
+  { value: "boxe_paddock_individuel", label: "Boxe + paddock individuel" },
+  { value: "boxe_pre_collectif",      label: "Boxe + pré collectif" },
+  { value: "paddock_individuel",      label: "Paddock individuel" },
+  { value: "pre_collectif",           label: "Pré collectif" },
+];
+
+const regionOptions = [
+  { value: "Auvergne-Rhône-Alpes",        label: "Auvergne-Rhône-Alpes" },
+  { value: "Bourgogne-Franche-Comté",     label: "Bourgogne-Franche-Comté" },
+  { value: "Bretagne",                    label: "Bretagne" },
+  { value: "Centre-Val de Loire",         label: "Centre-Val de Loire" },
+  { value: "Corse",                       label: "Corse" },
+  { value: "Grand Est",                   label: "Grand Est" },
+  { value: "Hauts-de-France",             label: "Hauts-de-France" },
+  { value: "Île-de-France",               label: "Île-de-France" },
+  { value: "Normandie",                   label: "Normandie" },
+  { value: "Nouvelle-Aquitaine",          label: "Nouvelle-Aquitaine" },
+  { value: "Occitanie",                   label: "Occitanie" },
+  { value: "Pays de la Loire",            label: "Pays de la Loire" },
+  { value: "Provence-Alpes-Côte d'Azur", label: "Provence-Alpes-Côte d'Azur" },
 ];
 
 interface Props {
@@ -53,7 +69,6 @@ export default function HorseEditModal({ horse }: Props) {
     ecurie: horse.ecurie || "",
     sexe: horse.sexe || "",
     conditions_vie: horse.conditions_vie || "",
-    niveau: horse.niveau || "",
     objectif_saison: horse.objectif_saison || "",
     maladies_chroniques: horse.maladies_chroniques || "",
     assurance: horse.assurance || "",
@@ -83,7 +98,6 @@ export default function HorseEditModal({ horse }: Props) {
         ecurie: form.ecurie || null,
         sexe: (form.sexe as Horse["sexe"]) || null,
         conditions_vie: (form.conditions_vie as Horse["conditions_vie"]) || null,
-        niveau: form.niveau || null,
         objectif_saison: form.objectif_saison || null,
         maladies_chroniques: form.maladies_chroniques || null,
         assurance: form.assurance || null,
@@ -102,11 +116,22 @@ export default function HorseEditModal({ horse }: Props) {
 
     if (error) {
       toast.error("Erreur lors de la sauvegarde");
-    } else {
-      toast.success("Profil mis à jour");
-      setOpen(false);
-      router.refresh();
+      setLoading(false);
+      return;
     }
+
+    // Si le mode de vie a changé, recalculer le Horse Index immédiatement
+    if (form.horse_index_mode !== horse.horse_index_mode) {
+      await fetch("/api/horse-index", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ horseId: horse.id }),
+      }).catch(() => {}); // silencieux si échec
+    }
+
+    toast.success("Profil mis à jour");
+    setOpen(false);
+    router.refresh();
     setLoading(false);
   };
 
@@ -172,21 +197,13 @@ export default function HorseEditModal({ horse }: Props) {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <Select
-              label="Conditions de vie"
-              value={form.conditions_vie}
-              onChange={(e) => setForm({ ...form, conditions_vie: e.target.value })}
-              options={conditionsVieOptions}
-              placeholder="Sélectionner"
-            />
-            <Input
-              label="Niveau"
-              value={form.niveau}
-              onChange={(e) => setForm({ ...form, niveau: e.target.value })}
-              placeholder="Ex : Amateur 5, Club 3..."
-            />
-          </div>
+          <Select
+            label="Conditions de vie"
+            value={form.conditions_vie}
+            onChange={(e) => setForm({ ...form, conditions_vie: e.target.value })}
+            options={conditionsVieOptions}
+            placeholder="Sélectionner"
+          />
 
           <Input
             label="Objectif de saison"
@@ -196,11 +213,12 @@ export default function HorseEditModal({ horse }: Props) {
           />
 
           <div className="grid grid-cols-2 gap-4">
-            <Input
+            <Select
               label="Région"
               value={form.region}
               onChange={(e) => setForm({ ...form, region: e.target.value })}
-              placeholder="Île-de-France"
+              options={regionOptions}
+              placeholder="Sélectionner"
             />
             <Input
               label="Écurie"

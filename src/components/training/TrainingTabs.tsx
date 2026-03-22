@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { LayoutDashboard, Calendar, Clock, Sparkles, Plus, Trophy, X } from "lucide-react";
+import { LayoutDashboard, Calendar, Clock, Sparkles, Plus, Trophy, X, ChevronDown } from "lucide-react";
 import type { TrainingSession, TrainingPlannedSession, AIInsight, HorseIndexMode, RehabProtocol } from "@/lib/supabase/types";
 import RehabProtocolCard from "./RehabProtocolCard";
 import TrainingDashboard from "./TrainingDashboard";
@@ -527,6 +527,7 @@ export default function TrainingTabs({ horseId, horseName, sessions, plannedSess
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [addOpen, setAddOpen] = useState(false);
   const [reminderDismissed, setReminderDismissed] = useState(false);
+  const [programmeExpanded, setProgrammeExpanded] = useState(true);
 
   const todayStr = format(new Date(), "yyyy-MM-dd");
   const todayPlanned = plannedSessions.find((p) => p.date === todayStr && p.status === "planned") ?? null;
@@ -574,9 +575,6 @@ export default function TrainingTabs({ horseId, horseName, sessions, plannedSess
         </Button>
       </div>
 
-      {/* Bloc 3 — Charge de travail */}
-      <WorkloadBar sessions={sessions} mode={horseMode} />
-
       {/* Tab bar */}
       <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
         {tabs.map((tab) => (
@@ -595,22 +593,88 @@ export default function TrainingTabs({ horseId, horseName, sessions, plannedSess
 
       {/* Tab content */}
       {activeTab === "overview" && (
-        isWellnessMode ? (
-          <WellnessOverview sessions={sessions} horseId={horseId} latestInsight={latestInsight} />
-        ) : isRehabMode ? (
-          <RehabOverview sessions={sessions} latestInsight={latestInsight} protocol={activeRehabProtocol ?? null} horseId={horseId} />
-        ) : isIPMode ? (
-          <IPContactView sessions={sessions} latestInsight={latestInsight} />
-        ) : (
-          <TrainingDashboard
-            sessions={sessions}
-            horseId={horseId}
-            horseName={horseName}
-            latestInsight={latestInsight}
-            hideAddButton
-            todayPlanned={todayPlanned}
-          />
-        )
+        <div className="space-y-4">
+          {isWellnessMode ? (
+            <WellnessOverview sessions={sessions} horseId={horseId} latestInsight={latestInsight} />
+          ) : isRehabMode ? (
+            <RehabOverview sessions={sessions} latestInsight={latestInsight} protocol={activeRehabProtocol ?? null} horseId={horseId} />
+          ) : isIPMode ? (
+            <IPContactView sessions={sessions} latestInsight={latestInsight} />
+          ) : (
+            <TrainingDashboard
+              sessions={sessions}
+              horseId={horseId}
+              horseName={horseName}
+              latestInsight={latestInsight}
+              hideAddButton
+              todayPlanned={todayPlanned}
+            />
+          )}
+
+          {/* Programme de la semaine inline — collapsible */}
+          {showPlanTab && (() => {
+            const todayStr2 = format(new Date(), "yyyy-MM-dd");
+            const weekStart2 = startOfWeek(new Date(), { weekStartsOn: 1 });
+            const weekDays = eachDayOfInterval({ start: weekStart2, end: addDays(weekStart2, 6) });
+            const DAY_SHORT = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
+            const plannedThisWeek = plannedSessions.filter((p) => {
+              const d = parseISO(p.date);
+              return d >= weekStart2 && d <= addDays(weekStart2, 6) && p.status === "planned";
+            });
+            return (
+              <div className="card p-0 overflow-hidden">
+                <button
+                  onClick={() => setProgrammeExpanded((v) => !v)}
+                  className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-3.5 w-3.5 text-gray-400" />
+                    <span className="text-sm font-bold text-black">Programme de la semaine</span>
+                    {plannedThisWeek.length > 0 && (
+                      <span className="text-2xs font-semibold px-1.5 py-0.5 rounded-full bg-orange-light text-orange">
+                        {plannedThisWeek.length} prévu{plannedThisWeek.length > 1 ? "es" : "e"}
+                      </span>
+                    )}
+                  </div>
+                  <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform ${programmeExpanded ? "rotate-180" : ""}`} />
+                </button>
+                {programmeExpanded && (
+                  <div className="border-t border-gray-50 divide-y divide-gray-50">
+                    {weekDays.map((day, i) => {
+                      const key = format(day, "yyyy-MM-dd");
+                      const isCurrentDay = key === todayStr2;
+                      const dayPlanned = plannedSessions.filter((p) => p.date === key && p.status === "planned");
+                      const daySessions = sessions.filter((s) => s.date.slice(0, 10) === key);
+                      return (
+                        <div key={key} className={`flex items-center gap-3 px-4 py-2.5 ${isCurrentDay ? "bg-orange-light/20" : ""}`}>
+                          <div className="w-12 flex-shrink-0">
+                            <span className={`text-2xs font-bold ${isCurrentDay ? "text-orange" : "text-gray-400"}`}>{DAY_SHORT[i]}</span>
+                            <span className={`ml-1 text-2xs font-black ${isCurrentDay ? "text-orange" : "text-gray-600"}`}>{format(day, "d")}</span>
+                          </div>
+                          <div className="flex-1 min-w-0 flex flex-wrap gap-1">
+                            {daySessions.map((s) => (
+                              <span key={s.id} className="text-2xs font-semibold px-1.5 py-0.5 rounded-full bg-orange text-white">
+                                {s.type.replace(/_/g, " ")} {s.duration_min}min
+                              </span>
+                            ))}
+                            {dayPlanned.map((p) => (
+                              <span key={p.id} className="text-2xs font-semibold px-1.5 py-0.5 rounded-full border border-dashed border-gray-300 text-gray-500">
+                                {p.type.replace(/_/g, " ")}{p.duration_min_target ? ` ${p.duration_min_target}min` : ""}
+                              </span>
+                            ))}
+                            {daySessions.length === 0 && dayPlanned.length === 0 && (
+                              <span className="text-2xs text-gray-200">—</span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+        </div>
       )}
 
       {activeTab === "semaine" && showPlanTab && (

@@ -104,18 +104,9 @@ export default function TrainingPlanCard({ horseId, latestPlan }: Props) {
           <Sparkles className="h-4 w-4 text-orange" />
           <h2 className="font-bold text-black">Plan IA de la semaine</h2>
         </div>
-        <button
-          onClick={generate}
-          disabled={loading}
-          className="flex items-center gap-1.5 text-xs font-semibold text-orange hover:underline disabled:opacity-50"
-        >
-          {loading ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <RefreshCw className="h-3.5 w-3.5" />
-          )}
-          {plan ? "Régénérer" : "Générer"}
-        </button>
+        <span className="text-2xs font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-400">
+          Bientôt disponible
+        </span>
       </div>
 
       {error && (
@@ -136,13 +127,10 @@ export default function TrainingPlanCard({ horseId, latestPlan }: Props) {
           <p className="text-sm text-gray-400 mb-4">
             Obtenez un plan d&apos;entraînement personnalisé basé sur l&apos;historique de votre cheval, ses concours à venir et son Horse Index.
           </p>
-          <button
-            onClick={generate}
-            className="btn-primary"
-          >
-            <Sparkles className="h-4 w-4" />
-            Générer mon plan
-          </button>
+          <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl bg-gray-100 text-gray-400 cursor-default">
+            <Sparkles className="h-3.5 w-3.5" />
+            Bientôt disponible
+          </span>
         </div>
       )}
 

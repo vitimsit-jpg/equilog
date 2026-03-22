@@ -56,10 +56,11 @@ interface Props {
 
 }
 
+const DURATION_PRESETS = [15, 20, 30, 45, 60, 90];
+
 type PlanFormState = {
   type: TrainingType;
   duration_min_target: string;
-  intensity_target: string;
   notes: string;
   date: string;
 };
@@ -77,10 +78,10 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
   const [planForm, setPlanForm] = useState<PlanFormState>({
     type: "dressage",
     duration_min_target: "45",
-    intensity_target: "3",
     notes: "",
     date: format(new Date(), "yyyy-MM-dd"),
   });
+  const [durationOther, setDurationOther] = useState(false);
   const [savingPlan, setSavingPlan] = useState(false);
   const [copyingPrev, setCopyingPrev] = useState(false);
   const [suggestingIA, setSuggestingIA] = useState(false);
@@ -166,16 +167,18 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
   const openPlanModal = (dateStr: string, planned?: TrainingPlannedSession) => {
     if (planned) {
       setEditPlanned(planned);
+      const dur = planned.duration_min_target ? String(planned.duration_min_target) : "45";
+      setDurationOther(!DURATION_PRESETS.includes(planned.duration_min_target ?? 0));
       setPlanForm({
         type: planned.type,
-        duration_min_target: planned.duration_min_target ? String(planned.duration_min_target) : "45",
-        intensity_target: planned.intensity_target ? String(planned.intensity_target) : "3",
+        duration_min_target: dur,
         notes: planned.notes || "",
         date: planned.date,
       });
     } else {
       setEditPlanned(null);
-      setPlanForm({ type: "dressage", duration_min_target: "45", intensity_target: "3", notes: "", date: dateStr });
+      setDurationOther(false);
+      setPlanForm({ type: "dressage", duration_min_target: "45", notes: "", date: dateStr });
     }
     setShowPlanModal(true);
   };
@@ -187,24 +190,28 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
 
   const savePlanned = async () => {
     setSavingPlan(true);
-    const payload = {
-      horse_id: horseId,
-      date: planForm.date,
-      type: planForm.type,
-      duration_min_target: parseInt(planForm.duration_min_target) || 45,
-      intensity_target: (parseInt(planForm.intensity_target) || 3) as 1 | 2 | 3 | 4 | 5,
-      notes: planForm.notes || null,
-    };
-    const { error } = editPlanned
-      ? await supabase.from("training_planned_sessions").update(payload).eq("id", editPlanned.id)
-      : await supabase.from("training_planned_sessions").insert(payload);
-    if (error) toast.error("Erreur lors de l'enregistrement");
-    else {
-      toast.success(editPlanned ? "Séance mise à jour" : "Séance planifiée !");
-      setShowPlanModal(false);
-      startTransition(() => router.refresh());
+    try {
+      const payload = {
+        horse_id: horseId,
+        date: planForm.date,
+        type: planForm.type,
+        duration_min_target: parseInt(planForm.duration_min_target) || 45,
+        notes: planForm.notes || null,
+      };
+      const { error } = editPlanned
+        ? await supabase.from("training_planned_sessions").update(payload).eq("id", editPlanned.id)
+        : await supabase.from("training_planned_sessions").insert(payload);
+      if (error) {
+        toast.error("Erreur lors de l'enregistrement");
+      } else {
+        toast.success(editPlanned ? "Séance mise à jour" : "Séance planifiée !");
+        setShowPlanModal(false);
+        setEditPlanned(null);
+        startTransition(() => router.refresh());
+      }
+    } finally {
+      setSavingPlan(false);
     }
-    setSavingPlan(false);
   };
 
   const skipPlanned = async (id: string) => {
@@ -555,31 +562,49 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
       {/* Plan modal */}
       <Modal
         open={showPlanModal}
-        onClose={() => setShowPlanModal(false)}
+        onClose={() => { setShowPlanModal(false); setEditPlanned(null); }}
         title={editPlanned ? "Modifier la séance prévue" : "Planifier une séance"}
       >
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="label">Date</label>
+          {/* Day buttons for current week (new only) OR date picker for other weeks */}
+          <div>
+            <label className="label mb-2">Jour</label>
+            {!editPlanned && weekOffset === 0 ? (
+              <div className="grid grid-cols-7 gap-1">
+                {days.map((day, i) => {
+                  const key = format(day, "yyyy-MM-dd");
+                  const isCurrentDay = isToday(day);
+                  const isSelected = planForm.date === key;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setPlanForm({ ...planForm, date: key })}
+                      className={`flex flex-col items-center py-2 rounded-xl text-xs font-bold transition-all ${
+                        isSelected
+                          ? "bg-orange text-white"
+                          : isCurrentDay
+                          ? "border-2 border-orange text-orange"
+                          : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                      }`}
+                    >
+                      <span className="text-2xs">{DAY_LABELS[i]}</span>
+                      <span>{format(day, "d")}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
               <input
                 type="date"
                 value={planForm.date}
                 onChange={(e) => setPlanForm({ ...planForm, date: e.target.value })}
                 className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-orange"
               />
-            </div>
-            <div>
-              <label className="label">Durée cible (min)</label>
-              <input
-                type="number"
-                value={planForm.duration_min_target}
-                onChange={(e) => setPlanForm({ ...planForm, duration_min_target: e.target.value })}
-                min="1" max="300"
-                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-orange"
-              />
-            </div>
+            )}
           </div>
+
+          {/* Type */}
           <div>
             <label className="label">Type de travail</label>
             <select
@@ -592,23 +617,50 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
               ))}
             </select>
           </div>
+
+          {/* Duration presets */}
           <div>
-            <label className="label">Intensité cible</label>
-            <div className="flex gap-2 mt-1">
-              {[1, 2, 3, 4, 5].map((v) => (
+            <label className="label mb-2">Durée cible</label>
+            <div className="flex flex-wrap gap-2">
+              {DURATION_PRESETS.map((d) => (
                 <button
-                  key={v}
+                  key={d}
                   type="button"
-                  onClick={() => setPlanForm({ ...planForm, intensity_target: String(v) })}
-                  className={`flex-1 h-8 rounded-lg text-xs font-bold transition-all ${
-                    parseInt(planForm.intensity_target) >= v ? "bg-orange text-white" : "bg-gray-100 text-gray-400"
+                  onClick={() => { setPlanForm({ ...planForm, duration_min_target: String(d) }); setDurationOther(false); }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
+                    !durationOther && planForm.duration_min_target === String(d)
+                      ? "bg-orange text-white border-orange"
+                      : "bg-white text-gray-600 border-gray-200 hover:border-gray-300"
                   }`}
                 >
-                  {v}
+                  {d < 60 ? `${d} min` : d === 60 ? "1h" : "1h30"}
                 </button>
               ))}
+              <button
+                type="button"
+                onClick={() => { setDurationOther(true); setPlanForm({ ...planForm, duration_min_target: "" }); }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
+                  durationOther
+                    ? "bg-orange text-white border-orange"
+                    : "bg-white text-gray-600 border-gray-200 hover:border-gray-300"
+                }`}
+              >
+                Autre
+              </button>
             </div>
+            {durationOther && (
+              <input
+                type="number"
+                value={planForm.duration_min_target}
+                onChange={(e) => setPlanForm({ ...planForm, duration_min_target: e.target.value })}
+                min="1" max="300"
+                placeholder="Durée en minutes"
+                className="mt-2 w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-orange"
+              />
+            )}
           </div>
+
+          {/* Notes */}
           <div>
             <label className="label">Notes</label>
             <textarea
@@ -620,7 +672,7 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
             />
           </div>
           <div className="flex gap-3">
-            <button type="button" onClick={() => setShowPlanModal(false)} className="flex-1 btn-secondary">
+            <button type="button" onClick={() => { setShowPlanModal(false); setEditPlanned(null); }} className="flex-1 btn-secondary">
               Annuler
             </button>
             <button type="button" onClick={savePlanned} disabled={savingPlan} className="flex-1 btn-primary">

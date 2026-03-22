@@ -600,13 +600,6 @@ export default async function DashboardPage({
       <div>
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-bold text-black">Mes chevaux</h2>
-          <Link
-            href="/horses/new"
-            className="text-xs text-gray-400 hover:text-orange transition-colors font-medium flex items-center gap-1"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            Ajouter
-          </Link>
         </div>
 
         {/* ── Consolidated summary (2+ horses) ─────────────────────────── */}

@@ -7,7 +7,6 @@ import { daysUntil, formatCurrency, HEALTH_TYPE_LABELS } from "@/lib/utils";
 import type { HealthRecord } from "@/lib/supabase/types";
 import HealthCategoryCard, { type CategoryConfig } from "./HealthCategoryCard";
 import HealthTimeline from "./HealthTimeline";
-import HealthTimeline30 from "./HealthTimeline30";
 import QuickHealthModal from "./QuickHealthModal";
 
 const VET_CATEGORIES: CategoryConfig[] = [
@@ -163,8 +162,6 @@ export default function HealthOverview({ records, horseId }: Props) {
       {/* Content */}
       {tab === "overview" ? (
         <div className="space-y-3">
-          <HealthTimeline30 records={records} />
-
           {/* Budget santé */}
           {costEntries.length >= 3 && (
             <div className="card">

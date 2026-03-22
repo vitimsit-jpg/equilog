@@ -9,6 +9,7 @@ import { trackEvent } from "@/lib/trackEvent";
 import Modal from "@/components/ui/Modal";
 import HealthEventForm from "./HealthEventForm";
 import Button from "@/components/ui/Button";
+import { Paperclip, X } from "lucide-react";
 
 const HEALTH_ITEMS: { type: HealthType; emoji: string; label: string }[] = [
   { type: "vermifuge",   emoji: "📅", label: "Vermifuge" },
@@ -25,6 +26,9 @@ const DEFAULT_INTERVALS: Record<HealthType, number | null> = {
   vaccin: 180, vermifuge: 90, ferrage: 35, dentiste: 365,
   osteo: 180, veterinaire: null, masseuse: 90, autre: null,
 };
+
+// Types with meaningful extra fields (subtype, urgency) → show "Mode détaillé"
+const TYPES_WITH_DETAIL: HealthType[] = ["vaccin", "veterinaire"];
 
 function loadPractitioner(type: HealthType): { vet_name: string } {
   try {
@@ -59,7 +63,9 @@ export default function QuickHealthModal({ open, onClose, horseId, onSaved, defa
   const [dateOption, setDateOption] = useState<DateOption>("today");
   const [customDate, setCustomDate] = useState(todayStr);
   const [vetName, setVetName] = useState("");
+  const [cost, setCost] = useState("");
   const [notes, setNotes] = useState("");
+  const [files, setFiles] = useState<File[]>([]);
 
   const effectiveDate = dateOption === "today" ? todayStr : dateOption === "yesterday" ? yesterdayStr : customDate;
 
@@ -69,11 +75,27 @@ export default function QuickHealthModal({ open, onClose, horseId, onSaved, defa
     if (pract.vet_name) setVetName(pract.vet_name);
   };
 
+  const uploadFiles = async (): Promise<string[]> => {
+    if (files.length === 0) return [];
+    const urls: string[] = [];
+    for (const file of files) {
+      const ext = file.name.split(".").pop() ?? "bin";
+      const path = `${horseId}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+      const { error } = await supabase.storage.from("health-attachments").upload(path, file);
+      if (!error) {
+        const { data } = supabase.storage.from("health-attachments").getPublicUrl(path);
+        urls.push(data.publicUrl);
+      }
+    }
+    return urls;
+  };
+
   const handleSave = async () => {
     if (!selectedType) { toast.error("Sélectionnez un type de soin"); return; }
     setLoading(true);
     const interval = DEFAULT_INTERVALS[selectedType];
     const nextDate = interval ? format(addDays(new Date(effectiveDate), interval), "yyyy-MM-dd") : null;
+    const mediaUrls = await uploadFiles();
     const { error } = await supabase.from("health_records").insert({
       horse_id: horseId,
       type: selectedType,
@@ -82,8 +104,9 @@ export default function QuickHealthModal({ open, onClose, horseId, onSaved, defa
       vet_name: vetName || null,
       practitioner_phone: null,
       product_name: null,
-      cost: null,
+      cost: cost ? parseFloat(cost) : null,
       notes: notes || null,
+      media_urls: mediaUrls.length > 0 ? mediaUrls : null,
     });
     if (error) { toast.error("Erreur lors de l'enregistrement"); }
     else {
@@ -98,12 +121,13 @@ export default function QuickHealthModal({ open, onClose, horseId, onSaved, defa
   const reset = () => {
     setSelectedType(defaultType || null);
     setDateOption("today"); setCustomDate(todayStr);
-    setVetName(""); setNotes("");
+    setVetName(""); setCost(""); setNotes(""); setFiles([]);
   };
 
   const handleClose = () => { setMode("quick"); reset(); onClose(); };
 
   const interval = selectedType ? DEFAULT_INTERVALS[selectedType] : null;
+  const showDetailLink = selectedType && TYPES_WITH_DETAIL.includes(selectedType);
 
   return (
     <Modal open={open} onClose={handleClose} title={mode === "detail" ? "Logger un soin — Détails" : "Logger un soin"}>
@@ -168,18 +192,70 @@ export default function QuickHealthModal({ open, onClose, horseId, onSaved, defa
             )}
           </div>
 
-          {/* Praticien */}
+          {/* Praticien + Coût */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <p className="text-2xs font-bold uppercase tracking-widest text-gray-400 mb-1">
+                Praticien <span className="font-normal normal-case text-gray-300">(optionnel)</span>
+              </p>
+              <input
+                type="text"
+                value={vetName}
+                onChange={(e) => setVetName(e.target.value)}
+                placeholder="Dr. Martin..."
+                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-orange"
+              />
+            </div>
+            <div>
+              <p className="text-2xs font-bold uppercase tracking-widest text-gray-400 mb-1">
+                Coût <span className="font-normal normal-case text-gray-300">(€, optionnel)</span>
+              </p>
+              <input
+                type="number"
+                value={cost}
+                onChange={(e) => setCost(e.target.value)}
+                placeholder="0"
+                min="0"
+                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-orange"
+              />
+            </div>
+          </div>
+
+          {/* Fichiers */}
           <div>
             <p className="text-2xs font-bold uppercase tracking-widest text-gray-400 mb-1">
-              Praticien <span className="font-normal normal-case text-gray-300">(optionnel)</span>
+              Fichiers <span className="font-normal normal-case text-gray-300">(photos, factures, comptes rendus)</span>
             </p>
-            <input
-              type="text"
-              value={vetName}
-              onChange={(e) => setVetName(e.target.value)}
-              placeholder="Dr. Martin, M. Dupont..."
-              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-orange"
-            />
+            <label className="flex items-center gap-2 px-3 py-2.5 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:border-orange transition-colors">
+              <Paperclip className="h-4 w-4 text-gray-400 flex-shrink-0" />
+              <span className="text-sm text-gray-500">
+                {files.length > 0 ? `${files.length} fichier${files.length > 1 ? "s" : ""} sélectionné${files.length > 1 ? "s" : ""}` : "Ajouter des fichiers..."}
+              </span>
+              <input
+                type="file"
+                multiple
+                accept="image/*,.pdf"
+                className="hidden"
+                onChange={(e) => setFiles((prev) => [...prev, ...Array.from(e.target.files || [])])}
+              />
+            </label>
+            {files.length > 0 && (
+              <div className="mt-1.5 flex flex-wrap gap-1">
+                {files.map((f, i) => (
+                  <span key={i} className="flex items-center gap-1 text-2xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-lg">
+                    <span>{f.name.length > 22 ? f.name.slice(0, 19) + "…" : f.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => setFiles(files.filter((_, j) => j !== i))}
+                      className="text-gray-400 hover:text-danger ml-0.5"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+            <p className="text-2xs text-gray-300 mt-1">🤖 Bientôt : extraction automatique des informations par IA</p>
           </div>
 
           {/* Notes */}
@@ -205,13 +281,17 @@ export default function QuickHealthModal({ open, onClose, horseId, onSaved, defa
 
           {/* Actions */}
           <div className="flex items-center justify-between pt-1">
-            <button
-              type="button"
-              onClick={() => setMode("detail")}
-              className="text-xs text-gray-400 hover:text-gray-600 underline underline-offset-2"
-            >
-              Mode détaillé →
-            </button>
+            {showDetailLink ? (
+              <button
+                type="button"
+                onClick={() => setMode("detail")}
+                className="text-xs text-gray-400 hover:text-gray-600 underline underline-offset-2"
+              >
+                Champs avancés →
+              </button>
+            ) : (
+              <span />
+            )}
             <div className="flex gap-3">
               <Button type="button" variant="secondary" onClick={handleClose}>Annuler</Button>
               <Button type="button" loading={loading} onClick={handleSave}>Enregistrer</Button>

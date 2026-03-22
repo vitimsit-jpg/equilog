@@ -452,9 +452,12 @@ export default function VideoAnalysis({ horse, initialHistory = [], userId }: { 
     <div className="max-w-2xl mx-auto space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-xl font-black text-black">Analyse Vidéo</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-xl font-black text-black">Analyse Vidéo</h1>
+          <span className="text-2xs font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-400">Bientôt disponible</span>
+        </div>
         <p className="text-sm text-gray-500 mt-0.5">
-          Filmez {horse.name} et obtenez une analyse IA de sa gestuelle et de votre position.
+          Filmez {horse.name} et obtenez une analyse IA de sa locomotion et de votre position.
         </p>
       </div>
 
@@ -608,6 +611,37 @@ export default function VideoAnalysis({ horse, initialHistory = [], userId }: { 
           </button>
         </div>
       )}
+
+      {/* ── Analyse photo ──────────────────────────────────────────────── */}
+      <div className="card space-y-4">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <h2 className="text-base font-bold text-black">Analyse photo</h2>
+            <span className="text-2xs font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-400">Bientôt disponible</span>
+          </div>
+          <p className="text-sm text-gray-500">
+            Prenez des photos de {horse.name} pour obtenir une analyse IA de sa morphologie.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          {[
+            { label: "Photo de face",      icon: "⬆️" },
+            { label: "Profil gauche",       icon: "⬅️" },
+            { label: "Profil droit",        icon: "➡️" },
+            { label: "Photo de dos",        icon: "⬇️" },
+          ].map((slot) => (
+            <div
+              key={slot.label}
+              className="flex flex-col items-center justify-center gap-2 py-6 rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50 opacity-50 cursor-not-allowed select-none"
+            >
+              <span className="text-2xl">{slot.icon}</span>
+              <span className="text-xs font-semibold text-gray-500 text-center leading-tight">{slot.label}</span>
+              <span className="text-2xs text-gray-300">Bientôt disponible</span>
+            </div>
+          ))}
+        </div>
+      </div>
 
       {/* Score progression chart */}
       {history.length >= 2 && <VideoScoreChart history={history} />}

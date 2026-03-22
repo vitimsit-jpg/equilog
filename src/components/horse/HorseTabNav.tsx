@@ -18,7 +18,7 @@ const TABS: {
   { suffix: "/budget", label: "Budget" },
   { suffix: "/historique", label: "Historique" },
   { suffix: "/genealogie", label: "Généalogie" },
-  { suffix: "/video", label: "Vidéo" },
+  { suffix: "/video", label: "Analyse IA" },
   { suffix: "/documents", label: "Documents" },
 ];
 

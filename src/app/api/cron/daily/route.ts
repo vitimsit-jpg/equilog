@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { sendHealthReminder, sendScoreAlert } from "@/lib/email";
 import { sendPushNotification } from "@/lib/webpush";
 import { HEALTH_TYPE_LABELS } from "@/lib/utils";
+import { addDays, addMonths, addYears, format as formatDate } from "date-fns";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://equilog-i3nr-vitimsit-jpgs-projects.vercel.app";
 
@@ -17,7 +18,7 @@ export async function GET(request: NextRequest) {
   }
 
   const supabase = createAdminClient();
-  const results = { healthReminders: 0, scoreAlerts: 0, rehabCompleted: 0, errors: 0 };
+  const results = { healthReminders: 0, scoreAlerts: 0, rehabCompleted: 0, recurringBudget: 0, errors: 0 };
 
   // ── 1. Rappels soins J-7 ──────────────────────────────────────────────────
   const today = new Date();
@@ -159,6 +160,65 @@ export async function GET(request: NextRequest) {
       }
 
       results.rehabCompleted++;
+    } catch {
+      results.errors++;
+    }
+  }
+
+  // ── 4. Dépenses récurrentes ────────────────────────────────────────────────
+  const todayStr = formatDate(today, "yyyy-MM-dd");
+
+  const { data: templates } = await supabase
+    .from("budget_entries")
+    .select("*")
+    .eq("is_recurring", true)
+    .is("recurring_template_id", null);
+
+  for (const template of templates || []) {
+    try {
+      const freq = template.recurrence_frequency;
+      if (!freq) continue;
+
+      // Toutes les occurrences déjà générées
+      const { data: generated } = await supabase
+        .from("budget_entries")
+        .select("date")
+        .eq("recurring_template_id", template.id);
+
+      const existingDates = new Set([
+        template.date,
+        ...((generated || []).map((e: { date: string }) => e.date)),
+      ]);
+
+      // Générer toutes les échéances manquantes jusqu'à aujourd'hui
+      let cursor = new Date(template.date);
+      let safety = 0;
+      while (safety++ < 1000) {
+        // Avancer d'une période
+        if (freq === "weekly")  cursor = addDays(cursor, 7);
+        else if (freq === "monthly") cursor = addMonths(cursor, 1);
+        else if (freq === "yearly")  cursor = addYears(cursor, 1);
+        else break;
+
+        const dateStr = formatDate(cursor, "yyyy-MM-dd");
+        if (dateStr > todayStr) break; // pas encore dû
+        if (existingDates.has(dateStr)) continue; // déjà généré
+
+        await supabase.from("budget_entries").insert({
+          horse_id: template.horse_id,
+          date: dateStr,
+          category: template.category,
+          amount: template.amount,
+          description: template.description,
+          is_recurring: false,
+          recurrence_frequency: null,
+          recurring_template_id: template.id,
+          media_urls: null,
+        });
+
+        existingDates.add(dateStr);
+        results.recurringBudget++;
+      }
     } catch {
       results.errors++;
     }

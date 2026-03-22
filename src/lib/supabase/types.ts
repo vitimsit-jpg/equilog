@@ -121,6 +121,8 @@ export interface Competition {
   created_at: string;
 }
 
+export type RecurrenceFrequency = "weekly" | "monthly" | "yearly";
+
 export interface BudgetEntry {
   id: string;
   horse_id: string;
@@ -128,6 +130,10 @@ export interface BudgetEntry {
   category: BudgetCategory;
   amount: number;
   description: string | null;
+  is_recurring: boolean | null;
+  recurrence_frequency: RecurrenceFrequency | null;
+  recurring_template_id: string | null;
+  media_urls: string[] | null;
   created_at: string;
 }
 

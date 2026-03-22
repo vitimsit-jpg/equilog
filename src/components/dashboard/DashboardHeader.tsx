@@ -1,5 +1,3 @@
-import Link from "next/link";
-import { Plus } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { daysUntil } from "@/lib/utils";
@@ -90,16 +88,8 @@ export default function DashboardHeader({
         <p className="text-xs text-gray-400 capitalize mb-1">{today}</p>
         <p className="text-sm text-gray-600">{contextualPhrase}</p>
       </div>
-      {horsesCount > 0 && (
-        <div className="flex flex-col items-end gap-2 flex-shrink-0">
-          <Link
-            href="/horses/new"
-            className="btn-primary"
-          >
-            <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Nouveau cheval</span>
-            <span className="sm:hidden">+</span>
-          </Link>
+      {horsesCount > 0 && quickAddSlot && (
+        <div className="flex-shrink-0">
           {quickAddSlot}
         </div>
       )}

@@ -9,7 +9,7 @@ import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import Textarea from "@/components/ui/Textarea";
 import Button from "@/components/ui/Button";
-import { Edit2, Plus, Trash2, Cloud, Activity } from "lucide-react";
+import { Edit2, Cloud, Activity } from "lucide-react";
 import type { Horse, Discipline } from "@/lib/supabase/types";
 import { DISCIPLINE_LABELS } from "@/lib/utils";
 import type { Couverture } from "@/lib/meteo";
@@ -93,13 +93,30 @@ export default function HorseEditModal({ horse }: Props) {
     sire_number: horse.sire_number || "",
     fei_number: horse.fei_number || "",
     tonte: horse.tonte || "",
-    morphologie_meteo: horse.morphologie_meteo || "",
-    etat_corporel: horse.etat_corporel || "",
     horse_index_mode: horse.horse_index_mode || "IE",
   });
   const [assure, setAssure] = useState<boolean>(!!horse.assurance);
-  const [trousseau, setTrousseau] = useState<Couverture[]>(horse.trousseau || []);
-  const [newCouv, setNewCouv] = useState({ label: "", grammage: "", impermeable: false });
+
+  // Trousseau simplifié : set des labels sélectionnés parmi "Légère", "Moyenne", "Chaude"
+  const COUV_OPTIONS = ["Légère", "Moyenne", "Chaude"] as const;
+  type CouvertureLabel = typeof COUV_OPTIONS[number];
+  const initTrousseau = (): Set<CouvertureLabel> => {
+    const existing = new Set<CouvertureLabel>();
+    (horse.trousseau || []).forEach((c: Couverture) => {
+      const match = COUV_OPTIONS.find((o) => o.toLowerCase() === c.label?.toLowerCase());
+      if (match) existing.add(match);
+    });
+    return existing;
+  };
+  const [trousseauSet, setTrousseauSet] = useState<Set<CouvertureLabel>>(initTrousseau);
+
+  const toggleCouv = (label: CouvertureLabel) => {
+    setTrousseauSet((prev) => {
+      const next = new Set(prev);
+      next.has(label) ? next.delete(label) : next.add(label);
+      return next;
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,13 +140,11 @@ export default function HorseEditModal({ horse }: Props) {
         sire_number: form.sire_number || null,
         fei_number: form.fei_number || null,
         tonte: (form.tonte as Horse["tonte"]) || null,
-        morphologie_meteo: (form.morphologie_meteo as Horse["morphologie_meteo"]) || null,
-        etat_corporel: (form.etat_corporel as Horse["etat_corporel"]) || null,
         horse_index_mode: form.horse_index_mode || "IE",
         ...(form.horse_index_mode !== horse.horse_index_mode && {
           horse_index_mode_changed_at: new Date().toISOString(),
         }),
-        trousseau: trousseau.length > 0 ? trousseau : [],
+        trousseau: Array.from(trousseauSet).map((label) => ({ label, grammage: 0, impermeable: false })),
       })
       .eq("id", horse.id);
 
@@ -353,102 +368,36 @@ export default function HorseEditModal({ horse }: Props) {
               <span className="text-xs text-gray-400">(pour les recommandations couverture)</span>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <Select
-                label="Tonte *"
-                value={form.tonte}
-                onChange={(e) => setForm({ ...form, tonte: e.target.value })}
-                options={[
-                  { value: "non_tondu", label: "Non tondu" },
-                  { value: "partielle", label: "Tonte partielle" },
-                  { value: "complete", label: "Tonte complète" },
-                ]}
-                placeholder="Sélectionner"
-              />
-              <Select
-                label="Morphologie"
-                value={form.morphologie_meteo}
-                onChange={(e) => setForm({ ...form, morphologie_meteo: e.target.value })}
-                options={[
-                  { value: "sang_chaud", label: "Sang chaud / Warmblood" },
-                  { value: "pur_sang", label: "Pur-sang / Arabe (frileux)" },
-                  { value: "rustique", label: "Poney / Cob (rustique)" },
-                ]}
-                placeholder="Sélectionner"
-              />
-            </div>
+            <Select
+              label="Tonte"
+              value={form.tonte}
+              onChange={(e) => setForm({ ...form, tonte: e.target.value })}
+              options={[
+                { value: "non_tondu", label: "Non tondu" },
+                { value: "partielle", label: "Tonte partielle" },
+                { value: "complete", label: "Tonte complète" },
+              ]}
+              placeholder="Sélectionner"
+            />
 
-            <div className="mt-3">
-              <Select
-                label="État corporel"
-                value={form.etat_corporel}
-                onChange={(e) => setForm({ ...form, etat_corporel: e.target.value })}
-                options={[
-                  { value: "normal", label: "Normal" },
-                  { value: "maigre", label: "Maigre (besoin +1 niveau)" },
-                ]}
-                placeholder="Sélectionner"
-              />
-            </div>
-
-            {/* Trousseau couvertures */}
             <div className="mt-4">
-              <label className="label mb-2 block">Trousseau de couvertures</label>
-              {trousseau.length > 0 && (
-                <div className="space-y-1.5 mb-3">
-                  {trousseau.map((c, i) => (
-                    <div key={i} className="flex items-center justify-between gap-2 p-2 bg-gray-50 rounded-lg">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-sm font-medium text-black truncate">{c.label}</span>
-                        <span className="text-xs text-gray-400">{c.grammage}g</span>
-                        {c.impermeable && <span className="text-xs bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded">Imp.</span>}
-                      </div>
-                      <button type="button" onClick={() => setTrousseau(trousseau.filter((_, j) => j !== i))}>
-                        <Trash2 className="h-3.5 w-3.5 text-gray-400 hover:text-red-500" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-              <div className="flex items-end gap-2">
-                <div className="flex-1">
-                  <input
-                    type="text"
-                    placeholder="Ex : Hiver 300g"
-                    value={newCouv.label}
-                    onChange={(e) => setNewCouv({ ...newCouv, label: e.target.value })}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-black"
-                  />
-                </div>
-                <div className="w-20">
-                  <input
-                    type="number"
-                    placeholder="g"
-                    value={newCouv.grammage}
-                    onChange={(e) => setNewCouv({ ...newCouv, grammage: e.target.value })}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-black"
-                  />
-                </div>
-                <label className="flex items-center gap-1 text-xs text-gray-600 whitespace-nowrap cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={newCouv.impermeable}
-                    onChange={(e) => setNewCouv({ ...newCouv, impermeable: e.target.checked })}
-                    className="rounded"
-                  />
-                  Imp.
-                </label>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!newCouv.label || !newCouv.grammage) return;
-                    setTrousseau([...trousseau, { label: newCouv.label, grammage: parseInt(newCouv.grammage), impermeable: newCouv.impermeable }]);
-                    setNewCouv({ label: "", grammage: "", impermeable: false });
-                  }}
-                  className="p-2 rounded-xl bg-black text-white hover:bg-gray-800"
-                >
-                  <Plus className="h-4 w-4" />
-                </button>
+              <p className="label mb-1">Trousseau de couvertures</p>
+              <p className="text-2xs text-gray-400 mb-2">Vous pouvez sélectionner les 3 options.</p>
+              <div className="flex gap-2">
+                {COUV_OPTIONS.map((label) => (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() => toggleCouv(label)}
+                    className={`flex-1 py-2.5 rounded-xl border-2 text-sm font-semibold transition-all ${
+                      trousseauSet.has(label)
+                        ? "border-blue-400 bg-blue-50 text-blue-600"
+                        : "border-gray-200 text-gray-500 hover:border-gray-300"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
               </div>
             </div>
           </div>

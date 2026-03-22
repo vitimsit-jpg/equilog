@@ -35,6 +35,24 @@ const conditionsVieOptions = [
   { value: "pre_collectif",           label: "Pré collectif" },
 ];
 
+const assureurOptions = [
+  { value: "Cavalassur",                    label: "Cavalassur" },
+  { value: "Hipassur",                      label: "Hipassur" },
+  { value: "Equitanet",                     label: "Equitanet" },
+  { value: "Pégase Insurance",              label: "Pégase Insurance" },
+  { value: "Equidassur",                    label: "Equidassur" },
+  { value: "Helmett Sport / Generali",      label: "Helmett Sport / Generali" },
+  { value: "Markel Equine",                 label: "Markel Equine" },
+  { value: "MMA",                           label: "MMA" },
+  { value: "GAN Assurances",               label: "GAN Assurances" },
+  { value: "Abeille Assurances",            label: "Abeille Assurances" },
+  { value: "Crédit Agricole / Pacifica",    label: "Crédit Agricole / Pacifica" },
+  { value: "MAIF",                          label: "MAIF" },
+  { value: "AXA",                           label: "AXA" },
+  { value: "Allianz",                       label: "Allianz" },
+  { value: "Autre",                         label: "Autre" },
+];
+
 const regionOptions = [
   { value: "Auvergne-Rhône-Alpes",        label: "Auvergne-Rhône-Alpes" },
   { value: "Bourgogne-Franche-Comté",     label: "Bourgogne-Franche-Comté" },
@@ -79,6 +97,7 @@ export default function HorseEditModal({ horse }: Props) {
     etat_corporel: horse.etat_corporel || "",
     horse_index_mode: horse.horse_index_mode || "IE",
   });
+  const [assure, setAssure] = useState<boolean>(!!horse.assurance);
   const [trousseau, setTrousseau] = useState<Couverture[]>(horse.trousseau || []);
   const [newCouv, setNewCouv] = useState({ label: "", grammage: "", impermeable: false });
 
@@ -236,12 +255,37 @@ export default function HorseEditModal({ horse }: Props) {
             rows={2}
           />
 
-          <Input
-            label="Assurance"
-            value={form.assurance}
-            onChange={(e) => setForm({ ...form, assurance: e.target.value })}
-            placeholder="Ex : MAIF, GMF, Groupama..."
-          />
+          <div>
+            <p className="label mb-2">Assurance</p>
+            <div className="flex gap-2 mb-2">
+              {[{ val: true, label: "Oui" }, { val: false, label: "Non" }].map(({ val, label }) => (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => {
+                    setAssure(val);
+                    if (!val) setForm({ ...form, assurance: "" });
+                  }}
+                  className={`flex-1 py-2 rounded-xl border-2 text-sm font-semibold transition-all ${
+                    assure === val
+                      ? "border-orange bg-orange-light text-orange"
+                      : "border-gray-200 text-gray-500 hover:border-gray-300"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            {assure && (
+              <Select
+                label=""
+                value={form.assurance}
+                onChange={(e) => setForm({ ...form, assurance: e.target.value })}
+                options={assureurOptions}
+                placeholder="Sélectionner l'assureur"
+              />
+            )}
+          </div>
 
           <div className="grid grid-cols-2 gap-4">
             <Input

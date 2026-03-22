@@ -19,6 +19,7 @@ const TABS: {
   { suffix: "/historique", label: "Historique" },
   { suffix: "/genealogie", label: "Généalogie" },
   { suffix: "/video", label: "Vidéo" },
+  { suffix: "/documents", label: "Documents" },
 ];
 
 export default function HorseTabNav({ horseId, horseIndexMode }: { horseId: string; horseIndexMode?: string | null }) {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Sun, Cloud, CloudRain, CloudSnow, Zap, Wind, Droplets, Moon, ChevronDown, ChevronUp, AlertTriangle, Snowflake } from "lucide-react";
+import { Sun, Cloud, CloudRain, CloudSnow, Zap, Wind, Droplets, Moon, ChevronDown, ChevronUp, AlertTriangle, Snowflake, CloudSun } from "lucide-react";
 import {
   type HorseMeteoProfile,
   type HourlyWeather,
@@ -32,6 +32,7 @@ interface WeatherState {
 
 function getWeatherIcon(code: number, size = "h-5 w-5") {
   if (code === 0 || code === 1) return <Sun className={`${size} text-yellow-400`} />;
+  if (code === 2)               return <CloudSun className={`${size} text-yellow-300`} />;
   if (code <= 3)                return <Cloud className={`${size} text-gray-400`} />;
   if (code <= 48)               return <Cloud className={`${size} text-gray-300`} />;
   if (code <= 67)               return <CloudRain className={`${size} text-blue-400`} />;
@@ -53,12 +54,21 @@ function getWeatherLabel(code: number): string {
   return "Variable";
 }
 
-const SLOT_COLORS = {
-  ideal:      "bg-green-100 text-green-700 border-green-200",
-  acceptable: "bg-orange-light text-orange border-orange/20",
-  bad:        "bg-red-50 text-red-600 border-red-100",
-};
-const SLOT_ICONS = { ideal: "✓", acceptable: "⚠", bad: "✗" };
+function getBlanketSemanticLabel(reco: BlanketReco): string {
+  // If the horse has a specific blanket matched → use its name
+  if (reco.trousseau_match) return reco.trousseau_match;
+  if (reco.grammage === 0) return "Sans couverture";
+  if (reco.grammage <= 100) return "Légère";
+  if (reco.grammage <= 200) return "Moyenne";
+  return "Chaude";
+}
+
+function getBlanketColor(reco: BlanketReco): string {
+  if (reco.grammage === 0) return "text-gray-500";
+  if (reco.grammage <= 100) return "text-green-600";
+  if (reco.grammage <= 200) return "text-orange";
+  return "text-blue-600";
+}
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
@@ -149,7 +159,6 @@ export default function WeatherWidget({ horses, ecurie }: Props) {
   const day = computeDayMetrics(state.hourly, today);
   const slots = computeWorkSlots(state.hourly, today);
 
-  const bestSlot = slots.find((s) => s.rating === "ideal") ?? slots.find((s) => s.rating === "acceptable");
   const hasHorsesWithProfile = horses.some((h) => h.tonte || h.conditions_vie);
   const recos: { horse: HorseMeteoProfile; reco: BlanketReco }[] = horses
     .filter((h) => h.tonte || h.conditions_vie)
@@ -157,6 +166,20 @@ export default function WeatherWidget({ horses, ecurie }: Props) {
 
   const amplitudeAlert = day.amplitude > 10;
   const frostAlert = night.frostRisk;
+
+  // Créneaux météo (2h) pour section étendue
+  const meteoSlots = [6, 8, 10, 12, 14, 16, 18, 20].map((startH) => {
+    const block = state.hourly.filter((h) => {
+      const hh = new Date(h.time).getHours();
+      return h.time.startsWith(today) && hh >= startH && hh < startH + 2;
+    });
+    if (!block.length) return null;
+    const avgRainProb = Math.round(block.reduce((s, h) => s + h.rainProb, 0) / block.length);
+    const totalRain = parseFloat(block.reduce((s, h) => s + h.rain, 0).toFixed(1));
+    const dominantCode = block[Math.floor(block.length / 2)]?.weathercode ?? block[0].weathercode;
+    const isNow = hour >= startH && hour < startH + 2;
+    return { startH, avgRainProb, totalRain, dominantCode, isNow };
+  }).filter(Boolean);
 
   return (
     <div className="card border overflow-hidden" style={{ borderColor: mode === "matin" ? "#e5f3ff" : "#1a1a1a20" }}>
@@ -180,9 +203,6 @@ export default function WeatherWidget({ horses, ecurie }: Props) {
               <span className="text-xs text-gray-400 flex items-center gap-1">
                 <Wind className="h-3 w-3" />{Math.round(currentWind)} km/h
               </span>
-              <span className="text-xs text-gray-400 flex items-center gap-1">
-                <Moon className="h-3 w-3" />min {Math.round(night.tmin)}°C
-              </span>
               {frostAlert && (
                 <span className="text-xs font-semibold text-blue-500 flex items-center gap-1">
                   <Snowflake className="h-3 w-3" />Gel
@@ -202,33 +222,40 @@ export default function WeatherWidget({ horses, ecurie }: Props) {
       {/* ── Résumé inline (collapsed) ────────────────────────────────── */}
       {!expanded && (
         <div className="mt-3 pt-3 border-t border-gray-50">
-          {mode === "matin" && bestSlot && (
-            <p className="text-xs font-medium text-gray-600">
-              <span className={`font-bold ${bestSlot.rating === "ideal" ? "text-green-600" : "text-orange"}`}>
-                Meilleur créneau : {bestSlot.label}
-              </span>
-              {" — "}{bestSlot.reasons.join(", ")}
-            </p>
-          )}
-          {mode === "matin" && !bestSlot && (
-            <p className="text-xs font-medium text-warning">Conditions difficiles aujourd&apos;hui — carrière couverte recommandée</p>
-          )}
+          {/* Amplitude de température */}
+          <p className="text-xs text-gray-600 flex items-center gap-2">
+            <span className="font-semibold text-black">
+              {Math.round(day.tmax - day.amplitude)}° – {Math.round(day.tmax)}°
+            </span>
+            <span className="text-gray-400">
+              Amplitude {Math.round(day.amplitude)}°C
+            </span>
+            {amplitudeAlert && (
+              <span className="text-xs font-semibold text-orange">⚠ Forte</span>
+            )}
+          </p>
+
+          {/* Couverture soir/nuit */}
           {(mode === "soir" || mode === "nuit") && recos.length > 0 && (
-            <div className="space-y-1">
+            <div className="space-y-1 mt-2">
               {recos.slice(0, 2).map(({ horse, reco }) => (
                 <p key={horse.id} className="text-xs text-gray-600">
-                  <span className="font-semibold text-black">{horse.name}</span> → {reco.label}
+                  <span className="font-semibold text-black">{horse.name}</span>
+                  {" → "}
+                  <span className={`font-semibold ${getBlanketColor(reco)}`}>
+                    {getBlanketSemanticLabel(reco)}
+                  </span>
                   {reco.note && <span className="text-gray-400"> ({reco.note})</span>}
                 </p>
               ))}
               {recos.length > 2 && (
-                <p className="text-xs text-gray-400">{recos.length - 2} autre{recos.length - 2 > 1 ? "s" : ""} chevaux →</p>
+                <p className="text-xs text-gray-400">{recos.length - 2} autre{recos.length - 2 > 1 ? "s" : ""} cheval{recos.length - 2 > 1 ? "x" : ""} →</p>
               )}
             </div>
           )}
           {(mode === "soir" || mode === "nuit") && !hasHorsesWithProfile && (
-            <p className="text-xs text-gray-400">
-              Complétez le profil météo de vos chevaux pour obtenir une recommandation de couverture personnalisée.
+            <p className="text-xs text-gray-400 mt-2">
+              Complétez le profil météo de vos chevaux pour obtenir une recommandation de couverture.
             </p>
           )}
         </div>
@@ -239,7 +266,7 @@ export default function WeatherWidget({ horses, ecurie }: Props) {
         <div className="mt-4 space-y-4">
 
           {/* Alertes */}
-          {(amplitudeAlert || frostAlert || night.frostRisk) && (
+          {(amplitudeAlert || frostAlert) && (
             <div className="space-y-2">
               {amplitudeAlert && (
                 <div className="flex items-start gap-2 p-3 rounded-xl bg-orange-light">
@@ -247,7 +274,6 @@ export default function WeatherWidget({ horses, ecurie }: Props) {
                   <p className="text-xs text-gray-700">
                     <span className="font-semibold text-orange">Amplitude forte ({Math.round(day.amplitude)}°C)</span>
                     {" "}— Penser à alléger la couverture dans la journée.
-                    {recos[0] && ` Min nuit ${Math.round(night.tmin)}°C mais max jour ${Math.round(day.tmax)}°C.`}
                   </p>
                 </div>
               )}
@@ -263,23 +289,34 @@ export default function WeatherWidget({ horses, ecurie }: Props) {
             </div>
           )}
 
-          {/* Fenêtres de travail */}
+          {/* Créneaux météo — remplace Fenêtres de travail */}
           <div>
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Fenêtres de travail</p>
-            <div className="flex gap-1.5 flex-wrap">
-              {slots.map((slot) => (
-                <div
-                  key={slot.hour}
-                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium ${SLOT_COLORS[slot.rating]}`}
-                >
-                  <span>{SLOT_ICONS[slot.rating]}</span>
-                  <span>{slot.label}</span>
-                  {slot.rating !== "ideal" && slot.reasons[0] && (
-                    <span className="opacity-70">— {slot.reasons[0]}</span>
-                  )}
-                </div>
-              ))}
-              {slots.length === 0 && (
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Prévisions par créneau</p>
+            <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+              {meteoSlots.map((slot) => {
+                if (!slot) return null;
+                const { startH, avgRainProb, totalRain, dominantCode, isNow } = slot;
+                return (
+                  <div
+                    key={startH}
+                    className={`flex-shrink-0 flex flex-col items-center gap-1 px-3 py-2.5 rounded-xl min-w-[58px] ${isNow ? "bg-black" : "bg-gray-50"}`}
+                  >
+                    <span className={`text-2xs font-semibold ${isNow ? "text-gray-400" : "text-gray-400"}`}>
+                      {startH}h–{startH + 2}h
+                    </span>
+                    {getWeatherIcon(dominantCode, "h-4 w-4")}
+                    <span className={`text-xs font-bold flex items-center gap-0.5 ${isNow ? "text-white" : avgRainProb >= 50 ? "text-blue-500" : "text-gray-500"}`}>
+                      <Droplets className="h-2.5 w-2.5" />{avgRainProb}%
+                    </span>
+                    {totalRain > 0.1 && (
+                      <span className={`text-2xs font-medium ${isNow ? "text-blue-300" : "text-blue-400"}`}>
+                        {totalRain}mm
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+              {meteoSlots.length === 0 && (
                 <p className="text-xs text-gray-400">Données non disponibles</p>
               )}
             </div>
@@ -288,19 +325,18 @@ export default function WeatherWidget({ horses, ecurie }: Props) {
           {/* Recommandations couverture */}
           <div>
             <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">
-              Couvertures ce soir (min nuit {Math.round(night.feelsLikeMin)}°C ressenti
+              Couverture ce soir (min nuit {Math.round(night.tmin)}°C
               {night.rainExpected ? ", pluie prévue" : ""})
             </p>
             {recos.length > 0 ? (
               <div className="space-y-2">
                 {recos.map(({ horse, reco }) => (
-                  <div key={horse.id} className="flex items-start justify-between gap-3 py-2 border-b border-gray-50 last:border-0">
+                  <div key={horse.id} className="flex items-center justify-between gap-3 py-2 border-b border-gray-50 last:border-0">
                     <span className="text-sm font-semibold text-black">{horse.name}</span>
                     <div className="text-right">
-                      <p className="text-sm font-bold text-black">{reco.label}</p>
-                      {reco.trousseau_match && (
-                        <p className="text-xs text-green-600">→ {reco.trousseau_match}</p>
-                      )}
+                      <p className={`text-sm font-bold ${getBlanketColor(reco)}`}>
+                        {getBlanketSemanticLabel(reco)}
+                      </p>
                       {reco.note && (
                         <p className="text-xs text-gray-400">({reco.note})</p>
                       )}
@@ -338,11 +374,6 @@ export default function WeatherWidget({ horses, ecurie }: Props) {
                       {h.rainProb > 20 && (
                         <span className={`text-2xs font-medium flex items-center gap-0.5 ${isNow ? "text-blue-300" : "text-blue-400"}`}>
                           <Droplets className="h-2.5 w-2.5" />{Math.round(h.rainProb)}%
-                        </span>
-                      )}
-                      {h.humidity !== undefined && h.humidity > 0 && (
-                        <span className={`text-2xs font-medium ${isNow ? "text-gray-300" : "text-gray-400"}`}>
-                          {Math.round(h.humidity)}%hum
                         </span>
                       )}
                     </div>

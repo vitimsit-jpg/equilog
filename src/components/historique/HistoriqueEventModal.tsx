@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Loader2, AlertTriangle } from "lucide-react";
+import { X, Loader2, AlertTriangle, Paperclip } from "lucide-react";
 import type { HorseHistoryEvent, HistoryCategory, DatePrecision } from "@/lib/supabase/types";
 import { createClient } from "@/lib/supabase/client";
 import toast from "react-hot-toast";
@@ -36,6 +36,7 @@ export default function HistoriqueEventModal({ open, horseId, event, onClose, on
   const [outcome, setOutcome] = useState("");
   const [severity, setSeverity] = useState("");
   const [notes, setNotes] = useState("");
+  const [files, setFiles] = useState<File[]>([]);
   const [saving, setSaving] = useState(false);
 
   // Pre-fill when editing
@@ -66,8 +67,25 @@ export default function HistoriqueEventModal({ open, horseId, event, onClose, on
       setOutcome("");
       setSeverity("");
       setNotes("");
+      setFiles([]);
     }
   }, [event, open]);
+
+  const uploadFiles = async (): Promise<string[]> => {
+    if (files.length === 0) return event?.media_urls ?? [];
+    const existing = event?.media_urls ?? [];
+    const urls: string[] = [...existing];
+    for (const file of files) {
+      const ext = file.name.split(".").pop() ?? "bin";
+      const path = `history/${horseId}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+      const { error } = await supabase.storage.from("health-attachments").upload(path, file);
+      if (!error) {
+        const { data } = supabase.storage.from("health-attachments").getPublicUrl(path);
+        urls.push(data.publicUrl);
+      }
+    }
+    return urls;
+  };
 
   if (!open) return null;
 
@@ -90,6 +108,9 @@ export default function HistoriqueEventModal({ open, horseId, event, onClose, on
       severity: (severity as HorseHistoryEvent["severity"]) || null,
       notes: notes || null,
     };
+
+    const mediaUrls = await uploadFiles();
+    if (mediaUrls.length > 0) (payload as any).media_urls = mediaUrls;
 
     let error;
     if (event) {
@@ -253,6 +274,62 @@ export default function HistoriqueEventModal({ open, horseId, event, onClose, on
               placeholder="Informations complémentaires..."
               className="input mt-1 min-h-[60px] resize-none"
             />
+          </div>
+
+          {/* Fichiers */}
+          <div>
+            <label className="label mb-1">
+              Fichiers <span className="font-normal text-gray-300">(radios, comptes rendus, photos)</span>
+            </label>
+            <label className="flex items-center gap-2 px-3 py-2.5 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:border-gray-400 transition-colors">
+              <Paperclip className="h-4 w-4 text-gray-400 flex-shrink-0" />
+              <span className="text-sm text-gray-500">
+                {files.length > 0
+                  ? `${files.length} fichier${files.length > 1 ? "s" : ""} sélectionné${files.length > 1 ? "s" : ""}`
+                  : event?.media_urls?.length
+                  ? `${event.media_urls.length} fichier${event.media_urls.length > 1 ? "s" : ""} existant${event.media_urls.length > 1 ? "s" : ""} · ajouter d'autres`
+                  : "Ajouter des fichiers..."}
+              </span>
+              <input
+                type="file"
+                multiple
+                accept="image/*,.pdf"
+                className="hidden"
+                onChange={(e) => setFiles((prev) => [...prev, ...Array.from(e.target.files || [])])}
+              />
+            </label>
+            {files.length > 0 && (
+              <div className="mt-1.5 flex flex-wrap gap-1">
+                {files.map((f, i) => (
+                  <span key={i} className="flex items-center gap-1 text-2xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-lg">
+                    <span>{f.name.length > 22 ? f.name.slice(0, 19) + "…" : f.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => setFiles(files.filter((_, j) => j !== i))}
+                      className="text-gray-400 hover:text-red-500 ml-0.5"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+            {event?.media_urls && event.media_urls.length > 0 && files.length === 0 && (
+              <div className="mt-1.5 flex flex-wrap gap-1">
+                {event.media_urls.map((url, i) => (
+                  <a
+                    key={i}
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-2xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-lg hover:bg-blue-100 transition-colors"
+                  >
+                    <Paperclip className="h-2.5 w-2.5" />
+                    Fichier {i + 1}
+                  </a>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 

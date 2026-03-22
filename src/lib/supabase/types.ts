@@ -274,6 +274,7 @@ export interface HorseHistoryEvent {
   outcome: "gueri" | "chronique" | "suivi" | "inconnu" | null;
   severity: "leger" | "modere" | "severe" | null;
   document_url: string | null;
+  media_urls: string[] | null;
   extracted_by_ai: boolean;
   ai_confidence: Record<string, number> | null;
   notes: string | null;

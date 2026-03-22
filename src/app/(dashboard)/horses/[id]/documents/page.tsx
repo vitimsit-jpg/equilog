@@ -4,6 +4,7 @@ import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { FileText, Image, FileIcon, FolderOpen, ExternalLink } from "lucide-react";
 import { HEALTH_TYPE_LABELS, BUDGET_CATEGORY_LABELS, formatCurrency } from "@/lib/utils";
+import { HISTORY_CATEGORY_CONFIG } from "@/components/historique/HistoriqueTimeline";
 
 interface Props {
   params: { id: string };
@@ -12,7 +13,7 @@ interface Props {
 interface DocItem {
   url: string;
   date: string;
-  source: "sante" | "budget";
+  source: "sante" | "budget" | "historique";
   label: string;
   sublabel: string | null;
 }
@@ -55,7 +56,7 @@ export default async function DocumentsPage({ params }: Props) {
     .single();
   if (!horse) return notFound();
 
-  const [{ data: healthRecords }, { data: budgetEntries }] = await Promise.all([
+  const [{ data: healthRecords }, { data: budgetEntries }, { data: historyEvents }] = await Promise.all([
     supabase
       .from("health_records")
       .select("date, type, vet_name, media_urls")
@@ -68,6 +69,11 @@ export default async function DocumentsPage({ params }: Props) {
       .eq("horse_id", horse.id)
       .not("media_urls", "is", null)
       .order("date", { ascending: false }),
+    supabase
+      .from("horse_history_events")
+      .select("event_date, event_year, event_month, category, title, media_urls")
+      .eq("horse_id", horse.id)
+      .not("media_urls", "is", null),
   ]);
 
   // Flatten into a unified list
@@ -97,6 +103,23 @@ export default async function DocumentsPage({ params }: Props) {
         sublabel: e.description
           ? `${formatCurrency(e.amount)} · ${e.description}`
           : formatCurrency(e.amount),
+      });
+    }
+  }
+
+  for (const ev of historyEvents || []) {
+    if (!ev.media_urls?.length) continue;
+    // Derive a sortable date string from event
+    const dateStr = ev.event_date
+      ?? (ev.event_year && ev.event_month ? `${ev.event_year}-${String(ev.event_month).padStart(2, "0")}-01` : null)
+      ?? (ev.event_year ? `${ev.event_year}-01-01` : "1900-01-01");
+    for (const url of ev.media_urls) {
+      docs.push({
+        url,
+        date: dateStr,
+        source: "historique",
+        label: ev.title ?? (HISTORY_CATEGORY_CONFIG[ev.category as import("@/lib/supabase/types").HistoryCategory]?.label ?? ev.category),
+        sublabel: null,
       });
     }
   }
@@ -164,9 +187,11 @@ export default async function DocumentsPage({ params }: Props) {
                             <span className={`text-2xs font-semibold px-1.5 py-0.5 rounded-full ${
                               doc.source === "sante"
                                 ? "bg-red-50 text-red-600"
-                                : "bg-orange-light text-orange"
+                                : doc.source === "budget"
+                                ? "bg-orange-light text-orange"
+                                : "bg-purple-50 text-purple-600"
                             }`}>
-                              {doc.source === "sante" ? "Santé" : "Budget"}
+                              {doc.source === "sante" ? "Santé" : doc.source === "budget" ? "Budget" : "Historique"}
                             </span>
                             <span className="text-2xs text-gray-300 bg-gray-100 px-1.5 py-0.5 rounded font-mono">
                               {ext}

@@ -140,7 +140,14 @@ export default function HistoriqueTimeline({ events, onEdit }: Props) {
                           )}
                         </div>
                         <div className="flex items-center gap-1 flex-shrink-0">
-                          {ev.document_url && (
+                          {/* media_urls (new) — show one button per file */}
+                          {ev.media_urls && ev.media_urls.length > 0 && ev.media_urls.map((url, i) => (
+                            <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-lg hover:bg-gray-50 text-gray-400 hover:text-gray-700 transition-colors" title={`Fichier ${i + 1}`}>
+                              <FileText className="h-3.5 w-3.5" />
+                            </a>
+                          ))}
+                          {/* document_url legacy fallback */}
+                          {!ev.media_urls?.length && ev.document_url && (
                             <a href={ev.document_url} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-lg hover:bg-gray-50 text-gray-400 hover:text-gray-700 transition-colors">
                               <FileText className="h-3.5 w-3.5" />
                             </a>

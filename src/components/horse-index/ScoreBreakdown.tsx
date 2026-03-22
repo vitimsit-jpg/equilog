@@ -19,10 +19,24 @@ const MODE_LABELS: Record<HorseIndexMode, { label: string; fullLabel: string }> 
 
 // Visible pillars only — Suivi proprio is NEVER shown separately (HI-11)
 const VISIBLE_PILLARS = [
-  { key: "sante_score" as const, label: "Santé",     icon: "❤️", weightKey: "sante" as const,    healthLink: true },
-  { key: "bienetre"    as const, label: "Bien-être",  icon: "🌿", weightKey: "bienetre" as const },
-  { key: "activite"    as const, label: "Activité",   icon: "🏇", weightKey: "activite" as const },
+  { key: "sante_score" as const, label: "Santé",    icon: "❤️", weightKey: "sante" as const,    healthLink: true },
+  { key: "bienetre"    as const, label: "Bien-être", icon: "🌿", weightKey: "bienetre" as const },
+  { key: "activite"    as const, label: "Activité",  icon: "🏇", weightKey: "activite" as const },
 ];
+
+const PILLAR_DESC: Record<string, string> = {
+  sante_score: "Soins à jour (vaccin, vermifuge, parage, dentiste) · Absence d'alerte vétérinaire urgente · Régularité du suivi",
+  bienetre:    "Ressenti noté en séance (feeling 1-5) · Équilibre repos / travail (idéal 30-55 % de repos) · Régularité des sorties (au moins 1/sem)",
+};
+
+const ACTIVITE_DESC: Record<HorseIndexMode, string> = {
+  IC:  "Régularité des séances (cible 4/sem) · Progression de l'intensité et du feeling · Bonus résultats en concours",
+  IE:  "Régularité des montées (cible 1-2/sem) · Progression de l'intensité et du feeling sur 6 mois",
+  IP:  "1 contact par semaine = bon score · La régularité prime sur l'intensité",
+  IR:  "Cible : 1 à 3 séances légères par semaine · Suractivité aussi pénalisée que sous-activité",
+  IS:  "Présence de contacts réguliers dans la fenêtre · Aucun travail monté attendu",
+  ICr: "Contacts réguliers valorisés · Travail monté non attendu pour un poulain",
+};
 
 function computeTrend(scores: HorseScore[]): "up" | "down" | "stable" | null {
   // Sort by computed_at ascending
@@ -107,12 +121,22 @@ export default function ScoreBreakdownComponent({ breakdown, horseId, scores }: 
                   </span>
                 </div>
 
-                {pillar.healthLink && horseId && (
-                  <p className="text-2xs text-gray-400 mb-1.5">
-                    Vaccins, vermifuge, parage, dentiste.{" "}
-                    <Link href={`/horses/${horseId}/health`} className="underline hover:text-gray-600">
-                      Voir le carnet →
-                    </Link>
+                {pillar.key === "sante_score" && (
+                  <p className="text-2xs text-gray-400 mb-1.5 leading-relaxed">
+                    {PILLAR_DESC.sante_score}
+                    {horseId && (
+                      <>{" · "}<Link href={`/horses/${horseId}/health`} className="underline hover:text-gray-600">Voir le carnet →</Link></>
+                    )}
+                  </p>
+                )}
+                {pillar.key === "bienetre" && (
+                  <p className="text-2xs text-gray-400 mb-1.5 leading-relaxed">
+                    {PILLAR_DESC.bienetre}
+                  </p>
+                )}
+                {pillar.key === "activite" && (
+                  <p className="text-2xs text-gray-400 mb-1.5 leading-relaxed">
+                    {ACTIVITE_DESC[mode]}
                   </p>
                 )}
 

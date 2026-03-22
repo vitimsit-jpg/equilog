@@ -65,8 +65,18 @@ export default function MobileBottomNav({ horses, overdueByHorse = {} }: Props) 
     <>
       {/* Bottom nav bar */}
       <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-gray-100 md:hidden">
+        {/* Central FAB — positionné en absolute pour ne pas bloquer les items voisins */}
+        <div className="absolute left-1/2 -translate-x-1/2 -top-7 z-50">
+          <button
+            onClick={() => setFabOpen(true)}
+            className="w-14 h-14 rounded-full bg-orange shadow-orange flex items-center justify-center active:scale-95 transition-transform"
+          >
+            <Plus className="h-7 w-7 text-white" />
+          </button>
+        </div>
+
         <div
-          className="flex items-end justify-around px-1"
+          className="flex items-center justify-around px-1"
           style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}
         >
           {/* Left 2 items */}
@@ -95,15 +105,8 @@ export default function MobileBottomNav({ horses, overdueByHorse = {} }: Props) 
             );
           })}
 
-          {/* Central FAB */}
-          <div className="flex flex-col items-center pb-1" style={{ marginTop: -16 }}>
-            <button
-              onClick={() => setFabOpen(true)}
-              className="w-14 h-14 rounded-full bg-orange shadow-orange flex items-center justify-center active:scale-95 transition-transform"
-            >
-              <Plus className="h-7 w-7 text-white" />
-            </button>
-          </div>
+          {/* Espace central pour le FAB */}
+          <div className="min-w-[56px] pt-1.5 pb-1" />
 
           {/* Right 2 items */}
           {rightItems.map((item) => {

@@ -11,21 +11,24 @@ import HorseAvatar from "@/components/ui/HorseAvatar";
 import { cn } from "@/lib/utils";
 import QuickTrainingModal from "@/components/training/QuickTrainingModal";
 import QuickHealthModal from "@/components/health/QuickHealthModal";
+import RiderLogModal from "@/components/rider/RiderLogModal";
 
 interface Props {
   horses: Horse[];
   overdueByHorse?: Record<string, number>;
+  userId?: string;
 }
 
 type ActionType = "training" | "health";
 
-export default function MobileBottomNav({ horses, overdueByHorse = {} }: Props) {
+export default function MobileBottomNav({ horses, overdueByHorse = {}, userId }: Props) {
   const pathname = usePathname();
   const router = useRouter();
   const [fabOpen, setFabOpen] = useState(false);
   const [horsePicker, setHorsePicker] = useState<ActionType | null>(null);
   const [selectedHorse, setSelectedHorse] = useState<Horse | null>(null);
   const [action, setAction] = useState<ActionType | null>(null);
+  const [riderLogOpen, setRiderLogOpen] = useState(false);
 
   const hasAnyOverdue = Object.values(overdueByHorse).some((v) => v > 0);
 
@@ -170,6 +173,15 @@ export default function MobileBottomNav({ horses, overdueByHorse = {} }: Props) 
                   <p className="text-xs text-gray-500 mt-0.5">Vaccin, vétérinaire, ferrage…</p>
                 </div>
               </button>
+              <button onClick={() => { setFabOpen(false); setRiderLogOpen(true); }} className="w-full flex items-center gap-4 p-4 rounded-2xl bg-blue-50 border-2 border-blue-100 hover:border-blue-300 transition-all text-left">
+                <div className="w-12 h-12 rounded-xl bg-blue-500 flex items-center justify-center flex-shrink-0">
+                  <User className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <p className="font-bold text-black text-sm">Logger mon état</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Forme, fatigue, douleurs...</p>
+                </div>
+              </button>
               {horses.length === 0 && (
                 <Link
                   href="/horses/new"
@@ -233,6 +245,16 @@ export default function MobileBottomNav({ horses, overdueByHorse = {} }: Props) 
           onClose={handleClose}
           horseId={selectedHorse.id}
           onSaved={() => { handleClose(); router.refresh(); }}
+        />
+      )}
+
+      {/* Rider log modal */}
+      {userId && (
+        <RiderLogModal
+          open={riderLogOpen}
+          onClose={() => setRiderLogOpen(false)}
+          onSaved={() => { setRiderLogOpen(false); router.refresh(); }}
+          userId={userId}
         />
       )}
     </>

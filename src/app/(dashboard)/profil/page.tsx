@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import SettingsForm from "@/components/settings/SettingsForm";
 import GestionEleves from "@/components/settings/GestionEleves";
+import RiderProfileBlock from "@/components/rider/RiderProfileBlock";
 import type { CoachStudent } from "@/lib/supabase/types";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
@@ -30,6 +31,7 @@ export default async function ProfilPage() {
         <p className="text-sm text-gray-400 mt-0.5">Gérez votre compte et vos préférences</p>
       </div>
       <SettingsForm user={userProfile} />
+      <RiderProfileBlock user={userProfile as any} />
       {userProfile?.module_coach && (
         <GestionEleves initialStudents={coachStudents} />
       )}

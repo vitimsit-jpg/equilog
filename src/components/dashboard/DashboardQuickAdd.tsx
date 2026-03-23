@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Dumbbell, Heart, X } from "lucide-react";
+import { Plus, Dumbbell, Heart, X, User } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import QuickTrainingModal from "@/components/training/QuickTrainingModal";
 import QuickHealthModal from "@/components/health/QuickHealthModal";
+import RiderLogModal from "@/components/rider/RiderLogModal";
 import { useRouter } from "next/navigation";
 
 interface Horse {
@@ -16,11 +17,12 @@ interface Horse {
 
 interface Props {
   horses: Horse[];
+  userId: string;
 }
 
 type ActionType = "training" | "health";
 
-export default function DashboardQuickAdd({ horses }: Props) {
+export default function DashboardQuickAdd({ horses, userId }: Props) {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -28,6 +30,7 @@ export default function DashboardQuickAdd({ horses }: Props) {
   const [action, setAction] = useState<ActionType | null>(null);
   const [trainingOpen, setTrainingOpen] = useState(false);
   const [healthOpen, setHealthOpen] = useState(false);
+  const [riderLogOpen, setRiderLogOpen] = useState(false);
 
   const handleAction = (type: ActionType) => {
     setMenuOpen(false);
@@ -105,6 +108,15 @@ export default function DashboardQuickAdd({ horses }: Props) {
                   <p className="text-xs text-gray-500 mt-0.5">Vaccin, vétérinaire, ferrage…</p>
                 </div>
               </button>
+              <button onClick={() => { setMenuOpen(false); setRiderLogOpen(true); }} className="w-full flex items-center gap-4 p-4 rounded-2xl bg-blue-50 border-2 border-blue-100 hover:border-blue-300 transition-all text-left">
+                <div className="w-12 h-12 rounded-xl bg-blue-500 flex items-center justify-center flex-shrink-0">
+                  <User className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <p className="font-bold text-black text-sm">Logger mon état</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Forme, fatigue, douleurs...</p>
+                </div>
+              </button>
             </div>
           </div>
         </div>
@@ -156,6 +168,14 @@ export default function DashboardQuickAdd({ horses }: Props) {
           onSaved={() => { handleClose(); router.refresh(); }}
         />
       )}
+
+      {/* Rider log modal */}
+      <RiderLogModal
+        open={riderLogOpen}
+        onClose={() => setRiderLogOpen(false)}
+        onSaved={() => { setRiderLogOpen(false); router.refresh(); }}
+        userId={userId}
+      />
     </>
   );
 }

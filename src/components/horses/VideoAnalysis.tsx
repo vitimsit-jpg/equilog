@@ -643,6 +643,28 @@ export default function VideoAnalysis({ horse, initialHistory = [], userId }: { 
         </div>
       </div>
 
+      {/* Analyse du cavalier */}
+      <div className="card">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">🏇</span>
+            <h2 className="font-bold text-black">Analyse du cavalier</h2>
+          </div>
+          <span className="text-2xs font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-400">Bientôt disponible</span>
+        </div>
+        <p className="text-sm text-gray-400 leading-relaxed">
+          Analyse de votre position, équilibre et coordination avec votre cheval depuis une vidéo ou une photo.
+        </p>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          {["Position en selle", "Équilibre", "Coordination", "Assiette"].map((item) => (
+            <div key={item} className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-xl opacity-50">
+              <div className="w-1.5 h-1.5 rounded-full bg-gray-300" />
+              <span className="text-xs text-gray-500">{item}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Score progression chart */}
       {history.length >= 2 && <VideoScoreChart history={history} />}
 

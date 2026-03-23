@@ -29,6 +29,10 @@ export interface User {
   stripe_customer_id?: string | null;
   stripe_subscription_id?: string | null;
   subscription_status?: string | null;
+  rider_niveau: 'debutant' | 'amateur' | 'confirme' | 'pro' | null;
+  rider_disciplines: string[] | null;
+  rider_frequence: number | null;
+  rider_objectif: 'competition' | 'progression' | 'loisir' | 'remise_en_forme' | null;
 }
 
 export interface Horse {
@@ -371,6 +375,18 @@ export interface RehabProtocol {
   generated_at: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface RiderLog {
+  id: string;
+  user_id: string;
+  date: string;
+  forme: 1 | 2 | 3 | 4 | 5 | null;
+  fatigue: 'legere' | 'moderee' | 'elevee' | null;
+  mental: 'motiv' | 'neutre' | 'fatigue' | 'stresse' | null;
+  douleurs: string[] | null;
+  notes: string | null;
+  created_at: string;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

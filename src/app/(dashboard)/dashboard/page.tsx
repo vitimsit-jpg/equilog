@@ -44,6 +44,7 @@ import AgendaSemaine from "@/components/dashboard/AgendaSemaine";
 import SuggestionIA from "@/components/dashboard/SuggestionIA";
 import FeedMiniDashboard from "@/components/dashboard/FeedMiniDashboard";
 import DashboardQuickAdd from "@/components/dashboard/DashboardQuickAdd";
+import RiderStatusWidget from "@/components/rider/RiderStatusWidget";
 import type { EcurieTodo, HorseAlert, CoachStudent, CoachPlannedSession } from "@/lib/supabase/types";
 
 type BlockKey =
@@ -224,6 +225,14 @@ export default async function DashboardPage({
       }
     });
   }
+
+  // Rider log for today
+  const { data: todayRiderLog } = await supabase
+    .from("rider_logs")
+    .select("*")
+    .eq("user_id", authUser.id)
+    .eq("date", todayStr)
+    .single();
 
   // Vérification vaccins FEI — pour profils compétition/pro
   const vaccinsAlerte: { horseName: string; horseId: string; daysToComp: number }[] = [];
@@ -589,6 +598,7 @@ export default async function DashboardPage({
               avatar_url: (h as any).avatar_url ?? null,
               horse_index_mode: (h as any).horse_index_mode ?? null,
             }))}
+            userId={authUser.id}
           />
         ) : null
       }
@@ -1395,6 +1405,9 @@ export default async function DashboardPage({
 
       {/* ── Header Bonjour ─────────────────────────────────────────────── */}
       {headerBlock}
+
+      {/* ── État cavalier du jour ──────────────────────────────────────── */}
+      <RiderStatusWidget userId={authUser.id} todayLog={(todayRiderLog as any) ?? null} />
 
       {/* ── Empty state 0 chevaux ─────────────────────────────────────── */}
       {(horses || []).length === 0 && (

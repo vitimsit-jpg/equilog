@@ -6,7 +6,11 @@ import CommunauteFeed from "@/components/community/CommunauteFeed";
 import CommunauteTabs from "@/components/community/CommunauteTabs";
 import ClassementsFilters from "@/components/classements/ClassementsFilters";
 import HorseAvatar from "@/components/ui/HorseAvatar";
+import DefisTab from "@/components/community/DefisTab";
+import StreakBadge from "@/components/training/StreakBadge";
 import { getScoreColor, getScoreLabel, DISCIPLINE_LABELS } from "@/lib/utils";
+import { getStreakTarget } from "@/lib/streaks";
+import { getISOWeek } from "date-fns";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type FeedItem = { date: string; type: "session" | "competition"; data: any; horse: any };
@@ -63,6 +67,17 @@ export default async function CommunautePage({ searchParams }: Props) {
       if (region && !horse.region?.toLowerCase().includes(region.toLowerCase())) return false;
       return true;
     });
+
+    // Fetch streaks for visible horses
+    const filteredHorseIds = filtered.map((s) => (s as any).horses.id).filter(Boolean);
+    const { data: streakRows } = filteredHorseIds.length
+      ? await supabase
+          .from("horse_streaks")
+          .select("horse_id, current_streak")
+          .in("horse_id", filteredHorseIds)
+      : { data: [] };
+    const streakByHorse: Record<string, number> = {};
+    (streakRows || []).forEach((r) => { streakByHorse[r.horse_id] = r.current_streak; });
 
     const disciplines = Object.keys(DISCIPLINE_LABELS).filter((d) => d !== "Autre");
     const regions = [
@@ -140,7 +155,12 @@ export default async function CommunautePage({ searchParams }: Props) {
                     </div>
                     <HorseAvatar name={horse.name} photoUrl={horse.avatar_url} size="md" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-black truncate">{horse.name}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-bold text-black truncate">{horse.name}</p>
+                        {(streakByHorse[horse.id] ?? 0) >= 2 && (
+                          <StreakBadge current={streakByHorse[horse.id]} best={0} target={getStreakTarget(null)} size="sm" />
+                        )}
+                      </div>
                       <p className="text-xs text-gray-400 truncate">
                         {[DISCIPLINE_LABELS[horse.discipline] || horse.discipline, horse.ecurie, horse.region]
                           .filter(Boolean).join(" · ")}
@@ -170,6 +190,75 @@ export default async function CommunautePage({ searchParams }: Props) {
 
   // ─── Défis tab ────────────────────────────────────────────────────
   if (activeTab === "defis") {
+    const today = new Date().toISOString().split("T")[0];
+
+    const { data: userHorsesForDefis } = await supabase
+      .from("horses")
+      .select("id, name")
+      .eq("user_id", authUser.id);
+    const userHorseIds = (userHorsesForDefis || []).map((h) => h.id);
+    const firstHorseId = userHorseIds[0] ?? null;
+
+    const [{ data: challenges }, { data: myParticipations }] = await Promise.all([
+      supabase
+        .from("challenges")
+        .select("*")
+        .gte("end_date", today)
+        .order("start_date", { ascending: true }),
+      supabase
+        .from("challenge_participants")
+        .select("challenge_id, status")
+        .eq("user_id", authUser.id),
+    ]);
+
+    const participationMap: Record<string, { status: string }> = {};
+    (myParticipations || []).forEach((p) => {
+      participationMap[p.challenge_id] = { status: p.status };
+    });
+
+    // Fetch sessions in broadest challenge date range for progress computation
+    const earliestStart = (challenges || []).reduce(
+      (min, c) => (c.start_date < min ? c.start_date : min),
+      today
+    );
+
+    const { data: challengeSessions } = userHorseIds.length
+      ? await supabase
+          .from("training_sessions")
+          .select("horse_id, date, type")
+          .in("horse_id", userHorseIds)
+          .gte("date", earliestStart)
+          .lte("date", today)
+      : { data: [] };
+
+    const challengesWithProgress = (challenges || []).map((challenge) => {
+      const inRange = (challengeSessions || []).filter((s) => {
+        const d = s.date.slice(0, 10);
+        return d >= challenge.start_date && d <= challenge.end_date;
+      });
+
+      let progress = 0;
+      if (challenge.type === "volume" || challenge.type === "collectif") {
+        progress = inRange.length;
+      } else if (challenge.type === "discipline" && challenge.discipline_type) {
+        progress = inRange.filter((s) => s.type === challenge.discipline_type).length;
+      } else if (challenge.type === "regularite") {
+        const weekCounts: Record<string, number> = {};
+        inRange.forEach((s) => {
+          const d = new Date(s.date.slice(0, 10));
+          const key = `${d.getFullYear()}-W${String(getISOWeek(d)).padStart(2, "0")}`;
+          weekCounts[key] = (weekCounts[key] ?? 0) + 1;
+        });
+        progress = Object.values(weekCounts).filter((c) => c >= 3).length;
+      }
+
+      return {
+        ...challenge,
+        progress,
+        participation: participationMap[challenge.id] ?? null,
+      };
+    });
+
     return (
       <div className="max-w-3xl mx-auto space-y-5 animate-fade-in">
         <div className="flex items-center gap-2">
@@ -177,13 +266,7 @@ export default async function CommunautePage({ searchParams }: Props) {
           <h1 className="text-2xl font-black text-black">Communauté</h1>
         </div>
         <CommunauteTabs activeTab="defis" />
-        <div className="card text-center py-16">
-          <div className="text-5xl mb-4">🏆</div>
-          <h2 className="text-lg font-bold text-black mb-2">Défis — Bientôt disponible</h2>
-          <p className="text-sm text-gray-400 max-w-xs mx-auto">
-            Participez à des défis collectifs avec votre écurie et mesurez vos progrès.
-          </p>
-        </div>
+        <DefisTab challenges={challengesWithProgress} userHorseId={firstHorseId} />
       </div>
     );
   }

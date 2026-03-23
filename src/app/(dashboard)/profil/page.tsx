@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import SettingsForm from "@/components/settings/SettingsForm";
 import GestionEleves from "@/components/settings/GestionEleves";
 import RiderProfileBlock from "@/components/rider/RiderProfileBlock";
+import ModulesPersonnalisation from "@/components/settings/ModulesPersonnalisation";
 import type { CoachStudent } from "@/lib/supabase/types";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
@@ -32,6 +33,7 @@ export default async function ProfilPage() {
       </div>
       <SettingsForm user={userProfile} />
       <RiderProfileBlock user={userProfile as any} />
+      <ModulesPersonnalisation userId={authUser.id} userModules={(userProfile as any)?.user_modules ?? null} />
       {userProfile?.module_coach && (
         <GestionEleves initialStudents={coachStudents} />
       )}

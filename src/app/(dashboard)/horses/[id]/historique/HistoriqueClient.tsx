@@ -7,13 +7,23 @@ import type { HorseHistoryEvent } from "@/lib/supabase/types";
 import HistoriqueTimeline from "@/components/historique/HistoriqueTimeline";
 import HistoriqueEventModal from "@/components/historique/HistoriqueEventModal";
 import DocumentExtractModal from "@/components/historique/DocumentExtractModal";
+import HorseIdentiteCard from "@/components/historique/HorseIdentiteCard";
+
+interface HorseIdentite {
+  sire_number: string | null;
+  lieu_naissance: string | null;
+  conditions_acquisition: string | null;
+  historique_avant_acquisition: string | null;
+}
 
 interface Props {
   horseId: string;
+  horseName: string;
   events: HorseHistoryEvent[];
+  horseIdentite: HorseIdentite;
 }
 
-export default function HistoriqueClient({ horseId, events }: Props) {
+export default function HistoriqueClient({ horseId, horseName, events, horseIdentite }: Props) {
   const router = useRouter();
   const [showAdd, setShowAdd] = useState(false);
   const [showImport, setShowImport] = useState(false);
@@ -35,6 +45,9 @@ export default function HistoriqueClient({ horseId, events }: Props) {
 
   return (
     <div className="space-y-4">
+      {/* Fiche d'identité */}
+      <HorseIdentiteCard horseId={horseId} horseName={horseName} identite={horseIdentite} />
+
       {/* Header stats */}
       {events.length > 0 && (
         <div className="grid grid-cols-3 gap-3">

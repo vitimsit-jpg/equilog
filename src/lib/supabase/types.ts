@@ -40,6 +40,7 @@ export interface User {
   rider_activite_types: string[] | null;
   rider_activite_frequence: string | null;
   rider_objectifs_cavalier: string[] | null;
+  user_modules: Record<string, boolean> | null;
 }
 
 export interface Horse {
@@ -76,6 +77,10 @@ export interface Horse {
   owner_name: string | null;
   // migration 033
   owner_email: string | null;
+  // Historique & Carnet de vie (migration tâche 03)
+  lieu_naissance: string | null;
+  conditions_acquisition: 'achat' | 'don' | 'pret' | 'elevage_personnel' | null;
+  historique_avant_acquisition: string | null;
   created_at: string;
 }
 

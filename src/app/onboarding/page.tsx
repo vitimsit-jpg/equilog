@@ -87,6 +87,7 @@ export default function OnboardingPage() {
   const [riderZones, setRiderZones] = useState<string[]>([]);
   const [riderAsymetrie, setRiderAsymetrie] = useState<"" | "droite" | "gauche" | "symetrique" | "ne_sais_pas">("");
   const [riderPathologies, setRiderPathologies] = useState("");
+  const [riderSuiviCorps, setRiderSuiviCorps] = useState<Record<string, { actif: boolean; frequence?: string }>>({});
 
   // Step 6 — notifs
   const [notifHealth, setNotifHealth] = useState(true);
@@ -208,7 +209,8 @@ export default function OnboardingPage() {
   };
 
   const handleStep5Next = async () => {
-    if (userId && (riderNiveau || riderObjectif || riderFrequence || riderDisciplines.length > 0 || riderZones.length > 0 || riderAsymetrie || riderPathologies.trim())) {
+    const hasSuivi = Object.keys(riderSuiviCorps).length > 0;
+    if (userId && (riderNiveau || riderObjectif || riderFrequence || riderDisciplines.length > 0 || riderZones.length > 0 || riderAsymetrie || riderPathologies.trim() || hasSuivi)) {
       await supabase.from("users").update({
         rider_niveau: riderNiveau || null,
         rider_objectif: riderObjectif || null,
@@ -217,6 +219,7 @@ export default function OnboardingPage() {
         rider_zones_douloureuses: riderZones.length > 0 ? riderZones : null,
         rider_asymetrie: riderAsymetrie || null,
         rider_pathologies: riderPathologies.trim() || null,
+        rider_suivi_corps: hasSuivi ? riderSuiviCorps : null,
         onboarding_step: 5,
       }).eq("id", userId);
     }
@@ -853,6 +856,57 @@ export default function OnboardingPage() {
                     rows={2}
                     className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-black resize-none mt-1"
                   />
+                </div>
+              </div>
+
+              {/* Suivi corps */}
+              <div className="pt-4 border-t border-gray-100">
+                <p className="text-sm font-bold text-black mb-0.5">Suivi corps</p>
+                <p className="text-xs text-gray-400 mb-4">Praticiens que vous consultez régulièrement.</p>
+                <div className="space-y-3">
+                  {([
+                    { key: "kine", label: "Kinésithérapeute" },
+                    { key: "osteo", label: "Ostéopathe" },
+                    { key: "podologue", label: "Podologue" },
+                    { key: "coach", label: "Préparateur physique / Coach sportif" },
+                  ] as const).map(({ key, label }) => {
+                    const entry = riderSuiviCorps[key];
+                    const actif = entry?.actif ?? false;
+                    return (
+                      <div key={key}>
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-sm font-medium text-black">{label}</span>
+                          <div className="flex gap-1.5 flex-shrink-0">
+                            <button type="button"
+                              onClick={() => setRiderSuiviCorps((prev) => ({ ...prev, [key]: { actif: true, frequence: prev[key]?.frequence } }))}
+                              className={`px-3 py-1.5 rounded-xl border-2 text-xs font-semibold transition-all ${actif ? "border-black bg-black text-white" : "border-gray-200 text-gray-500 hover:border-gray-300"}`}
+                            >Oui</button>
+                            <button type="button"
+                              onClick={() => setRiderSuiviCorps((prev) => { const next = { ...prev }; delete next[key]; return next; })}
+                              className={`px-3 py-1.5 rounded-xl border-2 text-xs font-semibold transition-all ${!actif && key in riderSuiviCorps ? "border-gray-400 bg-gray-100 text-gray-600" : "border-gray-200 text-gray-500 hover:border-gray-300"}`}
+                            >Non</button>
+                          </div>
+                        </div>
+                        {actif && (
+                          <div className="flex flex-wrap gap-1.5 mt-2">
+                            {([
+                              { value: "ponctuel", label: "Ponctuel" },
+                              { value: "2_3_semaines", label: "Toutes les 2-3 semaines" },
+                              { value: "mensuel", label: "Mensuel" },
+                              { value: "hebdomadaire", label: "Hebdomadaire" },
+                            ] as const).map(({ value, label: flabel }) => (
+                              <button key={value} type="button"
+                                onClick={() => setRiderSuiviCorps((prev) => ({ ...prev, [key]: { actif: true, frequence: value } }))}
+                                className={`px-3 py-1.5 rounded-xl border-2 text-xs font-medium transition-all ${
+                                  entry?.frequence === value ? "border-black bg-black text-white" : "border-gray-200 text-gray-600 hover:border-gray-300"
+                                }`}
+                              >{flabel}</button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>

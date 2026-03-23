@@ -36,6 +36,7 @@ export interface User {
   rider_zones_douloureuses: string[] | null;
   rider_asymetrie: 'droite' | 'gauche' | 'symetrique' | 'ne_sais_pas' | null;
   rider_pathologies: string | null;
+  rider_suivi_corps: Record<string, { actif: boolean; frequence?: string }> | null;
 }
 
 export interface Horse {

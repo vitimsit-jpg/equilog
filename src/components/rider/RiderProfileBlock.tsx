@@ -56,6 +56,20 @@ const ASYMETRIE_OPTIONS = [
   { value: "ne_sais_pas", label: "Je ne sais pas" },
 ] as const;
 
+const PRATICIENS = [
+  { key: "kine", label: "Kinésithérapeute" },
+  { key: "osteo", label: "Ostéopathe" },
+  { key: "podologue", label: "Podologue" },
+  { key: "coach", label: "Préparateur physique / Coach sportif" },
+] as const;
+
+const FREQUENCES_SUIVI = [
+  { value: "ponctuel", label: "Ponctuel" },
+  { value: "2_3_semaines", label: "Toutes les 2-3 semaines" },
+  { value: "mensuel", label: "Mensuel" },
+  { value: "hebdomadaire", label: "Hebdomadaire" },
+] as const;
+
 export default function RiderProfileBlock({ user }: Props) {
   const router = useRouter();
   const supabase = createClient();
@@ -67,6 +81,9 @@ export default function RiderProfileBlock({ user }: Props) {
   const [zones, setZones] = useState<string[]>((user as any).rider_zones_douloureuses ?? []);
   const [asymetrie, setAsymetrie] = useState<string | null>((user as any).rider_asymetrie ?? null);
   const [pathologies, setPathologies] = useState<string>((user as any).rider_pathologies ?? "");
+  const [suiviCorps, setSuiviCorps] = useState<Record<string, { actif: boolean; frequence?: string }>>(
+    (user as any).rider_suivi_corps ?? {}
+  );
   const [saving, setSaving] = useState(false);
 
   const toggleDiscipline = (d: string) => {
@@ -93,6 +110,7 @@ export default function RiderProfileBlock({ user }: Props) {
         rider_zones_douloureuses: zones.length > 0 ? zones : null,
         rider_asymetrie: asymetrie as User["rider_asymetrie"],
         rider_pathologies: pathologies.trim() || null,
+        rider_suivi_corps: Object.keys(suiviCorps).length > 0 ? suiviCorps : null,
       })
       .eq("id", user.id);
 
@@ -227,7 +245,7 @@ export default function RiderProfileBlock({ user }: Props) {
         </div>
 
         {/* Pathologies connues */}
-        <div className="mb-5">
+        <div>
           <p className="label mb-2">Pathologies connues <span className="font-normal text-gray-400">(optionnel)</span></p>
           <textarea
             value={pathologies}
@@ -236,6 +254,57 @@ export default function RiderProfileBlock({ user }: Props) {
             rows={2}
             className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-black resize-none"
           />
+        </div>
+      </div>
+
+      {/* Suivi corps */}
+      <div className="pt-4 border-t border-gray-100 mb-5">
+        <p className="font-semibold text-black text-sm mb-1">Suivi corps</p>
+        <p className="text-xs text-gray-400 mb-4">Praticiens que vous consultez régulièrement.</p>
+        <div className="space-y-3">
+          {PRATICIENS.map(({ key, label }) => {
+            const entry = suiviCorps[key];
+            const actif = entry?.actif ?? false;
+            return (
+              <div key={key}>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm font-medium text-black">{label}</span>
+                  <div className="flex gap-1.5 flex-shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setSuiviCorps((prev) => ({ ...prev, [key]: { actif: true, frequence: prev[key]?.frequence } }))}
+                      className={`px-3 py-1.5 rounded-xl border-2 text-xs font-semibold transition-all ${actif ? "border-black bg-black text-white" : "border-gray-200 text-gray-500 hover:border-gray-300"}`}
+                    >
+                      Oui
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSuiviCorps((prev) => { const next = { ...prev }; delete next[key]; return next; })}
+                      className={`px-3 py-1.5 rounded-xl border-2 text-xs font-semibold transition-all ${!actif && key in suiviCorps ? "border-gray-400 bg-gray-100 text-gray-600" : "border-gray-200 text-gray-500 hover:border-gray-300"}`}
+                    >
+                      Non
+                    </button>
+                  </div>
+                </div>
+                {actif && (
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {FREQUENCES_SUIVI.map(({ value, label: flabel }) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => setSuiviCorps((prev) => ({ ...prev, [key]: { actif: true, frequence: value } }))}
+                        className={`px-3 py-1.5 rounded-xl border-2 text-xs font-medium transition-all ${
+                          entry?.frequence === value ? "border-black bg-black text-white" : "border-gray-200 text-gray-600 hover:border-gray-300"
+                        }`}
+                      >
+                        {flabel}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 

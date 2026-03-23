@@ -39,6 +39,7 @@ export interface User {
   rider_suivi_corps: Record<string, { actif: boolean; frequence?: string }> | null;
   rider_activite_types: string[] | null;
   rider_activite_frequence: string | null;
+  rider_objectifs_cavalier: string[] | null;
 }
 
 export interface Horse {

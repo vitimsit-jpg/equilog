@@ -82,6 +82,16 @@ const ACTIVITE_FREQUENCES = [
   { value: "4x_plus", label: "4× et plus" },
 ] as const;
 
+const OBJECTIFS_CAVALIER = [
+  "Progresser techniquement",
+  "Préparer des compétitions",
+  "Retrouver de la confiance",
+  "Améliorer ma condition physique",
+  "Pratiquer en loisir apaisé",
+  "Travailler ma relation avec mon cheval",
+  "Autre",
+];
+
 export default function RiderProfileBlock({ user }: Props) {
   const router = useRouter();
   const supabase = createClient();
@@ -98,6 +108,7 @@ export default function RiderProfileBlock({ user }: Props) {
   );
   const [activiteTypes, setActiviteTypes] = useState<string[]>((user as any).rider_activite_types ?? []);
   const [activiteFrequence, setActiviteFrequence] = useState<string | null>((user as any).rider_activite_frequence ?? null);
+  const [objectifsCavalier, setObjectifsCavalier] = useState<string[]>((user as any).rider_objectifs_cavalier ?? []);
 
   const toggleActivite = (a: string) => {
     setActiviteTypes((prev) =>
@@ -133,6 +144,7 @@ export default function RiderProfileBlock({ user }: Props) {
         rider_suivi_corps: Object.keys(suiviCorps).length > 0 ? suiviCorps : null,
         rider_activite_types: activiteTypes.length > 0 ? activiteTypes : null,
         rider_activite_frequence: activiteFrequence,
+        rider_objectifs_cavalier: objectifsCavalier.length > 0 ? objectifsCavalier : null,
       })
       .eq("id", user.id);
 
@@ -365,6 +377,24 @@ export default function RiderProfileBlock({ user }: Props) {
               </button>
             ))}
           </div>
+        </div>
+      </div>
+
+      {/* Objectifs cavalier */}
+      <div className="pt-4 border-t border-gray-100 mb-5">
+        <p className="font-semibold text-black text-sm mb-1">Objectifs cavalier</p>
+        <p className="text-xs text-gray-400 mb-3">Plusieurs choix possibles.</p>
+        <div className="flex flex-wrap gap-2">
+          {OBJECTIFS_CAVALIER.map((o) => (
+            <button
+              key={o}
+              type="button"
+              onClick={() => setObjectifsCavalier((prev) => prev.includes(o) ? prev.filter((x) => x !== o) : [...prev, o])}
+              className={btnClass(objectifsCavalier.includes(o))}
+            >
+              {o}
+            </button>
+          ))}
         </div>
       </div>
 

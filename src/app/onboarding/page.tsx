@@ -90,6 +90,7 @@ export default function OnboardingPage() {
   const [riderSuiviCorps, setRiderSuiviCorps] = useState<Record<string, { actif: boolean; frequence?: string }>>({});
   const [riderActiviteTypes, setRiderActiviteTypes] = useState<string[]>([]);
   const [riderActiviteFrequence, setRiderActiviteFrequence] = useState("");
+  const [riderObjectifsCavalier, setRiderObjectifsCavalier] = useState<string[]>([]);
 
   // Step 6 — notifs
   const [notifHealth, setNotifHealth] = useState(true);
@@ -224,6 +225,7 @@ export default function OnboardingPage() {
         rider_suivi_corps: hasSuivi ? riderSuiviCorps : null,
         rider_activite_types: riderActiviteTypes.length > 0 ? riderActiviteTypes : null,
         rider_activite_frequence: riderActiviteFrequence || null,
+        rider_objectifs_cavalier: riderObjectifsCavalier.length > 0 ? riderObjectifsCavalier : null,
         onboarding_step: 5,
       }).eq("id", userId);
     }
@@ -950,6 +952,22 @@ export default function OnboardingPage() {
                       >{label}</button>
                     ))}
                   </div>
+                </div>
+              </div>
+
+              {/* Objectifs cavalier */}
+              <div className="pt-4 border-t border-gray-100">
+                <p className="text-sm font-bold text-black mb-0.5">Objectifs cavalier</p>
+                <p className="text-xs text-gray-400 mb-3">Plusieurs choix possibles.</p>
+                <div className="flex flex-wrap gap-2">
+                  {["Progresser techniquement", "Préparer des compétitions", "Retrouver de la confiance", "Améliorer ma condition physique", "Pratiquer en loisir apaisé", "Travailler ma relation avec mon cheval", "Autre"].map((o) => (
+                    <button key={o} type="button"
+                      onClick={() => setRiderObjectifsCavalier((prev) => prev.includes(o) ? prev.filter((x) => x !== o) : [...prev, o])}
+                      className={`px-3 py-1.5 rounded-xl border-2 text-xs font-medium transition-all ${
+                        riderObjectifsCavalier.includes(o) ? "border-black bg-black text-white" : "border-gray-200 hover:border-gray-300 text-gray-700"
+                      }`}
+                    >{o}</button>
+                  ))}
                 </div>
               </div>
             </div>

@@ -650,12 +650,11 @@ export default function VideoAnalysis({ horse, initialHistory = [], userId }: { 
             <span className="text-lg">🏇</span>
             <h2 className="font-bold text-black">Analyse du cavalier</h2>
           </div>
-          <span className="text-2xs font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-400">Bientôt disponible</span>
         </div>
-        <p className="text-sm text-gray-400 leading-relaxed">
-          Analyse de votre position, équilibre et coordination avec votre cheval depuis une vidéo ou une photo.
+        <p className="text-sm text-gray-400 leading-relaxed mb-4">
+          Enregistrez une vidéo de votre position pour obtenir une analyse IA de votre symétrie et de votre assiette.
         </p>
-        <div className="mt-3 grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-2 mb-4">
           {["Position en selle", "Équilibre", "Coordination", "Assiette"].map((item) => (
             <div key={item} className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-xl opacity-50">
               <div className="w-1.5 h-1.5 rounded-full bg-gray-300" />
@@ -663,6 +662,14 @@ export default function VideoAnalysis({ horse, initialHistory = [], userId }: { 
             </div>
           ))}
         </div>
+        <button
+          disabled
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gray-100 text-gray-400 text-sm font-semibold cursor-not-allowed"
+        >
+          <Upload className="h-4 w-4" />
+          Analyser ma position
+          <span className="ml-1 text-2xs font-semibold px-2 py-0.5 rounded-full bg-gray-200 text-gray-400">Bientôt disponible</span>
+        </button>
       </div>
 
       {/* Score progression chart */}

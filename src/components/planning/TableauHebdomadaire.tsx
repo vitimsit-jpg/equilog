@@ -4,12 +4,9 @@ import { useState, useCallback } from "react";
 import {
   startOfWeek,
   eachDayOfInterval,
-  endOfWeek,
   format,
   isToday,
   addWeeks,
-  subWeeks,
-  parseISO,
   isBefore,
   startOfDay,
   addDays,
@@ -667,7 +664,7 @@ export default function TableauHebdomadaire({
   const getSessionsForCell = useCallback(
     (horseId: string, date: Date): TrainingSession[] => {
       const dateStr = format(date, "yyyy-MM-dd");
-      return sessions.filter((s) => s.horse_id === horseId && s.date === dateStr);
+      return sessions.filter((s) => s.horse_id === horseId && s.date.slice(0, 10) === dateStr);
     },
     [sessions]
   );
@@ -675,7 +672,7 @@ export default function TableauHebdomadaire({
   const getPlannedForCell = useCallback(
     (horseId: string, date: Date): TrainingPlannedSession[] => {
       const dateStr = format(date, "yyyy-MM-dd");
-      return plannedSessions.filter((p) => p.horse_id === horseId && p.date === dateStr);
+      return plannedSessions.filter((p) => p.horse_id === horseId && p.date.slice(0, 10) === dateStr);
     },
     [plannedSessions]
   );

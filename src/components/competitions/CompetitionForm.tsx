@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import toast from "react-hot-toast";
-import { format } from "date-fns";
+import { format, isAfter, startOfDay, parseISO } from "date-fns";
 import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import Textarea from "@/components/ui/Textarea";
@@ -80,6 +80,23 @@ interface Props {
 export default function CompetitionForm({ horseId, onSaved, onCancel, defaultValues }: Props) {
   const supabase = createClient();
   const [loading, setLoading] = useState(false);
+
+  // Auto-detect initial status
+  const getInitialStatus = (): "a_venir" | "passe" => {
+    if (defaultValues?.status) {
+      // If editing a_venir with passed date → switch to passe to unlock result fields
+      if (defaultValues.status === "a_venir" && defaultValues.date) {
+        const isPast = !isAfter(startOfDay(parseISO(defaultValues.date)), startOfDay(new Date()));
+        if (isPast) return "passe";
+      }
+      return defaultValues.status;
+    }
+    const dateToCheck = defaultValues?.date || format(new Date(), "yyyy-MM-dd");
+    const isFuture = isAfter(startOfDay(parseISO(dateToCheck)), startOfDay(new Date()));
+    return isFuture ? "a_venir" : "passe";
+  };
+
+  const [status, setStatus] = useState<"a_venir" | "passe">(getInitialStatus);
   const [form, setForm] = useState({
     date: defaultValues?.date || format(new Date(), "yyyy-MM-dd"),
     event_name: defaultValues?.event_name || "",
@@ -90,7 +107,17 @@ export default function CompetitionForm({ horseId, onSaved, onCancel, defaultVal
     score: defaultValues?.score ? String(defaultValues.score) : "",
     location: defaultValues?.location || "",
     notes: defaultValues?.notes || "",
+    score_dressage: defaultValues?.score_dressage ? String(defaultValues.score_dressage) : "",
+    penalites_cso: defaultValues?.penalites_cso ? String(defaultValues.penalites_cso) : "",
+    penalites_cross: defaultValues?.penalites_cross ? String(defaultValues.penalites_cross) : "",
   });
+
+  // Auto-update status when date changes
+  const handleDateChange = (newDate: string) => {
+    const isFuture = isAfter(startOfDay(parseISO(newDate)), startOfDay(new Date()));
+    setStatus(isFuture ? "a_venir" : "passe");
+    setForm({ ...form, date: newDate });
+  };
 
   const levelGroups = LEVELS_BY_DISCIPLINE[form.discipline] ?? GENERIC_LEVELS;
 
@@ -108,13 +135,17 @@ export default function CompetitionForm({ horseId, onSaved, onCancel, defaultVal
       horse_id: horseId,
       date: form.date,
       event_name: form.event_name.trim(),
-      discipline: form.discipline as any,
+      discipline: form.discipline as Competition["discipline"],
       level: form.level,
-      result_rank: form.result_rank ? parseInt(form.result_rank) : null,
-      total_riders: form.total_riders ? parseInt(form.total_riders) : null,
-      score: form.score ? parseFloat(form.score) : null,
+      status,
+      result_rank: status === "passe" && form.result_rank ? parseInt(form.result_rank) : null,
+      total_riders: status === "passe" && form.total_riders ? parseInt(form.total_riders) : null,
+      score: status === "passe" && form.score ? parseFloat(form.score) : null,
       location: form.location || null,
       notes: form.notes || null,
+      score_dressage: status === "passe" && form.discipline === "CCE" && form.score_dressage ? parseFloat(form.score_dressage) : null,
+      penalites_cso: status === "passe" && form.discipline === "CCE" && form.penalites_cso !== "" ? parseFloat(form.penalites_cso) : null,
+      penalites_cross: status === "passe" && form.discipline === "CCE" && form.penalites_cross !== "" ? parseFloat(form.penalites_cross) : null,
     };
 
     const { error } = defaultValues?.id
@@ -124,7 +155,7 @@ export default function CompetitionForm({ horseId, onSaved, onCancel, defaultVal
     if (error) toast.error("Erreur lors de l'enregistrement");
     else {
       toast.success("Concours enregistré !");
-      if (!defaultValues?.id) trackEvent({ event_name: "competition_created", event_category: "competition", properties: { discipline: form.discipline, level: form.level } });
+      if (!defaultValues?.id) trackEvent({ event_name: "competition_created", event_category: "competition", properties: { discipline: form.discipline, level: form.level, status } });
       onSaved();
     }
     setLoading(false);
@@ -132,12 +163,38 @@ export default function CompetitionForm({ horseId, onSaved, onCancel, defaultVal
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+
+      {/* Statut */}
+      <div>
+        <p className="label mb-2">Statut</p>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setStatus("a_venir")}
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 text-sm font-semibold transition-all ${
+              status === "a_venir" ? "border-orange bg-orange-light text-orange" : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
+            }`}
+          >
+            <span>📅</span> À venir
+          </button>
+          <button
+            type="button"
+            onClick={() => setStatus("passe")}
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 text-sm font-semibold transition-all ${
+              status === "passe" ? "border-black bg-black text-white" : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
+            }`}
+          >
+            <span>✅</span> Passé
+          </button>
+        </div>
+      </div>
+
       <div className="grid grid-cols-2 gap-4">
         <Input
           label="Date"
           type="date"
           value={form.date}
-          onChange={(e) => setForm({ ...form, date: e.target.value })}
+          onChange={(e) => handleDateChange(e.target.value)}
           required
         />
         <Input
@@ -156,8 +213,6 @@ export default function CompetitionForm({ horseId, onSaved, onCancel, defaultVal
           onChange={(e) => handleDisciplineChange(e.target.value)}
           options={disciplineOptions}
         />
-
-        {/* Niveau avec optgroups */}
         <div className="w-full">
           <label className="label">Niveau</label>
           <div className="relative">
@@ -181,33 +236,6 @@ export default function CompetitionForm({ horseId, onSaved, onCancel, defaultVal
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
-        <Input
-          label="Classement"
-          type="number"
-          value={form.result_rank}
-          onChange={(e) => setForm({ ...form, result_rank: e.target.value })}
-          placeholder="1"
-          min="1"
-        />
-        <Input
-          label="Nb. partants"
-          type="number"
-          value={form.total_riders}
-          onChange={(e) => setForm({ ...form, total_riders: e.target.value })}
-          placeholder="20"
-          min="1"
-        />
-        <Input
-          label="Score / Points"
-          type="number"
-          value={form.score}
-          onChange={(e) => setForm({ ...form, score: e.target.value })}
-          placeholder="0.0"
-          step="0.01"
-        />
-      </div>
-
       <Input
         label="Lieu"
         value={form.location}
@@ -220,8 +248,79 @@ export default function CompetitionForm({ horseId, onSaved, onCancel, defaultVal
         value={form.notes}
         onChange={(e) => setForm({ ...form, notes: e.target.value })}
         placeholder="Observations, conditions, parcours..."
-        rows={3}
+        rows={2}
       />
+
+      {/* Résultats — Passé seulement */}
+      {status === "passe" && (
+        <div className="space-y-4 pt-1 border-t border-gray-100">
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Résultats</p>
+
+          <div className="grid grid-cols-3 gap-4">
+            <Input
+              label="Classement"
+              type="number"
+              value={form.result_rank}
+              onChange={(e) => setForm({ ...form, result_rank: e.target.value })}
+              placeholder="1"
+              min="1"
+            />
+            <Input
+              label="Nb. partants"
+              type="number"
+              value={form.total_riders}
+              onChange={(e) => setForm({ ...form, total_riders: e.target.value })}
+              placeholder="20"
+              min="1"
+            />
+            <Input
+              label="Score / Points"
+              type="number"
+              value={form.score}
+              onChange={(e) => setForm({ ...form, score: e.target.value })}
+              placeholder="0.0"
+              step="0.01"
+            />
+          </div>
+
+          {/* CCE scores conditionnels */}
+          {form.discipline === "CCE" && (
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-gray-500">Détail CCE</p>
+              <div className="grid grid-cols-3 gap-4">
+                <Input
+                  label="Score dressage (%)"
+                  type="number"
+                  value={form.score_dressage}
+                  onChange={(e) => setForm({ ...form, score_dressage: e.target.value })}
+                  placeholder="68.5"
+                  step="0.1"
+                  min="0"
+                  max="100"
+                />
+                <Input
+                  label="Pénalités CSO"
+                  type="number"
+                  value={form.penalites_cso}
+                  onChange={(e) => setForm({ ...form, penalites_cso: e.target.value })}
+                  placeholder="4"
+                  min="0"
+                  step="0.5"
+                />
+                <Input
+                  label="Pénalités cross"
+                  type="number"
+                  value={form.penalites_cross}
+                  onChange={(e) => setForm({ ...form, penalites_cross: e.target.value })}
+                  placeholder="0"
+                  min="0"
+                  step="0.5"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="flex gap-3 pt-1">
         <Button type="button" variant="secondary" onClick={onCancel} className="flex-1">Annuler</Button>

@@ -1438,6 +1438,68 @@ export default async function DashboardPage({
       {/* ── Header Bonjour ─────────────────────────────────────────────── */}
       {headerBlock}
 
+      {/* ── Mes chevaux ─────────────────────────────────────────────────── */}
+      {(horses || []).length > 0 && (!isP6 || dashMode === "cavalier") && chevauxBlock && (
+        <div>{chevauxBlock}</div>
+      )}
+
+      {/* ── Météo ─────────────────────────────────────────────────────── */}
+      <WeatherWidget
+        horses={(horses || []).map((h) => ({
+          id: h.id,
+          name: h.name,
+          conditions_vie: (h as any).conditions_vie ?? null,
+          tonte: (h as any).tonte ?? null,
+          morphologie_meteo: (h as any).morphologie_meteo ?? null,
+          etat_corporel: (h as any).etat_corporel ?? null,
+          birth_year: h.birth_year ?? null,
+          trousseau: (h as any).trousseau ?? [],
+        }))}
+        ecurie={userEcuries[0] ?? null}
+      />
+
+      {/* ── Mon programme de la semaine ─────────────────────────────────── */}
+      {(horses || []).length > 0 && (!isP6 || dashMode === "cavalier") && programmeBlock && (
+        <div>{programmeBlock}</div>
+      )}
+
+      {/* ── Soins à venir (next 21 days) ───────────────────────────────── */}
+      {alerts21Days.length > 0 && (horses || []).length > 0 && (
+        <div className="card border border-orange/10 bg-orange-light/30">
+          <div className="flex items-center gap-2 mb-3">
+            <Heart className="h-4 w-4 text-orange" />
+            <h2 className="font-bold text-black text-sm">Soins à venir</h2>
+          </div>
+          <div className="space-y-2">
+            {alerts21Days.slice(0, 5).map((h) => {
+              const days = daysUntil(h.next_date!);
+              const isOverdue = days < 0;
+              const horseName = (h as any).horses?.name;
+              return (
+                <div key={h.id} className="flex items-center justify-between">
+                  <div>
+                    <span className="text-sm font-medium text-black">
+                      {HEALTH_TYPE_LABELS[h.type]} — {horseName}
+                    </span>
+                  </div>
+                  <span
+                    className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                      isOverdue
+                        ? "bg-red-100 text-red-700"
+                        : days <= 7
+                        ? "bg-orange text-white"
+                        : "bg-gray-100 text-gray-600"
+                    }`}
+                  >
+                    {isOverdue ? `${Math.abs(days)}j retard` : `J-${days}`}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* ── État cavalier du jour ──────────────────────────────────────── */}
       <RiderStatusWidget userId={authUser.id} todayLog={(todayRiderLog as any) ?? null} />
 
@@ -1508,58 +1570,6 @@ export default async function DashboardPage({
         firstHorseId={firstHorse?.id}
       />
 
-      {/* ── Météo ─────────────────────────────────────────────────────── */}
-      <WeatherWidget
-        horses={(horses || []).map((h) => ({
-          id: h.id,
-          name: h.name,
-          conditions_vie: (h as any).conditions_vie ?? null,
-          tonte: (h as any).tonte ?? null,
-          morphologie_meteo: (h as any).morphologie_meteo ?? null,
-          etat_corporel: (h as any).etat_corporel ?? null,
-          birth_year: h.birth_year ?? null,
-          trousseau: (h as any).trousseau ?? [],
-        }))}
-        ecurie={userEcuries[0] ?? null}
-      />
-
-      {/* ── FIXE — Soins à venir (next 21 days) ───────────────────────── */}
-      {alerts21Days.length > 0 && (horses || []).length > 0 && (
-        <div className="card border border-orange/10 bg-orange-light/30">
-          <div className="flex items-center gap-2 mb-3">
-            <Heart className="h-4 w-4 text-orange" />
-            <h2 className="font-bold text-black text-sm">Soins à venir</h2>
-          </div>
-          <div className="space-y-2">
-            {alerts21Days.slice(0, 5).map((h) => {
-              const days = daysUntil(h.next_date!);
-              const isOverdue = days < 0;
-              const horseName = (h as any).horses?.name;
-              return (
-                <div key={h.id} className="flex items-center justify-between">
-                  <div>
-                    <span className="text-sm font-medium text-black">
-                      {HEALTH_TYPE_LABELS[h.type]} — {horseName}
-                    </span>
-                  </div>
-                  <span
-                    className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                      isOverdue
-                        ? "bg-red-100 text-red-700"
-                        : days <= 7
-                        ? "bg-orange text-white"
-                        : "bg-gray-100 text-gray-600"
-                    }`}
-                  >
-                    {isOverdue ? `${Math.abs(days)}j retard` : `J-${days}`}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
       {/* ── Alerte vaccins FEI non silençable ─────────────────────── */}
       {vaccinsAlerte.length > 0 && (
         <div className="rounded-2xl border-2 border-red-400 bg-red-50 p-4 space-y-2">
@@ -1590,10 +1600,12 @@ export default async function DashboardPage({
       {/* ── Dynamic blocks in temporal order ─────────────────────────── */}
       {(horses || []).length > 0 && (() => {
         // P6 Mode CAVALIER: hide gerant-specific blocks
-        const cavalierExclude: BlockKey[] = ["alertes", "todo", "ecurie"];
+        const cavalierExclude: BlockKey[] = ["alertes", "todo", "ecurie", "chevaux", "programme"];
         // Note: "coach" is intentionally NOT excluded from cavalierExclude
         // P6 Mode GÉRANT: hide cavalier-specific blocks
         const gerantExclude: BlockKey[] = ["chevaux", "programme", "concours", "plan_ia", "sessions"];
+        // Fixed blocks (always rendered above): exclude from dynamic list
+        const fixedExclude: BlockKey[] = ["chevaux", "programme"];
 
         const filtered = isP6
           ? blockOrder.filter((k) =>
@@ -1601,7 +1613,7 @@ export default async function DashboardPage({
                 ? !cavalierExclude.includes(k)
                 : !gerantExclude.includes(k)
             )
-          : blockOrder;
+          : blockOrder.filter((k) => !fixedExclude.includes(k));
 
         return filtered.map((key) =>
           blockMap[key] ? <div key={key}>{blockMap[key]}</div> : null

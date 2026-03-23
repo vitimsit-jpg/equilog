@@ -20,7 +20,8 @@ import toast from "react-hot-toast";
 import type { TrainingSession, TrainingPlannedSession, TrainingType } from "@/lib/supabase/types";
 import { TRAINING_TYPE_LABELS } from "@/lib/utils";
 import Modal from "@/components/ui/Modal";
-import TrainingForm from "./TrainingForm";
+import QuickTrainingModal, { DISCIPLINE_ITEMS, INTENSITY_OPTIONS, RIDER_OPTIONS } from "./QuickTrainingModal";
+import type { PrefillData } from "./QuickTrainingModal";
 
 const TYPE_COLORS: Record<string, string> = {
   dressage: "bg-blue-100 text-blue-700",
@@ -63,6 +64,9 @@ type PlanFormState = {
   duration_min_target: string;
   notes: string;
   date: string;
+  complement: string[];
+  qui_monte: string;
+  intensity_target: string;
 };
 
 export default function VueSemaine({ horseId, sessions, plannedSessions, healthRecords }: Props) {
@@ -80,7 +84,11 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
     duration_min_target: "45",
     notes: "",
     date: format(new Date(), "yyyy-MM-dd"),
+    complement: [],
+    qui_monte: "",
+    intensity_target: "",
   });
+  const [logPrefill, setLogPrefill] = useState<PrefillData | null>(null);
   const [durationOther, setDurationOther] = useState(false);
   const [savingPlan, setSavingPlan] = useState(false);
   const [copyingPrev, setCopyingPrev] = useState(false);
@@ -174,17 +182,31 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
         duration_min_target: dur,
         notes: planned.notes || "",
         date: planned.date,
+        complement: (planned as any).complement ?? [],
+        qui_monte: (planned as any).qui_monte ?? "",
+        intensity_target: planned.intensity_target ? String(planned.intensity_target) : "",
       });
     } else {
       setEditPlanned(null);
       setDurationOther(false);
-      setPlanForm({ type: "dressage", duration_min_target: "45", notes: "", date: dateStr });
+      setPlanForm({ type: "dressage", duration_min_target: "45", notes: "", date: dateStr, complement: [], qui_monte: "", intensity_target: "" });
     }
     setShowPlanModal(true);
   };
 
-  const openLogModal = (dateStr: string) => {
+  const openLogModal = (dateStr: string, fromPlanned?: TrainingPlannedSession) => {
     setSelectedDate(dateStr);
+    if (fromPlanned) {
+      setLogPrefill({
+        type: fromPlanned.type,
+        complement: (fromPlanned as any).complement ?? null,
+        rider: (fromPlanned as any).qui_monte ?? null,
+        duration: fromPlanned.duration_min_target ?? null,
+        intensity: fromPlanned.intensity_target ? fromPlanned.intensity_target : null,
+      });
+    } else {
+      setLogPrefill(null);
+    }
     setShowLogModal(true);
   };
 
@@ -197,6 +219,9 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
         type: planForm.type,
         duration_min_target: parseInt(planForm.duration_min_target) || 45,
         notes: planForm.notes || null,
+        complement: planForm.complement.length > 0 ? planForm.complement : null,
+        qui_monte: planForm.qui_monte || null,
+        intensity_target: planForm.intensity_target ? parseInt(planForm.intensity_target) as (1|2|3|4|5) : null,
       };
       const { error } = editPlanned
         ? await supabase.from("training_planned_sessions").update(payload).eq("id", editPlanned.id)
@@ -269,8 +294,6 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
     }
     setSuggestingIA(false);
   };
-
-  const typeOptions = Object.entries(TRAINING_TYPE_LABELS).map(([v, l]) => ({ value: v, label: l }));
 
   return (
     <div className="space-y-4">
@@ -489,7 +512,7 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
                     {!isPast && !isSkipped && (
                       <div className="flex gap-1">
                         <button
-                          onClick={() => openLogModal(dateKey)}
+                          onClick={() => openLogModal(dateKey, p)}
                           title="Marquer comme réalisée"
                           className="p-1 hover:bg-green-50 rounded text-gray-300 hover:text-success transition-colors"
                         >
@@ -604,19 +627,99 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
             )}
           </div>
 
-          {/* Type */}
+          {/* Type de travail */}
           <div>
-            <label className="label">Type de travail</label>
-            <select
-              value={planForm.type}
-              onChange={(e) => setPlanForm({ ...planForm, type: e.target.value as TrainingType })}
-              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-orange bg-white"
-            >
-              {typeOptions.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
+            <label className="label mb-2">Type de travail</label>
+            <div className="grid grid-cols-3 gap-2">
+              {DISCIPLINE_ITEMS.map((item) => (
+                <button
+                  key={item.type}
+                  type="button"
+                  onClick={() => setPlanForm({ ...planForm, type: item.type })}
+                  className={`flex flex-col items-center gap-1 py-2.5 rounded-xl border-2 text-xs font-semibold transition-all min-h-[56px] ${
+                    planForm.type === item.type
+                      ? "border-orange bg-orange-light text-orange"
+                      : "border-gray-100 bg-gray-50 text-gray-600 hover:border-gray-200"
+                  }`}
+                >
+                  <span className="text-base">{item.emoji}</span>
+                  <span className="leading-tight text-center">{item.label}</span>
+                </button>
               ))}
-            </select>
+            </div>
           </div>
+
+          {/* En complément */}
+          <div>
+            <label className="label mb-2">En complément</label>
+            <div className="flex gap-2">
+              {[{ value: "marcheur", emoji: "🔄", label: "Marcheur" }, { value: "paddock", emoji: "🌿", label: "Paddock" }].map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setPlanForm({
+                    ...planForm,
+                    complement: planForm.complement.includes(opt.value)
+                      ? planForm.complement.filter(x => x !== opt.value)
+                      : [...planForm.complement, opt.value],
+                  })}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl border-2 text-xs font-semibold transition-all ${
+                    planForm.complement.includes(opt.value)
+                      ? "border-orange bg-orange-light text-orange"
+                      : "border-gray-100 bg-gray-50 text-gray-600 hover:border-gray-200"
+                  }`}
+                >
+                  <span>{opt.emoji}</span>
+                  <span>{opt.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Qui monte — hidden if complement-only */}
+          {(planForm.type || planForm.complement.length === 0) && (
+            <div>
+              <label className="label mb-2">Qui monte</label>
+              <div className="grid grid-cols-3 gap-2">
+                {RIDER_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setPlanForm({ ...planForm, qui_monte: planForm.qui_monte === opt.value ? "" : opt.value })}
+                    className={`flex flex-col items-center gap-1 py-2 rounded-xl border-2 text-xs font-semibold transition-all ${
+                      planForm.qui_monte === opt.value
+                        ? "border-orange bg-orange-light text-orange"
+                        : "border-gray-100 bg-gray-50 text-gray-600 hover:border-gray-200"
+                    }`}
+                  >
+                    <span>{opt.emoji}</span>
+                    <span className="leading-tight text-center">{opt.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Intensité cible — hidden if complement-only */}
+          {(planForm.type || planForm.complement.length === 0) && (
+            <div>
+              <label className="label mb-2">Intensité cible</label>
+              <div className="grid grid-cols-3 gap-2">
+                {INTENSITY_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setPlanForm({ ...planForm, intensity_target: planForm.intensity_target === String(opt.value) ? "" : String(opt.value) })}
+                    className={`py-2.5 rounded-xl border-2 text-xs font-bold transition-all ${
+                      planForm.intensity_target === String(opt.value) ? opt.active : opt.inactive
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Duration presets */}
           <div>
@@ -683,16 +786,13 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
       </Modal>
 
       {/* Log session modal */}
-      {showLogModal && selectedDate && (
-        <Modal open={showLogModal} onClose={() => setShowLogModal(false)} title="Logger une séance">
-          <TrainingForm
-            horseId={horseId}
-            defaultValues={{ date: selectedDate }}
-            onSaved={() => { setShowLogModal(false); startTransition(() => router.refresh()); }}
-            onCancel={() => setShowLogModal(false)}
-          />
-        </Modal>
-      )}
+      <QuickTrainingModal
+        open={showLogModal && !!selectedDate}
+        onClose={() => { setShowLogModal(false); setLogPrefill(null); }}
+        horseId={horseId}
+        onSaved={() => { setShowLogModal(false); setLogPrefill(null); startTransition(() => router.refresh()); }}
+        prefill={logPrefill}
+      />
     </div>
   );
 }

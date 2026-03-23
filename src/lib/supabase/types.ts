@@ -3,7 +3,7 @@ export type HorseIndexMode = "IC" | "IE" | "IP" | "IR" | "IS" | "ICr";
 export type UserType = "loisir" | "competition" | "pro" | "gerant_cavalier" | "coach" | "gerant_ecurie";
 export type ProfileType = "loisir" | "competition" | "pro" | "gerant";
 export type HealthType = "vaccin" | "vermifuge" | "dentiste" | "osteo" | "ferrage" | "veterinaire" | "masseuse" | "autre";
-export type TrainingType = "dressage" | "plat" | "stretching" | "barres_sol" | "cavalettis" | "meca_obstacles" | "obstacles_enchainement" | "cross_entrainement" | "longe" | "longues_renes" | "travail_a_pied" | "balade" | "trotting" | "galop" | "marcheur" | "concours" | "autre";
+export type TrainingType = "dressage" | "plat" | "stretching" | "barres_sol" | "cavalettis" | "meca_obstacles" | "obstacles_enchainement" | "cross_entrainement" | "longe" | "longues_renes" | "travail_a_pied" | "balade" | "trotting" | "galop" | "marcheur" | "paddock" | "concours" | "autre";
 export type TrainingRider = "owner" | "owner_with_coach" | "coach" | "longe" | "travail_a_pied";
 export type WearableSource = "equisense" | "seaver" | "garmin" | "equilab" | "autre";
 export type BudgetCategory = "pension" | "soins" | "concours" | "equipement" | "maréchalerie" | "alimentation" | "transport" | "autre";
@@ -118,6 +118,7 @@ export interface TrainingSession {
   equipement_recuperation: string | null;
   wearable_source: WearableSource | null;
   media_urls: string[] | null;
+  complement: string[] | null;
   linked_competition_id: string | null;
   created_at: string;
 }
@@ -135,6 +136,10 @@ export interface Competition {
   notes: string | null;
   location: string | null;
   media_urls: string[] | null;
+  status: "a_venir" | "passe" | null;
+  score_dressage: number | null;
+  penalites_cso: number | null;
+  penalites_cross: number | null;
   created_at: string;
 }
 
@@ -210,6 +215,8 @@ export interface TrainingPlannedSession {
   type: TrainingType;
   duration_min_target: number | null;
   intensity_target: 1 | 2 | 3 | 4 | 5 | null;
+  complement: string[] | null;
+  qui_monte: TrainingRider | null;
   notes: string | null;
   status: "planned" | "skipped";
   linked_session_id: string | null;

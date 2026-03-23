@@ -13,7 +13,7 @@ import VoiceButton from "./VoiceButton";
 import Button from "@/components/ui/Button";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ClipboardList, HeartPulse, AlertTriangle, Link2 } from "lucide-react";
+import { ClipboardList, HeartPulse, AlertTriangle, Link2, ChevronDown } from "lucide-react";
 
 const DISCIPLINE_ITEMS: { type: TrainingType; emoji: string; label: string }[] = [
   { type: "dressage",              emoji: "🎯", label: "Dressage" },
@@ -96,6 +96,9 @@ export default function QuickTrainingModal({ open, onClose, horseId, horseName, 
   const [linkedCompetitionId, setLinkedCompetitionId] = useState<string | null>(null);
   const [dateMode, setDateMode] = useState<DateMode>("today");
   const [customDate, setCustomDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [showDetails, setShowDetails] = useState(false);
+  const [lieu, setLieu] = useState<string | null>(null);
+  const [equipementRecup, setEquipementRecup] = useState<string[]>([]);
 
   const effectiveDuration = showCustom && customDuration ? parseInt(customDuration) || 45 : duration;
 
@@ -173,8 +176,8 @@ export default function QuickTrainingModal({ open, onClose, horseId, horseName, 
       rider,
       coach_present: rider === "owner_with_coach" || rider === "coach",
       objectif: null,
-      lieu: null,
-      equipement_recuperation: null,
+      lieu: lieu,
+      equipement_recuperation: equipementRecup.length > 0 ? equipementRecup : null,
       wearable_source: null,
       linked_competition_id: linkedCompetitionId || null,
     };
@@ -235,6 +238,9 @@ export default function QuickTrainingModal({ open, onClose, horseId, horseName, 
     setNotes("");
     setDateMode("today");
     setCustomDate(format(new Date(), "yyyy-MM-dd"));
+    setShowDetails(false);
+    setLieu(null);
+    setEquipementRecup([]);
     setShowHealthBridge(false);
     setShowCoachMsg(false);
     setCoachMsg("");
@@ -576,6 +582,60 @@ export default function QuickTrainingModal({ open, onClose, horseId, horseName, 
               rows={2}
               className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-orange resize-none"
             />
+          </div>
+
+          {/* Détails optionnels */}
+          <div>
+            <button
+              type="button"
+              onClick={() => setShowDetails((v) => !v)}
+              className="flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-black transition-colors w-full"
+            >
+              <ChevronDown className={`h-4 w-4 transition-transform ${showDetails ? "rotate-180" : ""}`} />
+              {showDetails ? "Masquer les détails" : "Ajouter des détails"}
+            </button>
+
+            {showDetails && (
+              <div className="mt-3 space-y-4">
+                {/* Lieu */}
+                <div>
+                  <p className="label mb-2">Lieu</p>
+                  <div className="flex flex-wrap gap-2">
+                    {["Carrière", "Manège", "Extérieur", "Rond de longe", "Marcheur"].map((l) => (
+                      <button
+                        key={l}
+                        type="button"
+                        onClick={() => setLieu(lieu === l ? null : l)}
+                        className={`px-3 py-2 rounded-xl border-2 text-xs font-semibold transition-all ${
+                          lieu === l ? "bg-black text-white border-black" : "bg-white text-gray-600 border-gray-200 hover:border-gray-300"
+                        }`}
+                      >
+                        {l}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Équipement de récupération */}
+                <div>
+                  <p className="label mb-2">Équipement de récupération</p>
+                  <div className="flex flex-wrap gap-2">
+                    {["Bandes de repos", "Argile", "Froid", "Rien de particulier", "Autre"].map((eq) => (
+                      <button
+                        key={eq}
+                        type="button"
+                        onClick={() => setEquipementRecup((prev) => prev.includes(eq) ? prev.filter((x) => x !== eq) : [...prev, eq])}
+                        className={`px-3 py-2 rounded-xl border-2 text-xs font-semibold transition-all ${
+                          equipementRecup.includes(eq) ? "bg-black text-white border-black" : "bg-white text-gray-600 border-gray-200 hover:border-gray-300"
+                        }`}
+                      >
+                        {eq}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Actions */}

@@ -63,6 +63,7 @@ export interface Horse {
   assurance: string | null;
   sire_number: string | null;
   fei_number: string | null;
+  taille: "moins_148" | "148_160" | "160_170" | "plus_170" | null;
   // Profil météo (migration 019)
   tonte: "non_tondu" | "partielle" | "complete" | null;
   morphologie_meteo: "sang_chaud" | "pur_sang" | "rustique" | null;

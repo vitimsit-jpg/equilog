@@ -17,18 +17,32 @@ const PROFILES: { type: ProfileType; emoji: string; title: string; subtitle: str
   { type: "gerant",      emoji: "🏘", title: "Je gère une structure équestre",      subtitle: "Centre équestre, écurie de propriétaires..." },
 ];
 
-const MODE_VIE_OPTIONS: { mode: HorseIndexMode; emoji: string; label: string }[] = [
-  { mode: "IE",  emoji: "🌿", label: "Actif loisir" },
-  { mode: "IC",  emoji: "🏆", label: "Actif compétition" },
-  { mode: "IP",  emoji: "🐾", label: "Semi-actif" },
-  { mode: "IR",  emoji: "💊", label: "Convalescence" },
-  { mode: "IS",  emoji: "🌸", label: "Retraite" },
-  { mode: "ICr", emoji: "🌱", label: "Poulain" },
+const MODE_VIE_OPTIONS: { mode: HorseIndexMode; emoji: string; label: string; desc: string }[] = [
+  { mode: "IE",  emoji: "🌿", label: "Équilibre",    desc: "Pratique régulière, loisir ou club" },
+  { mode: "IC",  emoji: "🏆", label: "Compétition",  desc: "Préparation et sorties en concours" },
+  { mode: "ICr", emoji: "🌱", label: "Croissance",   desc: "Poulain ou jeune cheval en développement" },
+  { mode: "IR",  emoji: "💊", label: "Convalescence",desc: "Blessure, arrêt ou repos médical" },
+  { mode: "IS",  emoji: "🌸", label: "Retraite",     desc: "Cheval retraité ou à très faible activité" },
+  { mode: "IP",  emoji: "🔄", label: "Rééducation",  desc: "Reprise progressive après blessure ou pause" },
 ];
 
 const DISCIPLINES = ["CSO", "CCE", "Dressage", "Endurance", "TREC", "Équitation Western", "Hunter", "Autre"];
 
 const GRAMMAGES = [0, 50, 100, 150, 200, 300, 400];
+
+const TAILLE_OPTIONS = [
+  { value: "moins_148", label: "< 1,48m" },
+  { value: "148_160",   label: "1,48 – 1,60m" },
+  { value: "160_170",   label: "1,60 – 1,70m" },
+  { value: "plus_170",  label: "> 1,70m" },
+] as const;
+
+const REGIONS_FRANCE = [
+  "Auvergne-Rhône-Alpes", "Bourgogne-Franche-Comté", "Bretagne",
+  "Centre-Val de Loire", "Corse", "Grand Est", "Hauts-de-France",
+  "Île-de-France", "Normandie", "Nouvelle-Aquitaine", "Occitanie",
+  "Pays de la Loire", "Provence-Alpes-Côte d'Azur",
+];
 
 // ─── Types internes ─────────────────────────────────────────────────────────
 
@@ -36,10 +50,10 @@ type Couverture = { label: string; grammage: number; impermeable: boolean };
 
 // ─── Helpers navigation ────────────────────────────────────────────────────
 
-// Steps: 1=profil 2=modules 3=cheval 4=trousseau 5=cavalier 6=notifs 7=success
+// Steps: 1=profil 2=modules-complémentaires 3=cheval 4=modules-app 5=trousseau 6=cavalier 7=notifs 8=success
 function getSteps(profile: ProfileType): number[] {
-  if (profile === "gerant") return [1, 5, 6]; // skip modules, cheval, trousseau
-  return [1, 2, 3, 4, 5, 6];
+  if (profile === "gerant") return [1, 6, 7]; // skip modules, cheval, trousseau, modules-app
+  return [1, 2, 3, 4, 5, 6, 7];
 }
 
 // ─── Composant ─────────────────────────────────────────────────────────────
@@ -71,15 +85,26 @@ export default function OnboardingPage() {
   const [ecurie, setEcurie] = useState("");
   const [logement, setLogement] = useState<"" | "box" | "pre" | "box_paddock">("");
   const [tonte, setTonte] = useState<"" | "non_tondu" | "partielle" | "complete">("");
+  const [horseTaille, setHorseTaille] = useState<"" | "moins_148" | "148_160" | "160_170" | "plus_170">("");
+  const [horseRegion, setHorseRegion] = useState("");
+  // Step 4 — modules app
+  const [appModules, setAppModules] = useState<Record<string, boolean>>({
+    journal_seances: true,
+    communaute: true,
+    budget: false,
+    documents: false,
+    planning: false,
+    analyse_ia: false,
+  });
 
-  // Step 4 — trousseau
+  // Step 5 — trousseau
   const [trousseau, setTrousseau] = useState<Couverture[]>([]);
   const [newCouv, setNewCouv] = useState<{ grammage: string; impermeable: boolean }>({ grammage: "", impermeable: false });
 
   // Step 3 — toggle détails
   const [showHorseDetails, setShowHorseDetails] = useState(false);
 
-  // Step 5 — profil cavalier
+  // Step 6 — profil cavalier
   const [riderNiveau, setRiderNiveau] = useState<"" | "debutant" | "amateur" | "confirme" | "pro">("");
   const [riderObjectif, setRiderObjectif] = useState<"" | "competition" | "progression" | "loisir" | "remise_en_forme">("");
   const [riderFrequence, setRiderFrequence] = useState<number | null>(null);
@@ -92,7 +117,7 @@ export default function OnboardingPage() {
   const [riderActiviteFrequence, setRiderActiviteFrequence] = useState("");
   const [riderObjectifsCavalier, setRiderObjectifsCavalier] = useState<string[]>([]);
 
-  // Step 6 — notifs
+  // Step 7 — notifs
   const [notifHealth, setNotifHealth] = useState(true);
   const [notifWeekly, setNotifWeekly] = useState(true);
 
@@ -121,7 +146,7 @@ export default function OnboardingPage() {
 
   const nextStep = () => {
     if (isLastStep) {
-      setStep(7); // success
+      setStep(8); // success
     } else {
       setStep(steps[currentIdx + 1]);
     }
@@ -190,6 +215,8 @@ export default function OnboardingPage() {
       ecurie: ecurie.trim() || null,
       conditions_vie: logement || null,
       tonte: tonte || null,
+      taille: horseTaille || null,
+      region: horseRegion || null,
     }).select("id").single();
 
     if (error || !horse) {
@@ -203,11 +230,21 @@ export default function OnboardingPage() {
     setLoading(false);
   };
 
+  const handleStep4ModulesNext = async () => {
+    if (userId) {
+      await supabase.from("users").update({
+        user_modules: appModules,
+        onboarding_step: 4,
+      }).eq("id", userId);
+    }
+    nextStep();
+  };
+
   const handleStep4Next = async () => {
     if (createdHorseId && trousseau.length > 0) {
       await supabase.from("horses").update({ trousseau }).eq("id", createdHorseId);
     }
-    if (userId) await supabase.from("users").update({ onboarding_step: 4 }).eq("id", userId);
+    if (userId) await supabase.from("users").update({ onboarding_step: 5 }).eq("id", userId);
     nextStep();
   };
 
@@ -226,7 +263,7 @@ export default function OnboardingPage() {
         rider_activite_types: riderActiviteTypes.length > 0 ? riderActiviteTypes : null,
         rider_activite_frequence: riderActiviteFrequence || null,
         rider_objectifs_cavalier: riderObjectifsCavalier.length > 0 ? riderObjectifsCavalier : null,
-        onboarding_step: 5,
+        onboarding_step: 6,
       }).eq("id", userId);
     }
     nextStep();
@@ -238,7 +275,7 @@ export default function OnboardingPage() {
     await supabase.from("users").update({
       notify_health_reminders: notifHealth,
       notify_weekly_summary: notifWeekly,
-      onboarding_step: 6,
+      onboarding_step: 7,
       onboarding_completed: true,
     }).eq("id", userId);
     nextStep();
@@ -264,13 +301,13 @@ export default function OnboardingPage() {
         <div key={s} className="flex items-center gap-1.5">
           <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
             step === s ? "bg-black text-white scale-110"
-              : step > s || (step === 6) ? "bg-green-500 text-white"
+              : step > s || (step === 7) ? "bg-green-500 text-white"
               : "bg-gray-100 text-gray-400"
           }`}>
-            {(step > s || step === 6) ? <Check className="h-3.5 w-3.5" /> : i + 1}
+            {(step > s || step === 7) ? <Check className="h-3.5 w-3.5" /> : i + 1}
           </div>
           {i < steps.length - 1 && (
-            <div className={`w-8 h-0.5 transition-all ${(step > s || step === 6) ? "bg-green-500" : "bg-gray-100"}`} />
+            <div className={`w-8 h-0.5 transition-all ${(step > s || step === 7) ? "bg-green-500" : "bg-gray-100"}`} />
           )}
         </div>
       ))}
@@ -280,9 +317,9 @@ export default function OnboardingPage() {
   const isDisciplineRequired = selectedProfile === "competition" || selectedProfile === "pro";
   const isDisciplineVisible = selectedProfile !== "loisir";
 
-  // ─── Step 7 : Succès ───────────────────────────────────────────────────
+  // ─── Step 8 : Succès ───────────────────────────────────────────────────
 
-  if (step === 7) {
+  if (step === 8) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center p-4">
         <div className="w-full max-w-sm text-center">
@@ -313,7 +350,7 @@ export default function OnboardingPage() {
     );
   }
 
-  // ─── Steps 1–5 ─────────────────────────────────────────────────────────
+  // ─── Steps 1–7 ─────────────────────────────────────────────────────────
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center p-4">
@@ -467,14 +504,17 @@ export default function OnboardingPage() {
                       key={m.mode}
                       type="button"
                       onClick={() => setModeVie(m.mode)}
-                      className={`flex items-center gap-2 p-2.5 rounded-xl border-2 text-left transition-all ${
+                      className={`flex flex-col items-start gap-1 p-2.5 rounded-xl border-2 text-left transition-all ${
                         modeVie === m.mode
                           ? "border-orange bg-orange-light"
                           : "border-gray-200 hover:border-gray-300"
                       }`}
                     >
-                      <span className="text-lg">{m.emoji}</span>
-                      <span className={`text-xs font-semibold ${modeVie === m.mode ? "text-orange" : "text-gray-700"}`}>{m.label}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">{m.emoji}</span>
+                        <span className={`text-xs font-semibold ${modeVie === m.mode ? "text-orange" : "text-gray-700"}`}>{m.label}</span>
+                      </div>
+                      <span className={`text-2xs leading-tight ${modeVie === m.mode ? "text-orange/70" : "text-gray-400"}`}>{m.desc}</span>
                     </button>
                   ))}
                 </div>
@@ -603,6 +643,36 @@ export default function OnboardingPage() {
                       </div>
                     </div>
                   </div>
+
+                  {/* Taille */}
+                  <div>
+                    <label className="label">Taille</label>
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      {TAILLE_OPTIONS.map((t) => (
+                        <button key={t.value} type="button"
+                          onClick={() => setHorseTaille(horseTaille === t.value ? "" : t.value)}
+                          className={`px-3 py-2 rounded-xl border-2 text-xs font-semibold transition-all ${
+                            horseTaille === t.value ? "border-black bg-black text-white" : "border-gray-200 hover:border-gray-300 text-gray-700"
+                          }`}
+                        >{t.label}</button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Région */}
+                  <div>
+                    <label className="label">Région</label>
+                    <select
+                      value={horseRegion}
+                      onChange={(e) => setHorseRegion(e.target.value)}
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-black mt-1 bg-white"
+                    >
+                      <option value="">Sélectionner une région…</option>
+                      {REGIONS_FRANCE.map((r) => (
+                        <option key={r} value={r}>{r}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               )}
             </div>
@@ -622,8 +692,66 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* ── Step 4 : Trousseau ── */}
+        {/* ── Step 4 : Modules app ── */}
         {step === 4 && (
+          <div>
+            <div className="text-center mb-6">
+              <div className="w-12 h-12 rounded-2xl bg-black flex items-center justify-center mx-auto mb-3">
+                <span className="text-2xl">⚙️</span>
+              </div>
+              <h1 className="text-xl font-bold text-black">Personnalisez votre app</h1>
+              <p className="text-sm text-gray-400 mt-1">Activez les modules dont vous avez besoin. Tout est modifiable plus tard.</p>
+            </div>
+
+            <div className="space-y-3 mb-6">
+              {[
+                { key: "journal_seances", emoji: "🏇", label: "Journal de séances", desc: "Enregistrez vos séances et suivez la progression", defaultOn: true },
+                { key: "communaute",      emoji: "👥", label: "Communauté",          desc: "Échangez avec d'autres cavaliers de votre écurie", defaultOn: true },
+                { key: "budget",          emoji: "💰", label: "Budget",              desc: "Suivez les dépenses liées à votre cheval", defaultOn: false },
+                { key: "documents",       emoji: "📄", label: "Documents",           desc: "Gérez passeports, contrats et fichiers", defaultOn: false },
+                { key: "planning",        emoji: "📅", label: "Planning & Programme",desc: "Planifiez vos séances et votre programme", defaultOn: false },
+                { key: "analyse_ia",      emoji: "🤖", label: "Analyse IA",          desc: "Analysez vos vidéos avec l'intelligence artificielle", defaultOn: false },
+              ].map(({ key, emoji, label, desc }) => {
+                const active = appModules[key] ?? false;
+                return (
+                  <div key={key} className="flex items-center justify-between gap-3 p-3 rounded-xl border border-gray-100 bg-gray-50">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className="text-xl flex-shrink-0">{emoji}</span>
+                      <div>
+                        <p className="text-sm font-semibold text-black">{label}</p>
+                        <p className="text-xs text-gray-400">{desc}</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setAppModules((prev) => ({ ...prev, [key]: !prev[key] }))}
+                      className={`relative w-10 h-6 rounded-full transition-colors flex-shrink-0 ${active ? "bg-black" : "bg-gray-200"}`}
+                    >
+                      <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${active ? "translate-x-5" : "translate-x-1"}`} />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="flex gap-3">
+              <button onClick={prevStep} className="btn-ghost flex items-center gap-1.5">
+                <ArrowLeft className="h-4 w-4" /> Retour
+              </button>
+              <div className="flex-1 flex flex-col gap-2">
+                <button onClick={handleStep4ModulesNext} className="btn-primary w-full justify-center">
+                  Continuer <ArrowRight className="h-4 w-4" />
+                </button>
+                <button onClick={() => nextStep()} className="text-xs text-center text-gray-400 hover:text-black py-1">
+                  Passer cette étape →
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Step 5 : Trousseau ── */}
+        {step === 5 && (
           <div>
             <div className="text-center mb-6">
               <h1 className="text-xl font-bold text-black">
@@ -719,8 +847,8 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* ── Step 5 : Profil cavalier ── */}
-        {step === 5 && (
+        {/* ── Step 6 : Profil cavalier ── */}
+        {step === 6 && (
           <div>
             <div className="text-center mb-6">
               <div className="w-12 h-12 rounded-2xl bg-black flex items-center justify-center mx-auto mb-3">
@@ -988,8 +1116,8 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* ── Step 6 : Notifications ── */}
-        {step === 6 && (
+        {/* ── Step 7 : Notifications ── */}
+        {step === 7 && (
           <div>
             <div className="text-center mb-6">
               <div className="w-12 h-12 rounded-2xl bg-black flex items-center justify-center mx-auto mb-3">

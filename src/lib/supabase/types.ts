@@ -33,6 +33,9 @@ export interface User {
   rider_disciplines: string[] | null;
   rider_frequence: number | null;
   rider_objectif: 'competition' | 'progression' | 'loisir' | 'remise_en_forme' | null;
+  rider_zones_douloureuses: string[] | null;
+  rider_asymetrie: 'droite' | 'gauche' | 'symetrique' | 'ne_sais_pas' | null;
+  rider_pathologies: string | null;
 }
 
 export interface Horse {

@@ -84,6 +84,9 @@ export default function OnboardingPage() {
   const [riderObjectif, setRiderObjectif] = useState<"" | "competition" | "progression" | "loisir" | "remise_en_forme">("");
   const [riderFrequence, setRiderFrequence] = useState<number | null>(null);
   const [riderDisciplines, setRiderDisciplines] = useState<string[]>([]);
+  const [riderZones, setRiderZones] = useState<string[]>([]);
+  const [riderAsymetrie, setRiderAsymetrie] = useState<"" | "droite" | "gauche" | "symetrique" | "ne_sais_pas">("");
+  const [riderPathologies, setRiderPathologies] = useState("");
 
   // Step 6 — notifs
   const [notifHealth, setNotifHealth] = useState(true);
@@ -205,12 +208,15 @@ export default function OnboardingPage() {
   };
 
   const handleStep5Next = async () => {
-    if (userId && (riderNiveau || riderObjectif || riderFrequence || riderDisciplines.length > 0)) {
+    if (userId && (riderNiveau || riderObjectif || riderFrequence || riderDisciplines.length > 0 || riderZones.length > 0 || riderAsymetrie || riderPathologies.trim())) {
       await supabase.from("users").update({
         rider_niveau: riderNiveau || null,
         rider_objectif: riderObjectif || null,
         rider_frequence: riderFrequence,
         rider_disciplines: riderDisciplines.length > 0 ? riderDisciplines : null,
+        rider_zones_douloureuses: riderZones.length > 0 ? riderZones : null,
+        rider_asymetrie: riderAsymetrie || null,
+        rider_pathologies: riderPathologies.trim() || null,
         onboarding_step: 5,
       }).eq("id", userId);
     }
@@ -790,6 +796,63 @@ export default function OnboardingPage() {
                       {d}
                     </button>
                   ))}
+                </div>
+              </div>
+
+              {/* Douleurs & pathologies */}
+              <div className="pt-4 border-t border-gray-100">
+                <p className="text-sm font-bold text-black mb-0.5">Douleurs & pathologies chroniques</p>
+                <p className="text-xs text-gray-400 mb-4">Optionnel — aide l&apos;IA à personnaliser ses conseils.</p>
+
+                <div className="mb-4">
+                  <label className="label mb-2">Zones douloureuses habituelles</label>
+                  <div className="flex flex-wrap gap-2">
+                    {["Lombaires (bas du dos)", "Nuque / cervicales", "Épaules", "Milieu du dos", "Bassin / sacro-iliaque", "Hanches / adducteurs", "Genoux", "Poignets", "Chevilles", "Autre"].map((z) => (
+                      <button key={z} type="button"
+                        onClick={() => setRiderZones((prev) => prev.includes(z) ? prev.filter((x) => x !== z) : [...prev, z])}
+                        className={`px-3 py-1.5 rounded-xl border-2 text-xs font-medium transition-all ${
+                          riderZones.includes(z) ? "border-black bg-black text-white" : "border-gray-200 hover:border-gray-300 text-gray-700"
+                        }`}
+                      >
+                        {z}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mb-3">
+                  <label className="label mb-2">Asymétrie / raideur</label>
+                  <div className="flex flex-wrap gap-2">
+                    {([
+                      { v: "droite",      l: "Plus raide à droite" },
+                      { v: "gauche",      l: "Plus raide à gauche" },
+                      { v: "symetrique",  l: "Plutôt symétrique" },
+                      { v: "ne_sais_pas", l: "Je ne sais pas" },
+                    ] as const).map(({ v, l }) => (
+                      <button key={v} type="button"
+                        onClick={() => setRiderAsymetrie(riderAsymetrie === v ? "" : v)}
+                        className={`px-3 py-1.5 rounded-xl border-2 text-xs font-medium transition-all ${
+                          riderAsymetrie === v ? "border-black bg-black text-white" : "border-gray-200 hover:border-gray-300 text-gray-700"
+                        }`}
+                      >
+                        {l}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-400 mt-2 leading-relaxed">
+                    La raideur d&apos;un côté se ressent souvent dans les transitions, les cercles ou les appuis en étriers.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="label mb-1">Pathologies connues <span className="font-normal text-gray-400">(optionnel)</span></label>
+                  <textarea
+                    value={riderPathologies}
+                    onChange={(e) => setRiderPathologies(e.target.value)}
+                    placeholder="Ex : scoliose, hernie discale, tendinite chronique…"
+                    rows={2}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-black resize-none mt-1"
+                  />
                 </div>
               </div>
             </div>

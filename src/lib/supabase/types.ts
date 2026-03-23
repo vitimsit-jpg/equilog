@@ -388,10 +388,11 @@ export interface RiderLog {
   id: string;
   user_id: string;
   date: string;
-  forme: 1 | 2 | 3 | 4 | 5 | null;
-  fatigue: 'legere' | 'moderee' | 'elevee' | null;
-  mental: 'motiv' | 'neutre' | 'fatigue' | 'stresse' | null;
+  forme: 'fatigue' | 'normal' | 'en_forme' | null;
+  fatigue?: string | null;
+  mental?: string | null;
   douleurs: string[] | null;
+  douleur_intensite: 'legere' | 'importante' | null;
   notes: string | null;
   created_at: string;
 }

@@ -88,7 +88,7 @@ export default async function DashboardPage({
 
   const { data: userProfile } = await supabase
     .from("users")
-    .select("user_type, profile_type, module_coach, module_gerant, name")
+    .select("user_type, profile_type, module_coach, module_gerant, name, rider_niveau, rider_objectif")
     .eq("id", authUser.id)
     .single();
 
@@ -1408,6 +1408,17 @@ export default async function DashboardPage({
 
       {/* ── État cavalier du jour ──────────────────────────────────────── */}
       <RiderStatusWidget userId={authUser.id} todayLog={(todayRiderLog as any) ?? null} />
+
+      {/* ── Nudge profil cavalier incomplet ───────────────────────────── */}
+      {!(userProfile as any)?.rider_niveau && !(userProfile as any)?.rider_objectif && (
+        <Link
+          href="/profil"
+          className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-blue-50 border border-blue-100 text-sm hover:bg-blue-100 transition-colors"
+        >
+          <span className="text-blue-700 font-medium">Pensez à compléter votre profil cavalier pour des recommandations personnalisées</span>
+          <svg className="h-4 w-4 text-blue-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+        </Link>
+      )}
 
       {/* ── Empty state 0 chevaux ─────────────────────────────────────── */}
       {(horses || []).length === 0 && (

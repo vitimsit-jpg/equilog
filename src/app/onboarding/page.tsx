@@ -36,10 +36,10 @@ type Couverture = { label: string; grammage: number; impermeable: boolean };
 
 // ─── Helpers navigation ────────────────────────────────────────────────────
 
-// Steps: 1=profil 2=modules 3=cheval 4=trousseau 5=notifs 6=success
+// Steps: 1=profil 2=modules 3=cheval 4=trousseau 5=cavalier 6=notifs 7=success
 function getSteps(profile: ProfileType): number[] {
-  if (profile === "gerant") return [1, 5]; // skip modules, cheval, trousseau
-  return [1, 2, 3, 4, 5];
+  if (profile === "gerant") return [1, 5, 6]; // skip modules, cheval, trousseau
+  return [1, 2, 3, 4, 5, 6];
 }
 
 // ─── Composant ─────────────────────────────────────────────────────────────
@@ -79,7 +79,13 @@ export default function OnboardingPage() {
   // Step 3 — toggle détails
   const [showHorseDetails, setShowHorseDetails] = useState(false);
 
-  // Step 5 — notifs
+  // Step 5 — profil cavalier
+  const [riderNiveau, setRiderNiveau] = useState<"" | "debutant" | "amateur" | "confirme" | "pro">("");
+  const [riderObjectif, setRiderObjectif] = useState<"" | "competition" | "progression" | "loisir" | "remise_en_forme">("");
+  const [riderFrequence, setRiderFrequence] = useState<number | null>(null);
+  const [riderDisciplines, setRiderDisciplines] = useState<string[]>([]);
+
+  // Step 6 — notifs
   const [notifHealth, setNotifHealth] = useState(true);
   const [notifWeekly, setNotifWeekly] = useState(true);
 
@@ -108,7 +114,7 @@ export default function OnboardingPage() {
 
   const nextStep = () => {
     if (isLastStep) {
-      setStep(6); // success
+      setStep(7); // success
     } else {
       setStep(steps[currentIdx + 1]);
     }
@@ -198,13 +204,26 @@ export default function OnboardingPage() {
     nextStep();
   };
 
+  const handleStep5Next = async () => {
+    if (userId && (riderNiveau || riderObjectif || riderFrequence || riderDisciplines.length > 0)) {
+      await supabase.from("users").update({
+        rider_niveau: riderNiveau || null,
+        rider_objectif: riderObjectif || null,
+        rider_frequence: riderFrequence,
+        rider_disciplines: riderDisciplines.length > 0 ? riderDisciplines : null,
+        onboarding_step: 5,
+      }).eq("id", userId);
+    }
+    nextStep();
+  };
+
   const handleFinish = async () => {
     if (!userId) { router.push("/dashboard"); return; }
     setLoading(true);
     await supabase.from("users").update({
       notify_health_reminders: notifHealth,
       notify_weekly_summary: notifWeekly,
-      onboarding_step: 5,
+      onboarding_step: 6,
       onboarding_completed: true,
     }).eq("id", userId);
     nextStep();
@@ -246,9 +265,9 @@ export default function OnboardingPage() {
   const isDisciplineRequired = selectedProfile === "competition" || selectedProfile === "pro";
   const isDisciplineVisible = selectedProfile !== "loisir";
 
-  // ─── Step 6 : Succès ───────────────────────────────────────────────────
+  // ─── Step 7 : Succès ───────────────────────────────────────────────────
 
-  if (step === 6) {
+  if (step === 7) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center p-4">
         <div className="w-full max-w-sm text-center">
@@ -685,8 +704,114 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* ── Step 5 : Notifications ── */}
+        {/* ── Step 5 : Profil cavalier ── */}
         {step === 5 && (
+          <div>
+            <div className="text-center mb-6">
+              <div className="w-12 h-12 rounded-2xl bg-black flex items-center justify-center mx-auto mb-3">
+                <span className="text-2xl">🏇</span>
+              </div>
+              <h1 className="text-xl font-bold text-black">Votre profil cavalier</h1>
+              <p className="text-sm text-gray-400 mt-1">Aide l&apos;IA à personnaliser ses recommandations pour vous.</p>
+            </div>
+
+            <div className="space-y-5 mb-6">
+              {/* Niveau */}
+              <div>
+                <label className="label mb-2">Mon niveau</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {([
+                    { v: "debutant", l: "Débutant", e: "🌱" },
+                    { v: "amateur",  l: "Amateur",  e: "🐴" },
+                    { v: "confirme", l: "Confirmé", e: "⭐" },
+                    { v: "pro",      l: "Pro",      e: "🏆" },
+                  ] as const).map(({ v, l, e }) => (
+                    <button key={v} type="button" onClick={() => setRiderNiveau(riderNiveau === v ? "" : v)}
+                      className={`flex items-center gap-2 p-3 rounded-xl border-2 text-left transition-all ${
+                        riderNiveau === v ? "border-black bg-black text-white" : "border-gray-200 hover:border-gray-300 text-gray-700"
+                      }`}
+                    >
+                      <span>{e}</span>
+                      <span className="text-sm font-semibold">{l}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Objectif */}
+              <div>
+                <label className="label mb-2">Mon objectif principal</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {([
+                    { v: "loisir",           l: "Loisir",          e: "🌿" },
+                    { v: "progression",      l: "Progresser",      e: "📈" },
+                    { v: "competition",      l: "Compétition",     e: "🏆" },
+                    { v: "remise_en_forme",  l: "Remise en forme", e: "💪" },
+                  ] as const).map(({ v, l, e }) => (
+                    <button key={v} type="button" onClick={() => setRiderObjectif(riderObjectif === v ? "" : v)}
+                      className={`flex items-center gap-2 p-3 rounded-xl border-2 text-left transition-all ${
+                        riderObjectif === v ? "border-black bg-black text-white" : "border-gray-200 hover:border-gray-300 text-gray-700"
+                      }`}
+                    >
+                      <span>{e}</span>
+                      <span className="text-sm font-semibold">{l}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Fréquence */}
+              <div>
+                <label className="label mb-2">Je monte en moyenne</label>
+                <div className="flex flex-wrap gap-2">
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <button key={n} type="button" onClick={() => setRiderFrequence(riderFrequence === n ? null : n)}
+                      className={`px-4 py-2 rounded-xl border-2 text-sm font-semibold transition-all ${
+                        riderFrequence === n ? "border-black bg-black text-white" : "border-gray-200 hover:border-gray-300 text-gray-700"
+                      }`}
+                    >
+                      {n === 5 ? "5×+" : `${n}×`}/sem
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Disciplines */}
+              <div>
+                <label className="label mb-2">Mes disciplines <span className="font-normal text-gray-400 text-xs">(plusieurs possibles)</span></label>
+                <div className="grid grid-cols-2 gap-2">
+                  {DISCIPLINES.map((d) => (
+                    <button key={d} type="button"
+                      onClick={() => setRiderDisciplines((prev) => prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d])}
+                      className={`p-2.5 rounded-xl border-2 text-left text-xs font-medium transition-all ${
+                        riderDisciplines.includes(d) ? "border-black bg-black text-white" : "border-gray-200 hover:border-gray-300 text-gray-700"
+                      }`}
+                    >
+                      {d}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button onClick={prevStep} className="btn-ghost flex items-center gap-1.5">
+                <ArrowLeft className="h-4 w-4" /> Retour
+              </button>
+              <div className="flex-1 flex flex-col gap-2">
+                <button onClick={handleStep5Next} className="btn-primary w-full justify-center">
+                  Continuer <ArrowRight className="h-4 w-4" />
+                </button>
+                <button onClick={() => nextStep()} className="text-xs text-center text-gray-400 hover:text-black py-1">
+                  Passer cette étape →
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Step 6 : Notifications ── */}
+        {step === 6 && (
           <div>
             <div className="text-center mb-6">
               <div className="w-12 h-12 rounded-2xl bg-black flex items-center justify-center mx-auto mb-3">

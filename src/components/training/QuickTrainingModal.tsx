@@ -72,14 +72,17 @@ interface Props {
   rehabProtocol?: RehabProtocol | null;
   horseMode?: HorseIndexMode | null;
   competitions?: { id: string; event_name: string; date: string }[] | null;
+  riderLog?: { forme: string | null; douleurs: string[] | null; douleur_intensite: string | null } | null;
 }
 
-export default function QuickTrainingModal({ open, onClose, horseId, horseName, onSaved, todayPlanned, rehabProtocol, horseMode, competitions }: Props) {
+export default function QuickTrainingModal({ open, onClose, horseId, horseName, onSaved, todayPlanned, rehabProtocol, horseMode, competitions, riderLog }: Props) {
   const supabase = createClient();
   const router = useRouter();
   const [mode, setMode] = useState<"quick" | "detail">("quick");
   const [loading, setLoading] = useState(false);
   const [showHealthBridge, setShowHealthBridge] = useState(false);
+  const [showCoachMsg, setShowCoachMsg] = useState(false);
+  const [coachMsg, setCoachMsg] = useState("");
 
   // Form state
   const [discipline, setDiscipline] = useState<TrainingType | null>(null);
@@ -139,6 +142,19 @@ export default function QuickTrainingModal({ open, onClose, horseId, horseName, 
     // scroll to duration is handled by browser naturally after state update
   };
 
+  const computeCoachMsg = (): string | null => {
+    if (!riderLog) return null;
+    const backZones = ["Lombaires", "Bassin / sacro-iliaque", "Hanches / adducteurs", "Milieu du dos"];
+    const hasBackPain = (riderLog.douleurs ?? []).some(z => backZones.includes(z));
+    if (hasBackPain) {
+      return `Tu as noté une douleur au dos aujourd'hui — pense à en tenir compte pour ta prochaine séance avec ${horseName}.`;
+    }
+    if (riderLog.forme === "fatigue") {
+      return `Tu t'es donné malgré la fatigue — belle séance ! Pense à récupérer avant la prochaine séance avec ${horseName}.`;
+    }
+    return null;
+  };
+
   const handleSave = async () => {
     if (!discipline) { toast.error("Sélectionnez une discipline"); return; }
     setLoading(true);
@@ -195,8 +211,15 @@ export default function QuickTrainingModal({ open, onClose, horseId, horseName, 
       setShowHealthBridge(true);
       onSaved(); // refresh parent data in background
     } else {
-      reset();
-      onSaved();
+      const msg = computeCoachMsg();
+      if (msg) {
+        setCoachMsg(msg);
+        setShowCoachMsg(true);
+        onSaved();
+      } else {
+        reset();
+        onSaved();
+      }
     }
     setLoading(false);
   };
@@ -213,6 +236,8 @@ export default function QuickTrainingModal({ open, onClose, horseId, horseName, 
     setDateMode("today");
     setCustomDate(format(new Date(), "yyyy-MM-dd"));
     setShowHealthBridge(false);
+    setShowCoachMsg(false);
+    setCoachMsg("");
     setLinkedCompetitionId(null);
   };
 
@@ -224,8 +249,22 @@ export default function QuickTrainingModal({ open, onClose, horseId, horseName, 
       onClose={handleClose}
       title={mode === "detail" ? "Nouvelle séance — Détails" : horseName ? `Logger — ${horseName}` : "Logger une séance"}
     >
+      {/* Message coach post-séance (suggestion cavalier→cheval) */}
+      {showCoachMsg && (
+        <div className="flex flex-col items-center gap-4 py-6 px-2 text-center">
+          <span className="text-4xl">🌿</span>
+          <p className="text-sm text-gray-700 leading-relaxed">{coachMsg}</p>
+          <button
+            onClick={() => { setShowCoachMsg(false); reset(); }}
+            className="btn-primary w-full justify-center"
+          >
+            Fermer
+          </button>
+        </div>
+      )}
+
       {/* Pont Travail→Santé */}
-      {showHealthBridge ? (
+      {!showCoachMsg && showHealthBridge ? (
         <div className="space-y-4">
           <div className="flex flex-col items-center text-center gap-3 py-4">
             <div className="w-14 h-14 rounded-full bg-orange-light flex items-center justify-center">
@@ -259,13 +298,13 @@ export default function QuickTrainingModal({ open, onClose, horseId, horseName, 
             </Link>
           </div>
         </div>
-      ) : mode === "detail" ? (
+      ) : !showCoachMsg && !showHealthBridge && mode === "detail" ? (
         <TrainingForm
           horseId={horseId}
           onSaved={() => { setMode("quick"); reset(); router.refresh(); onSaved(); }}
           onCancel={() => setMode("quick")}
         />
-      ) : (
+      ) : !showCoachMsg && !showHealthBridge ? (
         <div className="space-y-5">
 
           {/* Voice */}
@@ -555,7 +594,7 @@ export default function QuickTrainingModal({ open, onClose, horseId, horseName, 
           </div>
 
         </div>
-      )}
+      ) : null}
     </Modal>
   );
 }

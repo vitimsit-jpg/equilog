@@ -18,11 +18,12 @@ interface Horse {
 interface Props {
   horses: Horse[];
   userId: string;
+  riderLog?: { forme: string | null; douleurs: string[] | null; douleur_intensite: string | null } | null;
 }
 
 type ActionType = "training" | "health";
 
-export default function DashboardQuickAdd({ horses, userId }: Props) {
+export default function DashboardQuickAdd({ horses, userId, riderLog }: Props) {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -156,6 +157,7 @@ export default function DashboardQuickAdd({ horses, userId }: Props) {
           horseName={selectedHorse.name}
           horseMode={selectedHorse.horse_index_mode as any}
           onSaved={() => { handleClose(); router.refresh(); }}
+          riderLog={riderLog ?? null}
         />
       )}
 

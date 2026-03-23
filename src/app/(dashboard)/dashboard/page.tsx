@@ -88,7 +88,7 @@ export default async function DashboardPage({
 
   const { data: userProfile } = await supabase
     .from("users")
-    .select("user_type, profile_type, module_coach, module_gerant, name, rider_niveau, rider_objectif")
+    .select("user_type, profile_type, module_coach, module_gerant, name, rider_niveau, rider_objectif, rider_zones_douloureuses, rider_suivi_corps")
     .eq("id", authUser.id)
     .single();
 
@@ -233,6 +233,37 @@ export default async function DashboardPage({
     .eq("user_id", authUser.id)
     .eq("date", todayStr)
     .single();
+
+  // Today's session count
+  const todaySessionCount = (weekSessions || []).filter(s => s.date === todayStr).length;
+
+  // Rider → Horse suggestion (rule-based, no AI)
+  type RiderSuggestion = { message: string; type: "info" | "warning" | "tip" } | null;
+  let riderSuggestion: RiderSuggestion = null;
+  if (todayRiderLog) {
+    const firstHorseName = (horses || [])[0]?.name || "votre cheval";
+    const backZones = ["Lombaires", "Bassin / sacro-iliaque", "Hanches / adducteurs", "Milieu du dos"];
+    const hasBackPain = ((todayRiderLog as any).douleurs ?? []).some((z: string) => backZones.includes(z));
+    const hasChronicPain = ((userProfile as any)?.rider_zones_douloureuses ?? []).length > 0;
+    const hasSuiviCorps = Object.keys((userProfile as any)?.rider_suivi_corps ?? {}).length > 0;
+
+    if ((todayRiderLog as any).forme === "fatigue" && todaySessionCount === 0) {
+      riderSuggestion = {
+        message: `Tu te sens fatigué aujourd'hui — peut-être privilégier une séance légère avec ${firstHorseName} ?`,
+        type: "info",
+      };
+    } else if ((todayRiderLog as any).douleur_intensite === "importante" && hasBackPain) {
+      riderSuggestion = {
+        message: `Une douleur dans cette zone peut se transmettre à ${firstHorseName} sans qu'on s'en rende compte. Pense à consulter si ça persiste.`,
+        type: "warning",
+      };
+    } else if (hasChronicPain && !hasSuiviCorps) {
+      riderSuggestion = {
+        message: "Tu mentionnes des douleurs régulières mais pas de suivi corps. Un ostéopathe ou kiné équestre peut faire une vraie différence.",
+        type: "tip",
+      };
+    }
+  }
 
   // Vérification vaccins FEI — pour profils compétition/pro
   const vaccinsAlerte: { horseName: string; horseId: string; daysToComp: number }[] = [];
@@ -599,6 +630,7 @@ export default async function DashboardPage({
               horse_index_mode: (h as any).horse_index_mode ?? null,
             }))}
             userId={authUser.id}
+            riderLog={(todayRiderLog as any) ?? null}
           />
         ) : null
       }
@@ -1418,6 +1450,22 @@ export default async function DashboardPage({
           <span className="text-blue-700 font-medium">Pensez à compléter votre profil cavalier pour des recommandations personnalisées</span>
           <svg className="h-4 w-4 text-blue-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
         </Link>
+      )}
+
+      {/* ── Suggestion Cavalier → Cheval (rule-based) ─────────────────── */}
+      {riderSuggestion && (
+        <div className={`flex items-start gap-3 px-4 py-3 rounded-xl border text-sm ${
+          riderSuggestion.type === "warning"
+            ? "bg-amber-50 border-amber-100 text-amber-800"
+            : riderSuggestion.type === "tip"
+            ? "bg-purple-50 border-purple-100 text-purple-800"
+            : "bg-blue-50 border-blue-100 text-blue-800"
+        }`}>
+          <span className="text-base flex-shrink-0">
+            {riderSuggestion.type === "warning" ? "⚠️" : riderSuggestion.type === "tip" ? "💡" : "🌿"}
+          </span>
+          <p className="leading-relaxed">{riderSuggestion.message}</p>
+        </div>
       )}
 
       {/* ── Empty state 0 chevaux ─────────────────────────────────────── */}

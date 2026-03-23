@@ -88,6 +88,8 @@ export default function OnboardingPage() {
   const [riderAsymetrie, setRiderAsymetrie] = useState<"" | "droite" | "gauche" | "symetrique" | "ne_sais_pas">("");
   const [riderPathologies, setRiderPathologies] = useState("");
   const [riderSuiviCorps, setRiderSuiviCorps] = useState<Record<string, { actif: boolean; frequence?: string }>>({});
+  const [riderActiviteTypes, setRiderActiviteTypes] = useState<string[]>([]);
+  const [riderActiviteFrequence, setRiderActiviteFrequence] = useState("");
 
   // Step 6 — notifs
   const [notifHealth, setNotifHealth] = useState(true);
@@ -220,6 +222,8 @@ export default function OnboardingPage() {
         rider_asymetrie: riderAsymetrie || null,
         rider_pathologies: riderPathologies.trim() || null,
         rider_suivi_corps: hasSuivi ? riderSuiviCorps : null,
+        rider_activite_types: riderActiviteTypes.length > 0 ? riderActiviteTypes : null,
+        rider_activite_frequence: riderActiviteFrequence || null,
         onboarding_step: 5,
       }).eq("id", userId);
     }
@@ -907,6 +911,45 @@ export default function OnboardingPage() {
                       </div>
                     );
                   })}
+                </div>
+              </div>
+
+              {/* Forme & activité physique */}
+              <div className="pt-4 border-t border-gray-100">
+                <p className="text-sm font-bold text-black mb-0.5">Forme & activité physique hors équitation</p>
+                <p className="text-xs text-gray-400 mb-4">Pour mieux calibrer vos recommandations de récupération.</p>
+
+                <div className="mb-4">
+                  <label className="label mb-2">Type d&apos;activité</label>
+                  <div className="flex flex-wrap gap-2">
+                    {["Yoga", "Pilates", "Musculation / Renforcement", "Running", "Natation", "Vélo", "Sports collectifs", "Aucune", "Autre"].map((a) => (
+                      <button key={a} type="button"
+                        onClick={() => setRiderActiviteTypes((prev) => prev.includes(a) ? prev.filter((x) => x !== a) : [...prev, a])}
+                        className={`px-3 py-1.5 rounded-xl border-2 text-xs font-medium transition-all ${
+                          riderActiviteTypes.includes(a) ? "border-black bg-black text-white" : "border-gray-200 hover:border-gray-300 text-gray-700"
+                        }`}
+                      >{a}</button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="label mb-2">Fréquence</label>
+                  <div className="flex flex-wrap gap-2">
+                    {([
+                      { value: "jamais",       label: "Jamais" },
+                      { value: "1x_semaine",   label: "1× par semaine" },
+                      { value: "2_3x_semaine", label: "2-3× par semaine" },
+                      { value: "4x_plus",      label: "4× et plus" },
+                    ] as const).map(({ value, label }) => (
+                      <button key={value} type="button"
+                        onClick={() => setRiderActiviteFrequence(riderActiviteFrequence === value ? "" : value)}
+                        className={`px-3 py-1.5 rounded-xl border-2 text-xs font-medium transition-all ${
+                          riderActiviteFrequence === value ? "border-black bg-black text-white" : "border-gray-200 hover:border-gray-300 text-gray-700"
+                        }`}
+                      >{label}</button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>

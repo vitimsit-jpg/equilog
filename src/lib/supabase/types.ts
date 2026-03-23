@@ -37,6 +37,8 @@ export interface User {
   rider_asymetrie: 'droite' | 'gauche' | 'symetrique' | 'ne_sais_pas' | null;
   rider_pathologies: string | null;
   rider_suivi_corps: Record<string, { actif: boolean; frequence?: string }> | null;
+  rider_activite_types: string[] | null;
+  rider_activite_frequence: string | null;
 }
 
 export interface Horse {

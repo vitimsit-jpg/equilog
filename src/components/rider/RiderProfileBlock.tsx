@@ -70,6 +70,18 @@ const FREQUENCES_SUIVI = [
   { value: "hebdomadaire", label: "Hebdomadaire" },
 ] as const;
 
+const ACTIVITE_TYPES = [
+  "Yoga", "Pilates", "Musculation / Renforcement", "Running",
+  "Natation", "Vélo", "Sports collectifs", "Aucune", "Autre",
+];
+
+const ACTIVITE_FREQUENCES = [
+  { value: "jamais", label: "Jamais" },
+  { value: "1x_semaine", label: "1× par semaine" },
+  { value: "2_3x_semaine", label: "2-3× par semaine" },
+  { value: "4x_plus", label: "4× et plus" },
+] as const;
+
 export default function RiderProfileBlock({ user }: Props) {
   const router = useRouter();
   const supabase = createClient();
@@ -84,6 +96,14 @@ export default function RiderProfileBlock({ user }: Props) {
   const [suiviCorps, setSuiviCorps] = useState<Record<string, { actif: boolean; frequence?: string }>>(
     (user as any).rider_suivi_corps ?? {}
   );
+  const [activiteTypes, setActiviteTypes] = useState<string[]>((user as any).rider_activite_types ?? []);
+  const [activiteFrequence, setActiviteFrequence] = useState<string | null>((user as any).rider_activite_frequence ?? null);
+
+  const toggleActivite = (a: string) => {
+    setActiviteTypes((prev) =>
+      prev.includes(a) ? prev.filter((x) => x !== a) : [...prev, a]
+    );
+  };
   const [saving, setSaving] = useState(false);
 
   const toggleDiscipline = (d: string) => {
@@ -111,6 +131,8 @@ export default function RiderProfileBlock({ user }: Props) {
         rider_asymetrie: asymetrie as User["rider_asymetrie"],
         rider_pathologies: pathologies.trim() || null,
         rider_suivi_corps: Object.keys(suiviCorps).length > 0 ? suiviCorps : null,
+        rider_activite_types: activiteTypes.length > 0 ? activiteTypes : null,
+        rider_activite_frequence: activiteFrequence,
       })
       .eq("id", user.id);
 
@@ -305,6 +327,44 @@ export default function RiderProfileBlock({ user }: Props) {
               </div>
             );
           })}
+        </div>
+      </div>
+
+      {/* Forme & activité physique hors équitation */}
+      <div className="pt-4 border-t border-gray-100 mb-5">
+        <p className="font-semibold text-black text-sm mb-1">Forme & activité physique hors équitation</p>
+        <p className="text-xs text-gray-400 mb-4">Pour mieux calibrer vos recommandations de récupération.</p>
+
+        <div className="mb-4">
+          <p className="label mb-2">Type d&apos;activité</p>
+          <div className="flex flex-wrap gap-2">
+            {ACTIVITE_TYPES.map((a) => (
+              <button
+                key={a}
+                type="button"
+                onClick={() => toggleActivite(a)}
+                className={btnClass(activiteTypes.includes(a))}
+              >
+                {a}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <p className="label mb-2">Fréquence</p>
+          <div className="flex flex-wrap gap-2">
+            {ACTIVITE_FREQUENCES.map(({ value, label }) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setActiviteFrequence(activiteFrequence === value ? null : value)}
+                className={btnClass(activiteFrequence === value)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 

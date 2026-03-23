@@ -17,6 +17,7 @@ import {
   Building2,
   Video,
   ShieldAlert,
+  CalendarDays,
 } from "lucide-react";
 import type { Horse, UserType, ProfileType } from "@/lib/supabase/types";
 import { useState } from "react";
@@ -34,6 +35,7 @@ interface SidebarProps {
 
 const mainNav = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+  { href: "/planning", icon: CalendarDays, label: "Tableau" },
   { href: "/communaute", icon: Users, label: "Communauté" },
 ];
 

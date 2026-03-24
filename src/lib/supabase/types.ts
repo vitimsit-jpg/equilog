@@ -167,7 +167,33 @@ export interface HealthRecord {
   product_name: string | null;
   urgency: "normal" | "urgent" | "critique" | null;
   media_urls: string[] | null;
+  // Champs maréchal (migration 042)
+  type_intervention: string | null;
+  sous_type_urgence: string | null;
+  repartition_fers: string | null;
+  matiere_fer: string | null;
+  options_avancees: Record<string, boolean | string> | null;
+  recurrence_semaines: number | null;
   created_at: string;
+}
+
+export type InterventionType = "parage" | "ferrure" | "ferrure_ortho" | "urgence" | "deferrage" | "autre";
+
+export interface MarechalProfile {
+  id: string;
+  horse_id: string;
+  user_id: string;
+  type_intervention: InterventionType | null;
+  repartition_fers: "anterieurs" | "posterieurs" | "4_fers" | null;
+  matiere_fer: "acier" | "aluminium" | "duplo" | "colle" | "autre" | null;
+  options_avancees: Record<string, boolean | string> | null;
+  nom_marechal: string | null;
+  tel_marechal: string | null;
+  cout_habituel: number | null;
+  recurrence_semaines: number | null;
+  notes_profil: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface TrainingSession {

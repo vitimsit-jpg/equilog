@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, AlertCircle, Clock, Calendar, CheckCircle2 } from "lucide-react";
 import { daysUntil, formatCurrency, HEALTH_TYPE_LABELS } from "@/lib/utils";
-import type { HealthRecord } from "@/lib/supabase/types";
+import type { HealthRecord, MarechalProfile } from "@/lib/supabase/types";
 import HealthCategoryCard, { type CategoryConfig } from "./HealthCategoryCard";
 import HealthTimeline from "./HealthTimeline";
 import QuickHealthModal from "./QuickHealthModal";
@@ -42,9 +42,11 @@ function getLatestByType(records: HealthRecord[]): Record<string, HealthRecord |
 interface Props {
   records: HealthRecord[];
   horseId: string;
+  marechalProfile?: MarechalProfile | null;
+  horseName?: string;
 }
 
-export default function HealthOverview({ records, horseId }: Props) {
+export default function HealthOverview({ records, horseId, marechalProfile, horseName }: Props) {
   const router = useRouter();
   const [tab, setTab] = useState<"overview" | "history">("overview");
   const [showAdd, setShowAdd] = useState(false);
@@ -208,6 +210,8 @@ export default function HealthOverview({ records, horseId }: Props) {
                     config={cat}
                     records={records.filter((r) => r.type === cat.type)}
                     horseId={horseId}
+                    marechalProfile={cat.type === "ferrage" ? marechalProfile : undefined}
+                    horseName={cat.type === "ferrage" ? horseName : undefined}
                   />
                 ))}
               </div>

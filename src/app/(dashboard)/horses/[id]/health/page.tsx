@@ -23,11 +23,18 @@ export default async function HealthPage({ params }: Props) {
 
   if (!horse) return notFound();
 
-  const { data: records } = await supabase
-    .from("health_records")
-    .select("*")
-    .eq("horse_id", horse.id)
-    .order("date", { ascending: false });
+  const [{ data: records }, { data: marechalProfile }] = await Promise.all([
+    supabase
+      .from("health_records")
+      .select("*")
+      .eq("horse_id", horse.id)
+      .order("date", { ascending: false }),
+    supabase
+      .from("horse_marechal_profile")
+      .select("*")
+      .eq("horse_id", horse.id)
+      .maybeSingle(),
+  ]);
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
@@ -36,7 +43,12 @@ export default async function HealthPage({ params }: Props) {
         <PdfDownloadButton type="sante" horse={horse} records={records || []} />
       </div>
 
-      <HealthOverview records={records || []} horseId={horse.id} />
+      <HealthOverview
+        records={records || []}
+        horseId={horse.id}
+        marechalProfile={marechalProfile ?? null}
+        horseName={horse.name}
+      />
     </div>
   );
 }

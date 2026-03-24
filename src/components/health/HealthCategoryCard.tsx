@@ -4,8 +4,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Pencil, Phone, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 import { formatDate, daysUntil } from "@/lib/utils";
-import type { HealthRecord, HealthType } from "@/lib/supabase/types";
+import type { HealthRecord, HealthType, MarechalProfile } from "@/lib/supabase/types";
 import HealthEventModal from "@/components/health/HealthEventModal";
+import MarechalLogModal, { buildMarechalSummary } from "@/components/health/MarechalLogModal";
 import MediaGallery from "@/components/media/MediaGallery";
 import { createClient } from "@/lib/supabase/client";
 
@@ -73,14 +74,20 @@ interface Props {
   config: CategoryConfig;
   records: HealthRecord[];
   horseId: string;
+  marechalProfile?: MarechalProfile | null;
+  horseName?: string;
 }
 
-export default function HealthCategoryCard({ config, records, horseId }: Props) {
+export default function HealthCategoryCard({ config, records, horseId, marechalProfile, horseName }: Props) {
   const supabase = createClient();
   const router = useRouter();
   const [showAdd, setShowAdd] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
+  const [showMarechal, setShowMarechal] = useState(false);
+  const [marechalEditRecord, setMarechalEditRecord] = useState<HealthRecord | null>(null);
   const [expanded, setExpanded] = useState(false);
+
+  const isFerrageCard = config.type === "ferrage";
 
   const handleRemoveNextDate = async (recordId: string) => {
     await supabase.from("health_records").update({ next_date: null }).eq("id", recordId);
@@ -113,9 +120,39 @@ export default function HealthCategoryCard({ config, records, horseId }: Props) 
               <span className="text-xs text-gray-400">Dernier</span>
               <span className="text-xs font-medium text-gray-700">{formatDate(latest.date)}</span>
             </div>
+            {/* Enriched ferrage display */}
+            {isFerrageCard && latest.type_intervention && (
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-400">Type</span>
+                <span className="text-xs font-medium text-gray-700 capitalize">{
+                  latest.type_intervention === "ferrure_ortho" ? "Ferrure ortho" :
+                  latest.type_intervention === "parage" ? "Parage" :
+                  latest.type_intervention === "ferrure" ? "Ferrure" :
+                  latest.type_intervention === "urgence" ? "Urgence" :
+                  latest.type_intervention === "deferrage" ? "Déferrage" : "Autre"
+                }</span>
+              </div>
+            )}
+            {isFerrageCard && (latest.repartition_fers || latest.matiere_fer) && (
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-400">Détail</span>
+                <span className="text-xs font-medium text-gray-700">
+                  {[
+                    latest.repartition_fers === "anterieurs" ? "2 devant" :
+                    latest.repartition_fers === "posterieurs" ? "2 derrière" :
+                    latest.repartition_fers === "4_fers" ? "4 fers" : null,
+                    latest.matiere_fer === "acier" ? "Acier" :
+                    latest.matiere_fer === "aluminium" ? "Alu" :
+                    latest.matiere_fer === "duplo" ? "Duplo" :
+                    latest.matiere_fer === "colle" ? "Collé" :
+                    latest.matiere_fer ? "Autre" : null,
+                  ].filter(Boolean).join(" · ")}
+                </span>
+              </div>
+            )}
             {latest.vet_name && (
               <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-400">Praticien</span>
+                <span className="text-xs text-gray-400">{isFerrageCard ? "Maréchal" : "Praticien"}</span>
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs font-medium text-gray-700">{latest.vet_name}</span>
                   {latest.practitioner_phone && (
@@ -167,6 +204,10 @@ export default function HealthCategoryCard({ config, records, horseId }: Props) 
                 <span className="text-xs font-medium text-gray-700">{latest.product_name}</span>
               </div>
             )}
+            {/* Profile summary line for ferrage when no record detail */}
+            {isFerrageCard && !latest.type_intervention && marechalProfile && (
+              <p className="text-xs text-gray-400 italic">{buildMarechalSummary(marechalProfile)}</p>
+            )}
             {latest.notes && (
               <p className="text-xs text-gray-500 italic line-clamp-2 mt-1">{latest.notes}</p>
             )}
@@ -209,7 +250,26 @@ export default function HealthCategoryCard({ config, records, horseId }: Props) 
             />
           )}
           <div className="flex items-center gap-2">
-            {latest ? (
+            {isFerrageCard ? (
+              <>
+                {latest && (
+                  <button
+                    onClick={() => { setMarechalEditRecord(latest); setShowMarechal(true); }}
+                    className="flex items-center justify-center gap-1.5 text-xs font-medium text-gray-600 hover:text-black hover:bg-gray-50 rounded-lg py-1.5 px-3 transition-colors"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                    Modifier
+                  </button>
+                )}
+                <button
+                  onClick={() => { setMarechalEditRecord(null); setShowMarechal(true); }}
+                  className="flex-1 flex items-center justify-center gap-1.5 text-xs font-medium text-gray-600 hover:text-black hover:bg-gray-50 rounded-lg py-1.5 transition-colors"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  {latest ? "Nouveau passage" : "Ajouter"}
+                </button>
+              </>
+            ) : latest ? (
               <button
                 onClick={() => setShowEdit(true)}
                 className="flex-1 flex items-center justify-center gap-1.5 text-xs font-medium text-gray-600 hover:text-black hover:bg-gray-50 rounded-lg py-1.5 transition-colors"
@@ -230,6 +290,17 @@ export default function HealthCategoryCard({ config, records, horseId }: Props) 
         </div>
       </div>
 
+      {showMarechal && (
+        <MarechalLogModal
+          open={showMarechal}
+          horseId={horseId}
+          horseName={horseName ?? ""}
+          profile={marechalProfile ?? null}
+          defaultValues={marechalEditRecord ?? undefined}
+          onClose={() => { setShowMarechal(false); setMarechalEditRecord(null); }}
+          onSaved={() => { setShowMarechal(false); setMarechalEditRecord(null); router.refresh(); }}
+        />
+      )}
       {showAdd && (
         <HealthEventModal
           horseId={horseId}

@@ -82,6 +82,74 @@ export interface Horse {
   lieu_naissance: string | null;
   conditions_acquisition: 'achat' | 'don' | 'pret' | 'elevage_personnel' | null;
   historique_avant_acquisition: string | null;
+  // Module Nutrition (migration 040)
+  module_nutrition: boolean;
+  created_at: string;
+}
+
+// ── Nutrition types ────────────────────────────────────────────────────────────
+export interface NutritionFibre {
+  id: string;
+  type: "foin" | "luzerne" | "melange";
+  mode: "fixe" | "volonte";
+  quantite_kg: number | null;
+}
+
+export interface NutritionHerbe {
+  actif: boolean;
+  heures: "2" | "4" | "6" | "journee" | null;
+}
+
+export interface NutritionRepas {
+  horaire: "matin" | "midi" | "soir" | "apresmidi";
+  quantite_l: number;
+}
+
+export interface NutritionGranule {
+  id: string;
+  nom: string;
+  type: "standard" | "floconnes" | "extrudes" | "mash" | "autre";
+  repas: NutritionRepas[];
+}
+
+export interface NutritionComplement {
+  id: string;
+  nom: string;
+  forme: "poudre" | "liquide" | "granules" | "seringue" | "autre";
+  quantite: number | null;
+  unite: "ml" | "g" | "dose" | "mesure";
+  frequence: "quotidien" | "matin_soir" | "hebdomadaire" | "cure";
+  cure_semaines: number | null;
+  cure_debut: string | null;
+}
+
+export interface NutritionRation {
+  fibres: NutritionFibre[];
+  herbe: NutritionHerbe;
+  granules: NutritionGranule[];
+  complements: NutritionComplement[];
+}
+
+export interface HorseNutrition {
+  id: string;
+  horse_id: string;
+  user_id: string;
+  fibres: NutritionFibre[];
+  herbe: NutritionHerbe;
+  granules: NutritionGranule[];
+  complements: NutritionComplement[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface NutritionHistoryEntry {
+  id: string;
+  horse_id: string;
+  element: string;
+  old_value: string | null;
+  new_value: string | null;
+  reason: string | null;
+  snapshot: NutritionRation | null;
   created_at: string;
 }
 

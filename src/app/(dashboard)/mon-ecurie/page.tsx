@@ -65,6 +65,7 @@ export default async function MonEcuriePage() {
     { data: latestScores },
     // Other ecurie horses (shared)
     { data: ecurieHorses },
+    { data: nutritionRows },
   ] = await Promise.all([
     supabase
       .from("health_records")
@@ -94,6 +95,10 @@ export default async function MonEcuriePage() {
           .neq("user_id", authUser.id)
           .limit(50)
       : Promise.resolve({ data: [] }),
+    supabase
+      .from("horse_nutrition")
+      .select("horse_id, fibres, herbe, granules, complements, updated_at")
+      .in("horse_id", myHorseIds),
   ]);
 
   // Latest score per horse
@@ -119,6 +124,11 @@ export default async function MonEcuriePage() {
 
   // Horses inactive > 7 days
   const inactiveHorses = myHorses.filter((h) => !sessionsThisWeek[h.id]);
+
+  // Nutrition map
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const nutritionByHorse: Record<string, any> = {};
+  (nutritionRows || []).forEach((n) => { nutritionByHorse[n.horse_id] = n; });
 
   // Stats
   const totalSessionsWeek = (recentSessions || []).length;
@@ -330,6 +340,43 @@ export default async function MonEcuriePage() {
                   <p className={`text-xs ${ok ? "text-gray-600" : "text-warning font-semibold"}`}>{label}</p>
                 </div>
               ))}
+            </div>
+          </div>
+
+          {/* Nutrition écurie */}
+          <div className="card">
+            <h2 className="font-bold text-black mb-3 text-sm">🥕 Nutrition de l&apos;écurie</h2>
+            <div className="space-y-2">
+              {myHorses.map((h) => {
+                const n = nutritionByHorse[h.id];
+                const hasModule = !!(h as any).module_nutrition;
+                const hasSupplement = n?.complements?.length > 0;
+                const fibresLabel = n?.fibres?.length > 0
+                  ? (n.fibres as any[]).map((f: any) => f.mode === "volonte" ? `${f.type === "foin" ? "Foin" : f.type === "luzerne" ? "Luzerne" : "Mélange"} À vol.` : `${f.type === "foin" ? "Foin" : f.type === "luzerne" ? "Luzerne" : "Mélange"} ${f.quantite_kg}kg`).join(", ")
+                  : null;
+                return (
+                  <div key={h.id} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-black truncate">{h.name}</p>
+                      {n ? (
+                        <p className="text-xs text-gray-400 truncate">{fibresLabel || "Ration configurée"}</p>
+                      ) : (
+                        <p className="text-xs text-gray-300">{hasModule ? "Ration non définie" : "Module non activé"}</p>
+                      )}
+                    </div>
+                    {hasSupplement && (
+                      <span className="text-2xs bg-orange-light text-orange font-semibold px-2 py-0.5 rounded-full flex-shrink-0">
+                        {(n.complements as any[]).length} complément{(n.complements as any[]).length > 1 ? "s" : ""}
+                      </span>
+                    )}
+                    {n && (
+                      <Link href={`/horses/${h.id}/nutrition`} className="text-2xs text-gray-400 hover:text-black flex-shrink-0">
+                        Voir →
+                      </Link>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
 

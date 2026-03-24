@@ -96,6 +96,7 @@ export default function HorseEditModal({ horse }: Props) {
     horse_index_mode: horse.horse_index_mode || "IE",
   });
   const [assure, setAssure] = useState<boolean>(!!horse.assurance);
+  const [moduleNutrition, setModuleNutrition] = useState<boolean>(!!(horse as any).module_nutrition);
 
   // Trousseau simplifié : set des labels sélectionnés parmi "Légère", "Moyenne", "Chaude"
   const COUV_OPTIONS = ["Légère", "Moyenne", "Chaude"] as const;
@@ -145,6 +146,7 @@ export default function HorseEditModal({ horse }: Props) {
           horse_index_mode_changed_at: new Date().toISOString(),
         }),
         trousseau: Array.from(trousseauSet).map((label) => ({ label, grammage: 0, impermeable: false })),
+        module_nutrition: moduleNutrition,
       })
       .eq("id", horse.id);
 
@@ -400,6 +402,28 @@ export default function HorseEditModal({ horse }: Props) {
                 ))}
               </div>
             </div>
+          </div>
+
+          {/* ── Modules actifs ── */}
+          <div className="pt-3 border-t border-gray-100">
+            <div className="flex items-center gap-2 mb-3">
+              <Activity className="h-4 w-4 text-orange" />
+              <h3 className="text-sm font-bold text-black">Modules actifs</h3>
+            </div>
+            <button
+              type="button"
+              onClick={() => setModuleNutrition((v) => !v)}
+              className="w-full flex items-center justify-between px-4 py-3 rounded-xl border-2 transition-all"
+              style={{ borderColor: moduleNutrition ? "var(--color-orange, #E8670A)" : "#e5e7eb" }}
+            >
+              <div className="text-left">
+                <p className="text-sm font-semibold text-black">🥕 Nutrition</p>
+                <p className="text-xs text-gray-400">Suivi des rations et compléments alimentaires</p>
+              </div>
+              <div className={`w-11 h-6 rounded-full transition-colors flex items-center px-0.5 ${moduleNutrition ? "bg-orange" : "bg-gray-200"}`}>
+                <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${moduleNutrition ? "translate-x-5" : "translate-x-0"}`} />
+              </div>
+            </button>
           </div>
 
           <div className="flex gap-3 pt-1">

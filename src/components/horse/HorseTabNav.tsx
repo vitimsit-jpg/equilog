@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { haptic } from "@/lib/haptic";
 
-const TABS: {
+const BASE_TABS: {
   suffix: string;
   label: string;
   hideForModes?: string[];
@@ -22,7 +22,7 @@ const TABS: {
   { suffix: "/documents", label: "Documents" },
 ];
 
-export default function HorseTabNav({ horseId, horseIndexMode }: { horseId: string; horseIndexMode?: string | null }) {
+export default function HorseTabNav({ horseId, horseIndexMode, moduleNutrition }: { horseId: string; horseIndexMode?: string | null; moduleNutrition?: boolean }) {
   const pathname = usePathname();
   const router = useRouter();
   const base = `/horses/${horseId}`;
@@ -34,6 +34,10 @@ export default function HorseTabNav({ horseId, horseIndexMode }: { horseId: stri
       if (saved) router.replace(`${base}${saved}`);
     }
   }, []);
+
+  const TABS = moduleNutrition
+    ? [BASE_TABS[0], BASE_TABS[1], { suffix: "/nutrition", label: "Nutrition" }, ...BASE_TABS.slice(2)]
+    : BASE_TABS;
 
   const visibleTabs = TABS.filter(
     (tab) => !tab.hideForModes || !horseIndexMode || !tab.hideForModes.includes(horseIndexMode)

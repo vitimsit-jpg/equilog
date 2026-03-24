@@ -5,10 +5,10 @@ import { BADGE_DEFS, type BadgeDef } from "@/lib/badges";
 
 const CATEGORY_LABELS: Record<string, string> = {
   regularite: "Régularité",
-  volume: "Volume",
-  concours: "Concours",
-  sante: "Santé",
-  special: "Spéciaux",
+  concours:   "Concours",
+  duree:      "Longue durée",
+  defis:      "Défis",
+  special:    "Spéciaux",
 };
 
 interface Props {
@@ -19,7 +19,7 @@ export default function BadgesDisplay({ earnedKeys }: Props) {
   const [tooltip, setTooltip] = useState<BadgeDef | null>(null);
   const earnedSet = new Set(earnedKeys);
 
-  const categories = ["regularite", "volume", "concours", "sante", "special"] as const;
+  const categories = ["regularite", "concours", "duree", "defis", "special"] as const;
 
   if (earnedKeys.length === 0) {
     return (

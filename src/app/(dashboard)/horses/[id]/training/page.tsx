@@ -69,7 +69,7 @@ export default async function TrainingPage({ params }: Props) {
       .gte("date", yearStart),
     supabase
       .from("competitions")
-      .select("id, result_rank, total_riders")
+      .select("id, date, result_rank, total_riders, level")
       .eq("horse_id", horse.id),
     supabase
       .from("health_records")
@@ -162,14 +162,40 @@ export default async function TrainingPage({ params }: Props) {
   const hasPodium = (allCompetitionsForBadges || []).some(
     (c) => c.result_rank && c.total_riders && c.result_rank <= 3
   );
+  const hasWinner = (allCompetitionsForBadges || []).some((c) => c.result_rank === 1);
+
+  // Famille 3 — max competitions in same year
+  const compsByYear: Record<string, number> = {};
+  (allCompetitionsForBadges || []).forEach((c) => {
+    const year = (c as any).date?.slice(0, 4) ?? "unknown";
+    compsByYear[year] = (compsByYear[year] ?? 0) + 1;
+  });
+  const maxSameYearCompetitions = Math.max(0, ...Object.values(compsByYear));
+  const hasAmateurLevel = (allCompetitionsForBadges || []).some(
+    (c) => (c as any).level && ["Amateur 1", "Amateur 2", "Amateur 3"].includes((c as any).level)
+  );
+
+  // Famille 4 — anniversary + complete profile
+  const horseCreatedAt = (horse as any).created_at ?? null;
+  const isCompleteProfile = !!(
+    horse.name && horse.breed && horse.birth_year &&
+    horse.region && (horse as any).horse_index_mode &&
+    horse.discipline && (horse as any).avatar_url
+  );
+
   const earnedBadgeKeys = computeEarnedBadgeKeys({
     totalSessions: (sessions || []).length,
     totalCompetitions: (allCompetitionsForBadges || []).length,
     totalHealthRecords: (allHealthForBadges || []).length,
     streak,
     hasPodium,
+    hasWinner,
     hasHorseIndex: !!horse.horse_index_mode,
     sessionTypes: (sessions || []).map((s) => (s as any).type).filter(Boolean),
+    hasAmateurLevel,
+    maxSameYearCompetitions,
+    horseCreatedAt,
+    isCompleteProfile,
   });
 
   return (

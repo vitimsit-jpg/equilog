@@ -5,6 +5,8 @@ import { TrendingUp, Users, Trophy, Medal } from "lucide-react";
 import CommunauteFeed from "@/components/community/CommunauteFeed";
 import CommunauteTabs from "@/components/community/CommunauteTabs";
 import ClassementsFilters from "@/components/classements/ClassementsFilters";
+import ClassementSubTabs from "@/components/community/ClassementSubTabs";
+import FeedFilterBar from "@/components/community/FeedFilterBar";
 import HorseAvatar from "@/components/ui/HorseAvatar";
 import DefisTab from "@/components/community/DefisTab";
 import StreakBadge from "@/components/training/StreakBadge";
@@ -19,6 +21,9 @@ interface SearchParams {
   tab?: string;
   discipline?: string;
   region?: string;
+  classement?: string;
+  periode?: string;
+  feedFilter?: string;
 }
 
 interface Props {
@@ -43,8 +48,202 @@ export default async function CommunautePage({ searchParams }: Props) {
 
   // ─── Classements tab ──────────────────────────────────────────────
   if (activeTab === "classements") {
+    const classement = searchParams.classement || "horse_index";
+    const periode = searchParams.periode || "saison";
     const discipline = searchParams.discipline || "";
     const region = searchParams.region || "";
+
+    const now = new Date();
+    const firstDayOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+    const yearStart = `${now.getFullYear()}-01-01`;
+    const periodeStart = periode === "mois" ? firstDayOfMonth : periode === "tout" ? "2020-01-01" : yearStart;
+
+    const disciplines = Object.keys(DISCIPLINE_LABELS).filter((d) => d !== "Autre");
+    const regions = [
+      "Auvergne-Rhône-Alpes", "Bourgogne-Franche-Comté", "Bretagne",
+      "Centre-Val de Loire", "Corse", "Grand Est", "Hauts-de-France",
+      "Île-de-France", "Normandie", "Nouvelle-Aquitaine", "Occitanie",
+      "Pays de la Loire", "Provence-Alpes-Côte d'Azur",
+    ];
+
+    // ── Régularité classement ───────────────────────────────────────
+    if (classement === "regularite") {
+      const { data: streakData } = await supabase
+        .from("horse_streaks")
+        .select("horse_id, current_streak, best_streak")
+        .gt("current_streak", 0)
+        .order("current_streak", { ascending: false })
+        .limit(200);
+
+      const streakHorseIds = (streakData || []).map((s) => s.horse_id);
+      const { data: streakHorses } = streakHorseIds.length
+        ? await supabase
+            .from("horses")
+            .select("id, name, avatar_url, discipline, region, ecurie, horse_index_mode, share_horse_index")
+            .in("id", streakHorseIds)
+            .eq("share_horse_index", true)
+            .not("horse_index_mode", "in", "(IR,IS)")
+        : { data: [] };
+
+      const horseMap: Record<string, any> = {};
+      (streakHorses || []).forEach((h) => { horseMap[h.id] = h; });
+
+      const ranked = (streakData || [])
+        .filter((s) => horseMap[s.horse_id])
+        .filter((s) => {
+          const h = horseMap[s.horse_id];
+          if (discipline && h.discipline !== discipline) return false;
+          if (region && !h.region?.toLowerCase().includes(region.toLowerCase())) return false;
+          return true;
+        })
+        .map((s) => ({ ...s, horse: horseMap[s.horse_id] }));
+
+      return (
+        <div className="max-w-3xl mx-auto space-y-5 animate-fade-in">
+          <div className="flex items-center gap-2">
+            <Trophy className="h-5 w-5 text-orange" />
+            <h1 className="text-2xl font-black text-black">Communauté</h1>
+          </div>
+          <CommunauteTabs activeTab="classements" />
+          <ClassementSubTabs activeClassement="regularite" isCompetitor={isCompetitor} />
+          <ClassementsFilters disciplines={disciplines} regions={regions} disciplineLabels={DISCIPLINE_LABELS} />
+
+          {ranked.length === 0 ? (
+            <div className="card p-12 text-center">
+              <div className="text-3xl mb-3">🔥</div>
+              <p className="text-sm font-bold text-black mb-1">Classement en construction</p>
+              <p className="text-xs text-gray-400 max-w-xs mx-auto leading-relaxed">
+                Les données de régularité se mettent à jour chaque semaine à mesure que les cavaliers enregistrent leurs séances.
+              </p>
+            </div>
+          ) : (
+            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+              {ranked.map((item, idx) => {
+                const horse = item.horse;
+                const rank = idx + 1;
+                return (
+                  <Link
+                    key={horse.id}
+                    href={`/share/${horse.id}`}
+                    className="flex items-center gap-4 px-4 py-3 border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors"
+                  >
+                    <div className={`w-8 text-center flex-shrink-0 ${rank === 1 ? "text-yellow-500" : rank === 2 ? "text-gray-400" : rank === 3 ? "text-amber-600" : "text-gray-300"}`}>
+                      {rank <= 3 ? <Medal className="h-5 w-5 mx-auto" /> : <span className="text-sm font-bold text-gray-400">{rank}</span>}
+                    </div>
+                    <HorseAvatar name={horse.name} photoUrl={horse.avatar_url} size="md" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-bold text-black truncate">{horse.name}</p>
+                        <span className="text-2xs font-mono font-bold text-orange flex-shrink-0">{horse.horse_index_mode}</span>
+                      </div>
+                      <p className="text-xs text-gray-400 truncate">
+                        {[DISCIPLINE_LABELS[horse.discipline] || horse.discipline, horse.region].filter(Boolean).join(" · ")}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      {item.current_streak >= 2 && (
+                        <StreakBadge current={item.current_streak} best={0} target={getStreakTarget(null)} size="sm" />
+                      )}
+                      <div className="text-right">
+                        <p className="text-xl font-black text-black">{item.current_streak}</p>
+                        <p className="text-2xs text-gray-400">sem. streak</p>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // ── Concours classement ─────────────────────────────────────────
+    if (classement === "concours" && isCompetitor) {
+      const { data: myHorsesForConc } = await supabase.from("horses").select("ecurie").eq("user_id", authUser.id);
+      const myEcuriesForConc = Array.from(new Set((myHorsesForConc || []).map((h) => h.ecurie).filter(Boolean))) as string[];
+
+      const { data: ecurieHorsesConc } = myEcuriesForConc.length
+        ? await supabase
+            .from("horses")
+            .select("id, name, avatar_url, discipline, region, horse_index_mode")
+            .in("ecurie", myEcuriesForConc)
+            .eq("horse_index_mode", "IC")
+        : { data: [] };
+
+      const ecurieHorseIdsConc = (ecurieHorsesConc || []).map((h) => h.id);
+
+      const { data: competitions } = ecurieHorseIdsConc.length
+        ? await supabase
+            .from("competitions")
+            .select("horse_id, result_rank, total_riders, discipline, date")
+            .in("horse_id", ecurieHorseIdsConc)
+            .gte("date", periodeStart)
+            .not("result_rank", "is", null)
+            .not("total_riders", "is", null)
+        : { data: [] };
+
+      const horseStats: Record<string, { bestPct: number; nbComps: number }> = {};
+      (competitions || []).forEach((c) => {
+        if (!c.result_rank || !c.total_riders || c.total_riders <= 0) return;
+        const pct = Math.round((1 - c.result_rank / c.total_riders) * 100);
+        if (!horseStats[c.horse_id]) {
+          horseStats[c.horse_id] = { bestPct: pct, nbComps: 1 };
+        } else {
+          horseStats[c.horse_id].bestPct = Math.max(horseStats[c.horse_id].bestPct, pct);
+          horseStats[c.horse_id].nbComps++;
+        }
+      });
+
+      const ranked = (ecurieHorsesConc || [])
+        .filter((h) => horseStats[h.id])
+        .map((h) => ({ horse: h, ...horseStats[h.id] }))
+        .sort((a, b) => b.bestPct - a.bestPct);
+
+      return (
+        <div className="max-w-3xl mx-auto space-y-5 animate-fade-in">
+          <div className="flex items-center gap-2">
+            <Trophy className="h-5 w-5 text-orange" />
+            <h1 className="text-2xl font-black text-black">Communauté</h1>
+          </div>
+          <CommunauteTabs activeTab="classements" />
+          <ClassementSubTabs activeClassement="concours" isCompetitor={isCompetitor} />
+
+          {ranked.length === 0 ? (
+            <div className="card p-12 text-center">
+              <div className="text-3xl mb-3">🏆</div>
+              <p className="text-sm font-bold text-black mb-1">Aucun résultat concours</p>
+              <p className="text-xs text-gray-400">Loguez vos résultats de concours pour apparaître ici.</p>
+            </div>
+          ) : (
+            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+              {ranked.map((item, idx) => {
+                const horse = item.horse;
+                const rank = idx + 1;
+                return (
+                  <div key={horse.id} className="flex items-center gap-4 px-4 py-3 border-b border-gray-50 last:border-0">
+                    <div className={`w-8 text-center flex-shrink-0 ${rank === 1 ? "text-yellow-500" : rank === 2 ? "text-gray-400" : rank === 3 ? "text-amber-600" : "text-gray-300"}`}>
+                      {rank <= 3 ? <Medal className="h-5 w-5 mx-auto" /> : <span className="text-sm font-bold text-gray-400">{rank}</span>}
+                    </div>
+                    <HorseAvatar name={horse.name} photoUrl={horse.avatar_url} size="md" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-black truncate">{horse.name}</p>
+                      <p className="text-xs text-gray-400">
+                        {DISCIPLINE_LABELS[horse.discipline] || horse.discipline} · {item.nbComps} concours
+                      </p>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-xl font-black text-black">Top {100 - item.bestPct}%</p>
+                      <p className="text-2xs text-gray-400">meilleur résultat</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      );
+    }
 
     const { data: rawScores } = await supabase
       .from("horse_scores")
@@ -79,14 +278,6 @@ export default async function CommunautePage({ searchParams }: Props) {
     const streakByHorse: Record<string, number> = {};
     (streakRows || []).forEach((r) => { streakByHorse[r.horse_id] = r.current_streak; });
 
-    const disciplines = Object.keys(DISCIPLINE_LABELS).filter((d) => d !== "Autre");
-    const regions = [
-      "Auvergne-Rhône-Alpes", "Bourgogne-Franche-Comté", "Bretagne",
-      "Centre-Val de Loire", "Corse", "Grand Est", "Hauts-de-France",
-      "Île-de-France", "Normandie", "Nouvelle-Aquitaine", "Occitanie",
-      "Pays de la Loire", "Provence-Alpes-Côte d'Azur",
-    ];
-
     return (
       <div className="max-w-3xl mx-auto space-y-5 animate-fade-in">
         <div className="flex items-center gap-2">
@@ -94,6 +285,7 @@ export default async function CommunautePage({ searchParams }: Props) {
           <h1 className="text-2xl font-black text-black">Communauté</h1>
         </div>
         <CommunauteTabs activeTab="classements" />
+        <ClassementSubTabs activeClassement="horse_index" isCompetitor={isCompetitor} />
 
         <div className="space-y-5">
           <div>
@@ -272,6 +464,8 @@ export default async function CommunautePage({ searchParams }: Props) {
   }
 
   // ─── Feed tab (default) ──────────────────────────────────────────
+  const feedFilter = searchParams.feedFilter || "ecurie";
+
   const { data: myHorses } = await supabase
     .from("horses")
     .select("ecurie")
@@ -281,7 +475,7 @@ export default async function CommunautePage({ searchParams }: Props) {
     new Set((myHorses || []).map((h) => h.ecurie).filter(Boolean))
   ) as string[];
 
-  if (userEcuries.length === 0) {
+  if (userEcuries.length === 0 && feedFilter === "ecurie") {
     return (
       <div className="max-w-3xl mx-auto space-y-5 animate-fade-in">
         <div className="flex items-center gap-2">
@@ -289,6 +483,7 @@ export default async function CommunautePage({ searchParams }: Props) {
           <h1 className="text-2xl font-black text-black">Communauté</h1>
         </div>
         <CommunauteTabs activeTab="feed" />
+        <FeedFilterBar active={feedFilter} />
         <div className="card text-center py-12">
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-orange to-orange/60 flex items-center justify-center mx-auto mb-4 shadow-orange">
             <Users className="h-7 w-7 text-white" />
@@ -303,16 +498,50 @@ export default async function CommunautePage({ searchParams }: Props) {
     );
   }
 
-  const { data: ecurieHorses } = await supabase
-    .from("horses")
-    .select("*")
-    .in("ecurie", userEcuries)
-    .limit(50);
+  // Fetch écurie horses
+  const { data: ecurieHorses } = userEcuries.length
+    ? await supabase.from("horses").select("*").in("ecurie", userEcuries).limit(50)
+    : { data: [] };
 
-  const ecurieHorseIds = (ecurieHorses || []).map((h) => h.id);
+  // Fetch followed users' horses for "suivis" and "tout" filters
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let followedHorses: any[] = [];
+  if (feedFilter === "suivis" || feedFilter === "tout") {
+    const { data: follows } = await supabase
+      .from("user_follows")
+      .select("following_id")
+      .eq("follower_id", authUser.id);
+    if (follows && follows.length > 0) {
+      const followingIds = follows.map((f) => f.following_id);
+      const { data: fHorses } = await supabase
+        .from("horses")
+        .select("*")
+        .in("user_id", followingIds)
+        .limit(50);
+      followedHorses = fHorses || [];
+    }
+  }
+
+  // Build combined horse list based on filter
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let horsesForFeed: any[] = [];
+  if (feedFilter === "suivis") {
+    horsesForFeed = followedHorses;
+  } else if (feedFilter === "tout") {
+    const seen = new Set<string>();
+    horsesForFeed = [...(ecurieHorses || []), ...followedHorses].filter((h) => {
+      if (seen.has(h.id)) return false;
+      seen.add(h.id);
+      return true;
+    });
+  } else {
+    horsesForFeed = ecurieHorses || [];
+  }
+
+  const feedHorseIds = horsesForFeed.map((h) => h.id);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const horseById: Record<string, any> = {};
-  (ecurieHorses || []).forEach((h) => { horseById[h.id] = h; });
+  horsesForFeed.forEach((h) => { horseById[h.id] = h; });
 
   const [
     { data: recentSessions },
@@ -321,14 +550,14 @@ export default async function CommunautePage({ searchParams }: Props) {
     { data: allReactions },
     { data: myReactions },
   ] = await Promise.all([
-    ecurieHorseIds.length
-      ? supabase.from("training_sessions").select("*").in("horse_id", ecurieHorseIds).order("date", { ascending: false }).limit(30)
+    feedHorseIds.length
+      ? supabase.from("training_sessions").select("*").in("horse_id", feedHorseIds).order("date", { ascending: false }).limit(30)
       : Promise.resolve({ data: [] }),
-    ecurieHorseIds.length
-      ? supabase.from("competitions").select("*").in("horse_id", ecurieHorseIds).order("date", { ascending: false }).limit(20)
+    feedHorseIds.length
+      ? supabase.from("competitions").select("*").in("horse_id", feedHorseIds).order("date", { ascending: false }).limit(20)
       : Promise.resolve({ data: [] }),
-    ecurieHorseIds.length
-      ? supabase.from("horse_scores").select("*").in("horse_id", ecurieHorseIds).order("computed_at", { ascending: false }).limit(ecurieHorseIds.length * 2)
+    feedHorseIds.length
+      ? supabase.from("horse_scores").select("*").in("horse_id", feedHorseIds).order("computed_at", { ascending: false }).limit(feedHorseIds.length * 2)
       : Promise.resolve({ data: [] }),
     supabase.from("feed_reactions").select("item_type, item_id, reaction_type"),
     supabase.from("feed_reactions").select("item_type, item_id, reaction_type").eq("user_id", authUser.id),
@@ -373,7 +602,7 @@ export default async function CommunautePage({ searchParams }: Props) {
     commentsByItem[c.item_id].push(c);
   });
 
-  const rankedHorses = [...(ecurieHorses || [])].sort(
+  const rankedHorses = [...horsesForFeed].sort(
     (a, b) => (latestScoreByHorse[b.id] ?? 0) - (latestScoreByHorse[a.id] ?? 0)
   );
 
@@ -383,20 +612,31 @@ export default async function CommunautePage({ searchParams }: Props) {
         <TrendingUp className="h-5 w-5 text-orange" />
         <div>
           <h1 className="text-2xl font-black text-black">Communauté</h1>
-          <p className="text-sm text-gray-400">
-            {userEcuries[0]}
-            {ecurieHorses && ecurieHorses.length > 0 && (
-              <span className="ml-1.5 px-1.5 py-0.5 bg-gray-100 rounded-full text-2xs font-semibold text-gray-500">
-                {ecurieHorses.length} cheval{ecurieHorses.length > 1 ? "x" : ""}
-              </span>
-            )}
-          </p>
+          {feedFilter === "ecurie" && userEcuries[0] && (
+            <p className="text-sm text-gray-400">
+              {userEcuries[0]}
+              {horsesForFeed.length > 0 && (
+                <span className="ml-1.5 px-1.5 py-0.5 bg-gray-100 rounded-full text-2xs font-semibold text-gray-500">
+                  {horsesForFeed.length} cheval{horsesForFeed.length > 1 ? "x" : ""}
+                </span>
+              )}
+            </p>
+          )}
         </div>
       </div>
 
       <CommunauteTabs activeTab="feed" />
+      <FeedFilterBar active={feedFilter} />
 
-      {feed.length === 0 && ecurieHorseIds.length > 0 ? (
+      {feedFilter === "suivis" && followedHorses.length === 0 ? (
+        <div className="card text-center py-12">
+          <div className="text-3xl mb-3">👥</div>
+          <p className="text-sm font-bold text-black mb-1">Vous ne suivez personne</p>
+          <p className="text-xs text-gray-400 max-w-xs mx-auto leading-relaxed">
+            Suivez d&apos;autres cavaliers depuis leur profil public pour voir leur activité ici.
+          </p>
+        </div>
+      ) : feed.length === 0 && feedHorseIds.length > 0 ? (
         <div className="card text-center py-12">
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange to-orange/60 flex items-center justify-center mx-auto mb-4 shadow-orange">
             <Users className="h-6 w-6 text-white" />
@@ -416,7 +656,7 @@ export default async function CommunautePage({ searchParams }: Props) {
           isCompetitor={isCompetitor}
           rankedHorses={rankedHorses}
           latestScoreByHorse={latestScoreByHorse}
-          ecurieHorses={ecurieHorses || []}
+          ecurieHorses={horsesForFeed}
         />
       )}
     </div>

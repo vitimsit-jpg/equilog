@@ -260,6 +260,10 @@ export default function SettingsForm({ user }: Props) {
         <a href="/confidentialite" className="text-xs text-gray-400 hover:text-gray-600 underline">
           Politique de confidentialité
         </a>
+        <span className="text-gray-200">·</span>
+        <a href="/cgu" className="text-xs text-gray-400 hover:text-gray-600 underline">
+          CGU
+        </a>
       </div>
     </div>
   );

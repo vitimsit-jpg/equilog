@@ -276,7 +276,7 @@ export default function QuickTrainingModal({
 
     const { error } = await supabase.from("training_sessions").insert(payload);
     if (error) {
-      toast.error(`Erreur: ${error.message}`);
+      toast.error("Erreur lors de l'enregistrement");
       setLoading(false);
       return;
     }

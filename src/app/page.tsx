@@ -79,7 +79,7 @@ export default async function Home() {
       </div>
 
       <footer className="text-center py-6 text-xs text-gray-300">
-        © 2026 Equistra · <Link href="/mentions-legales" className="hover:text-gray-500">Mentions légales</Link> · <Link href="/confidentialite" className="hover:text-gray-500">Confidentialité</Link>
+        © 2026 Equistra · <Link href="/mentions-legales" className="hover:text-gray-500">Mentions légales</Link> · <Link href="/confidentialite" className="hover:text-gray-500">Confidentialité</Link> · <Link href="/cgu" className="hover:text-gray-500">CGU</Link>
       </footer>
     </div>
   );

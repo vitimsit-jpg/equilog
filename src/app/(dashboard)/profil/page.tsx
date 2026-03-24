@@ -54,6 +54,13 @@ export default async function ProfilPage() {
           Politique de confidentialité
           <ChevronRight className="h-4 w-4 text-gray-300" />
         </Link>
+        <Link
+          href="/cgu"
+          className="flex items-center justify-between px-4 py-3 border-t border-gray-100 hover:bg-gray-50 transition-colors text-sm text-gray-600 hover:text-black"
+        >
+          Conditions Générales d&apos;Utilisation
+          <ChevronRight className="h-4 w-4 text-gray-300" />
+        </Link>
       </div>
     </div>
   );

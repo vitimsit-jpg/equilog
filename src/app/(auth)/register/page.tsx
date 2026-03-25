@@ -9,24 +9,39 @@ import { createClient } from "@/lib/supabase/client";
 import toast from "react-hot-toast";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
+import { CheckCircle2, Circle } from "lucide-react";
+
+const TERMS_VERSION = "1.0";
 
 function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const planParam = searchParams.get("plan") as "pro" | "ecurie" | null;
+
+  // Step 1: form fields
+  const [step, setStep] = useState<1 | 2>(1);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  // Step 2: consent
+  const [consentTerms, setConsentTerms] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const handleRegister = async (e: React.FormEvent) => {
+  const handleStepOne = (e: React.FormEvent) => {
     e.preventDefault();
     if (password.length < 8) {
       toast.error("Le mot de passe doit faire au moins 8 caractères");
       return;
     }
+    setStep(2);
+  };
+
+  const handleRegister = async () => {
+    if (!consentTerms) return;
     setLoading(true);
     const supabase = createClient();
+    const now = new Date().toISOString();
 
     const { error } = await supabase.auth.signUp({
       email,
@@ -39,8 +54,8 @@ function RegisterForm() {
 
     if (error) {
       toast.error(error.message);
+      setStep(1);
     } else {
-      // Insert user profile
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         await supabase.from("users").upsert({
@@ -48,6 +63,9 @@ function RegisterForm() {
           email,
           name,
           plan: "starter",
+          accepted_terms_at: now,
+          accepted_terms_version: TERMS_VERSION,
+          anonymous_stats_enabled: true,
         });
       }
       fetch("/api/send-welcome", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, name }) });
@@ -82,49 +100,113 @@ function RegisterForm() {
           <p className="text-sm text-gray-500 font-medium">Le carnet de bord de votre cheval</p>
         </div>
 
-        <div className="card shadow-card-hover">
-          <h1 className="text-xl font-bold text-black mb-1">Créer un compte</h1>
-          <p className="text-sm text-gray-400 mb-6">Rejoignez la communauté équestre.</p>
+        {step === 1 ? (
+          <div className="card shadow-card-hover">
+            <h1 className="text-xl font-bold text-black mb-1">Créer un compte</h1>
+            <p className="text-sm text-gray-400 mb-6">Rejoignez la communauté équestre.</p>
 
-          <form onSubmit={handleRegister} className="space-y-4">
-            <Input
-              label="Prénom / Nom"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Marie Dupont"
-              required
-            />
-            <Input
-              label="Email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="vous@email.com"
-              required
-            />
-            <Input
-              label="Mot de passe"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="8 caractères minimum"
-              required
-              minLength={8}
-            />
+            <form onSubmit={handleStepOne} className="space-y-4">
+              <Input
+                label="Prénom / Nom"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Marie Dupont"
+                required
+              />
+              <Input
+                label="Email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="vous@email.com"
+                required
+              />
+              <Input
+                label="Mot de passe"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="8 caractères minimum"
+                required
+                minLength={8}
+              />
 
-            <Button type="submit" loading={loading} className="w-full">
+              <Button type="submit" className="w-full">
+                Continuer
+              </Button>
+            </form>
+
+            <p className="text-center text-sm text-gray-400 mt-5">
+              Déjà un compte ?{" "}
+              <Link href="/login" className="text-orange font-semibold hover:underline">
+                Se connecter
+              </Link>
+            </p>
+          </div>
+        ) : (
+          <div className="card shadow-card-hover space-y-5">
+            <div>
+              <h1 className="text-xl font-bold text-black mb-1">Avant de commencer 🐴</h1>
+              <p className="text-sm text-gray-400">Quelques points importants avant de créer votre compte.</p>
+            </div>
+
+            <div className="bg-beige rounded-xl p-4 space-y-3 text-sm text-gray-700">
+              <div>
+                <p className="font-semibold text-black mb-1">Vos données vous appartiennent</p>
+                <p className="text-xs text-gray-500 leading-relaxed">Equistra collecte uniquement les données nécessaires au fonctionnement de l&apos;application. Vous pouvez exporter ou supprimer votre compte à tout moment depuis votre profil.</p>
+              </div>
+              <div>
+                <p className="font-semibold text-black mb-1">Statistiques anonymisées</p>
+                <p className="text-xs text-gray-500 leading-relaxed">Vos données contribuent à des statistiques anonymisées (Horse Index, tendances par discipline). Vous pourrez désactiver cela dans les paramètres.</p>
+              </div>
+              <div>
+                <p className="font-semibold text-black mb-1">Contact & données personnelles</p>
+                <p className="text-xs text-gray-500 leading-relaxed">Pour toute question sur vos données : <span className="font-medium text-black">privacy@equistra.com</span>. Nous répondons sous 30 jours (Art. 12 RGPD).</p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setConsentTerms(!consentTerms)}
+              className="w-full flex items-start gap-3 text-left"
+            >
+              {consentTerms
+                ? <CheckCircle2 className="h-5 w-5 text-orange flex-shrink-0 mt-0.5" />
+                : <Circle className="h-5 w-5 text-gray-300 flex-shrink-0 mt-0.5" />
+              }
+              <span className="text-sm text-gray-600 leading-relaxed">
+                J&apos;accepte les{" "}
+                <Link href="/cgu" target="_blank" className="text-orange font-semibold hover:underline" onClick={(e) => e.stopPropagation()}>
+                  Conditions Générales d&apos;Utilisation
+                </Link>{" "}
+                et la{" "}
+                <Link href="/confidentialite" target="_blank" className="text-orange font-semibold hover:underline" onClick={(e) => e.stopPropagation()}>
+                  Politique de confidentialité
+                </Link>{" "}
+                d&apos;Equistra.
+              </span>
+            </button>
+
+            <Button
+              type="button"
+              loading={loading}
+              disabled={!consentTerms}
+              onClick={handleRegister}
+              className="w-full"
+            >
               Créer mon compte
             </Button>
-          </form>
 
-          <p className="text-center text-sm text-gray-400 mt-5">
-            Déjà un compte ?{" "}
-            <Link href="/login" className="text-orange font-semibold hover:underline">
-              Se connecter
-            </Link>
-          </p>
-        </div>
+            <button
+              type="button"
+              onClick={() => setStep(1)}
+              className="w-full text-xs text-gray-400 hover:text-black transition-colors py-1"
+            >
+              ← Retour
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

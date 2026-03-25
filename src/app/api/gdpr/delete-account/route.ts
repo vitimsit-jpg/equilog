@@ -2,10 +2,17 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 
-export async function DELETE() {
+export async function DELETE(request: Request) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+
+  // Vérification mot de passe
+  const { password } = await request.json().catch(() => ({ password: null }));
+  if (!password) return NextResponse.json({ error: "Mot de passe requis" }, { status: 400 });
+
+  const { error: authError } = await supabase.auth.signInWithPassword({ email: user.email!, password });
+  if (authError) return NextResponse.json({ error: "Mot de passe incorrect" }, { status: 403 });
 
   const admin = createAdminClient();
 
@@ -47,6 +54,28 @@ export async function DELETE() {
     admin.from("coach_students").delete().eq("coach_id", user.id),
     admin.from("horse_alerts").delete().eq("reporter_id", user.id),
   ]);
+
+  // Marque le profil comme supprimé avant suppression définitive
+  await admin.from("users").update({ deleted_at: new Date().toISOString() }).eq("id", user.id);
+
+  // Envoie email de confirmation de suppression
+  try {
+    const resendKey = process.env.RESEND_API_KEY;
+    if (resendKey && user.email) {
+      await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${resendKey}` },
+        body: JSON.stringify({
+          from: "Equistra <noreply@equistra.com>",
+          to: user.email,
+          subject: "Votre compte Equistra a été supprimé",
+          html: `<p>Bonjour,</p><p>Votre compte Equistra a bien été supprimé conformément à votre demande (Art. 17 RGPD).</p><p>Les données financières sont conservées de manière anonymisée pendant 10 ans (obligation légale, Art. 6.1.c RGPD).</p><p>Pour toute question : <a href="mailto:privacy@equistra.com">privacy@equistra.com</a></p>`,
+        }),
+      });
+    }
+  } catch {
+    // Non bloquant
+  }
 
   // Supprime le profil utilisateur
   await admin.from("users").delete().eq("id", user.id);

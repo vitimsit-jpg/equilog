@@ -43,6 +43,13 @@ export interface User {
   user_modules: Record<string, boolean> | null;
   // RGPD (migration 044)
   opt_out_analytics: boolean;
+  // RGPD V2 (migration 045)
+  accepted_terms_at: string | null;
+  accepted_terms_version: string | null;
+  anonymous_stats_enabled: boolean;
+  feed_visibility: 'all' | 'activity' | 'private';
+  gps_enabled: boolean;
+  deleted_at: string | null;
 }
 
 export interface Horse {
@@ -86,6 +93,8 @@ export interface Horse {
   historique_avant_acquisition: string | null;
   // Module Nutrition (migration 040)
   module_nutrition: boolean;
+  // Visibilité RGPD (migration 045)
+  visibility: 'national' | 'stable' | 'private' | null;
   created_at: string;
 }
 

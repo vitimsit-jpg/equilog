@@ -41,11 +41,21 @@ export default async function ProfilPage() {
       <GDPRBlock
         userId={authUser.id}
         optOutAnalytics={userProfile?.opt_out_analytics ?? false}
+        anonymousStatsEnabled={userProfile?.anonymous_stats_enabled ?? true}
       />
 
       {/* Legal */}
       <div className="card p-0 overflow-hidden">
         <p className="px-4 pt-3 pb-2 text-2xs font-bold uppercase tracking-widest text-gray-400">Légal</p>
+        {userProfile?.accepted_terms_at && (
+          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
+            <p className="text-sm text-gray-600">CGU acceptées le</p>
+            <p className="text-xs text-gray-400">
+              {new Date(userProfile.accepted_terms_at).toLocaleDateString("fr-FR")}
+              {userProfile.accepted_terms_version && ` · v${userProfile.accepted_terms_version}`}
+            </p>
+          </div>
+        )}
         <Link
           href="/mentions-legales"
           className="flex items-center justify-between px-4 py-3 border-t border-gray-100 hover:bg-gray-50 transition-colors text-sm text-gray-600 hover:text-black"
@@ -67,6 +77,13 @@ export default async function ProfilPage() {
           Conditions Générales d&apos;Utilisation
           <ChevronRight className="h-4 w-4 text-gray-300" />
         </Link>
+        <a
+          href="mailto:privacy@equistra.com"
+          className="flex items-center justify-between px-4 py-3 border-t border-gray-100 hover:bg-gray-50 transition-colors text-sm text-gray-600 hover:text-black"
+        >
+          Contacter le DPO (RGPD)
+          <span className="text-xs text-orange font-medium">privacy@equistra.com</span>
+        </a>
       </div>
     </div>
   );

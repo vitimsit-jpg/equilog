@@ -9,7 +9,7 @@ import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import Textarea from "@/components/ui/Textarea";
 import Button from "@/components/ui/Button";
-import { Edit2, Cloud, Activity } from "lucide-react";
+import { Edit2, Cloud, Activity, Globe } from "lucide-react";
 import type { Horse, Discipline } from "@/lib/supabase/types";
 import { DISCIPLINE_LABELS } from "@/lib/utils";
 import type { Couverture } from "@/lib/meteo";
@@ -94,6 +94,7 @@ export default function HorseEditModal({ horse }: Props) {
     fei_number: horse.fei_number || "",
     tonte: horse.tonte || "",
     horse_index_mode: horse.horse_index_mode || "IE",
+    visibility: horse.visibility || "national",
   });
   const [assure, setAssure] = useState<boolean>(!!horse.assurance);
   const [moduleNutrition, setModuleNutrition] = useState<boolean>(!!(horse as any).module_nutrition);
@@ -147,6 +148,7 @@ export default function HorseEditModal({ horse }: Props) {
         }),
         trousseau: Array.from(trousseauSet).map((label) => ({ label, grammage: 0, impermeable: false })),
         module_nutrition: moduleNutrition,
+        visibility: form.visibility as Horse["visibility"],
       })
       .eq("id", horse.id);
 
@@ -401,6 +403,38 @@ export default function HorseEditModal({ horse }: Props) {
                   </button>
                 ))}
               </div>
+            </div>
+          </div>
+
+          {/* ── Visibilité & confidentialité ── */}
+          <div className="pt-3 border-t border-gray-100">
+            <div className="flex items-center gap-2 mb-3">
+              <Globe className="h-4 w-4 text-gray-400" />
+              <h3 className="text-sm font-bold text-black">Visibilité</h3>
+            </div>
+            <div className="space-y-2">
+              {([
+                { value: "national", emoji: "🌍", label: "Classements nationaux", desc: "Votre cheval apparaît dans les classements par discipline et région" },
+                { value: "stable",   emoji: "🏠", label: "Écurie uniquement",     desc: "Visible uniquement des membres de votre écurie" },
+                { value: "private",  emoji: "🔒", label: "Privé",                 desc: "Aucune donnée partagée, Horse Index local uniquement" },
+              ] as const).map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setForm({ ...form, visibility: opt.value })}
+                  className={`w-full flex items-start gap-3 p-3 rounded-xl border-2 text-left transition-colors ${
+                    form.visibility === opt.value
+                      ? "border-orange bg-orange-light"
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  <span className="text-lg">{opt.emoji}</span>
+                  <div>
+                    <p className="text-sm font-semibold text-black">{opt.label}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{opt.desc}</p>
+                  </div>
+                </button>
+              ))}
             </div>
           </div>
 

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { differenceInDays, parseISO } from "date-fns";
 import { Plus, AlertCircle, Clock, Calendar, CheckCircle2 } from "lucide-react";
 import { daysUntil, formatCurrency, HEALTH_TYPE_LABELS } from "@/lib/utils";
 import type { HealthRecord, MarechalProfile } from "@/lib/supabase/types";
@@ -27,6 +28,16 @@ const COMFORT_CATEGORIES: CategoryConfig[] = [
 ];
 
 const CATEGORIES = [...VET_CATEGORIES, ...MANDATORY_CATEGORIES, ...COMFORT_CATEGORIES];
+
+// Max interval per type (aligns with Horse Index calculator)
+const MAX_DAYS_BY_TYPE: Record<string, number> = {
+  vaccin: 182,
+  vermifuge: 90,
+  ferrage: 35,
+  dentiste: 365,
+  osteo: 180,
+  masseuse: 90,
+};
 
 function getLatestByType(records: HealthRecord[]): Record<string, HealthRecord | null> {
   const map: Record<string, HealthRecord | null> = {};
@@ -54,17 +65,31 @@ export default function HealthOverview({ records, horseId, marechalProfile, hors
 
   const latestByType = getLatestByType(records);
 
-  // Summary stats
+  const today = new Date();
+
+  // Summary stats — aligns with Horse Index calculator logic
   const overdue = CATEGORIES.filter((c) => {
     const latest = latestByType[c.type];
-    return latest?.next_date && daysUntil(latest.next_date) < 0;
+    if (!latest) return false;
+    if (latest.next_date) return daysUntil(latest.next_date) < 0;
+    // No next_date: check against default max interval
+    const maxDays = MAX_DAYS_BY_TYPE[c.type];
+    if (!maxDays) return false;
+    return differenceInDays(today, parseISO(latest.date)) > maxDays;
   }).length;
 
   const soon = CATEGORIES.filter((c) => {
     const latest = latestByType[c.type];
-    if (!latest?.next_date) return false;
-    const d = daysUntil(latest.next_date);
-    return d >= 0 && d <= 7;
+    if (!latest) return false;
+    if (latest.next_date) {
+      const d = daysUntil(latest.next_date);
+      return d >= 0 && d <= 14;
+    }
+    // No next_date: check if approaching max interval (within 14 days)
+    const maxDays = MAX_DAYS_BY_TYPE[c.type];
+    if (!maxDays) return false;
+    const daysSince = differenceInDays(today, parseISO(latest.date));
+    return daysSince >= maxDays - 14 && daysSince <= maxDays;
   }).length;
 
   const toPlan = CATEGORIES.filter((c) => {

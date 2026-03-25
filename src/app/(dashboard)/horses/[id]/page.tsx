@@ -14,11 +14,11 @@ import type { HorseIndexMode } from "@/lib/supabase/types";
 
 const MODE_LABELS: Record<HorseIndexMode, string> = {
   IC:  "Compétition",
-  IE:  "Loisir",
-  IP:  "Semi-actif",
+  IE:  "Équilibre",
+  IP:  "Rééducation",
   IR:  "Convalescence",
   IS:  "Retraite",
-  ICr: "Poulain",
+  ICr: "Croissance",
 };
 
 const CONDITIONS_VIE_LABELS: Record<string, string> = {
@@ -124,7 +124,22 @@ export default async function HorsePage({ params }: Props) {
       {/* 3. Carte Horse Index */}
       <div className="card flex flex-col items-center gap-5">
         <div className="w-full flex items-center justify-between">
-          <h2 className="font-bold text-black text-sm uppercase tracking-wide">Horse Index</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="font-bold text-black text-sm uppercase tracking-wide">Horse Index</h2>
+            <details className="relative group">
+              <summary className="cursor-pointer list-none w-5 h-5 rounded-full bg-gray-100 text-gray-400 text-xs font-bold flex items-center justify-center hover:bg-gray-200 transition-colors select-none">?</summary>
+              <div className="absolute left-0 top-6 z-10 w-64 p-3 bg-white border border-gray-100 rounded-xl shadow-lg text-2xs text-gray-500 leading-relaxed">
+                <p className="font-bold text-black text-xs mb-1">Comment ce score est calculé ?</p>
+                <p>Le Horse Index est un score sur 100 combinant trois piliers pondérés selon le mode de vie du cheval :</p>
+                <ul className="mt-1 space-y-0.5">
+                  <li>❤️ <strong>Santé</strong> — soins à jour, alertes vét, suivi praticiens</li>
+                  <li>🌿 <strong>Bien-être</strong> — ressenti en séance, équilibre repos/travail</li>
+                  <li>🏇 <strong>Activité</strong> — régularité et intensité adaptées au mode</li>
+                </ul>
+                <p className="mt-1.5 text-gray-400">Recalculé à chaque nouvelle saisie.</p>
+              </div>
+            </details>
+          </div>
           {currentScore && (
             <span className="text-2xs text-gray-400">{formatDate(currentScore.computed_at)}</span>
           )}

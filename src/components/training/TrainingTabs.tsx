@@ -60,12 +60,12 @@ function getTabConfig(mode: HorseIndexMode | null): { overviewLabel: string; sho
 function ModeBadge({ mode }: { mode: HorseIndexMode | null }) {
   if (!mode) return null;
   const labels: Record<HorseIndexMode, { label: string; color: string }> = {
-    IC: { label: "Compétition intensive", color: "bg-purple-100 text-purple-700" },
-    ICr: { label: "Croisière", color: "bg-blue-100 text-blue-700" },
-    IE: { label: "Loisir", color: "bg-green-100 text-green-700" },
-    IP: { label: "Semi-actif", color: "bg-amber-100 text-amber-700" },
-    IR: { label: "Rééducation", color: "bg-red-100 text-red-700" },
-    IS: { label: "Sénior", color: "bg-gray-100 text-gray-600" },
+    IC:  { label: "Compétition",  color: "bg-purple-100 text-purple-700" },
+    ICr: { label: "Croissance",   color: "bg-blue-100 text-blue-700" },
+    IE:  { label: "Équilibre",    color: "bg-green-100 text-green-700" },
+    IP:  { label: "Rééducation",  color: "bg-amber-100 text-amber-700" },
+    IR:  { label: "Convalescence",color: "bg-red-100 text-red-700" },
+    IS:  { label: "Retraite",     color: "bg-gray-100 text-gray-600" },
   };
   const info = labels[mode];
   if (!info) return null;

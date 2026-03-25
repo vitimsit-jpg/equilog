@@ -10,11 +10,11 @@ interface ScoreBreakdownProps {
 
 const MODE_LABELS: Record<HorseIndexMode, { label: string; fullLabel: string }> = {
   IC:  { label: "Compétition",    fullLabel: "Indice Compétition" },
-  IE:  { label: "Loisir",         fullLabel: "Indice Équilibre" },
-  IP:  { label: "Semi-actif",     fullLabel: "Indice Plaisir" },
+  IE:  { label: "Équilibre",      fullLabel: "Indice Équilibre" },
+  IP:  { label: "Rééducation",    fullLabel: "Indice Rééducation" },
   IR:  { label: "Convalescence",  fullLabel: "Indice Rétablissement" },
   IS:  { label: "Retraite",       fullLabel: "Indice Sérénité" },
-  ICr: { label: "Poulain",        fullLabel: "Indice Croissance" },
+  ICr: { label: "Croissance",     fullLabel: "Indice Croissance" },
 };
 
 // Visible pillars only — Suivi proprio is NEVER shown separately (HI-11)

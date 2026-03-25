@@ -128,12 +128,12 @@ export default async function TrainingPage({ params }: Props) {
           </div>
           <div className="grid grid-cols-2 gap-3 w-full max-w-sm text-left text-xs">
             {[
-              { code: "IC", label: "Compétition", desc: "Actif en compétition" },
-              { code: "IE", label: "Entretien", desc: "Loisir / détente" },
-              { code: "IP", label: "Préparation", desc: "Retour progressif" },
-              { code: "IR", label: "Rééducation", desc: "Convalescence" },
-              { code: "IS", label: "Semi-actif", desc: "Retraite partielle" },
-              { code: "ICr", label: "Croisière", desc: "Maintien de forme" },
+              { code: "IC",  label: "Compétition",  desc: "Actif en compétition" },
+              { code: "IE",  label: "Équilibre",     desc: "Loisir / pratique régulière" },
+              { code: "IP",  label: "Rééducation",   desc: "Retour progressif" },
+              { code: "IR",  label: "Convalescence", desc: "Blessure, arrêt médical" },
+              { code: "IS",  label: "Retraite",      desc: "Très faible activité" },
+              { code: "ICr", label: "Croissance",    desc: "Poulain en développement" },
             ].map((m) => (
               <div key={m.code} className="px-3 py-2.5 rounded-xl border border-gray-100 bg-gray-50">
                 <span className="font-mono font-bold text-orange text-sm">{m.code}</span>

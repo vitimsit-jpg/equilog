@@ -475,7 +475,7 @@ export default function HorseEditModal({ horse, compact = false }: Props) {
                 <p className="text-xs text-gray-500">Évalué sur la régularité d&apos;entraînement, les résultats en concours et la récupération.</p>
               </div>
               <div className="bg-beige rounded-xl p-3">
-                <p className="font-semibold text-black mb-0.5">🌿 Loisir (IE)</p>
+                <p className="font-semibold text-black mb-0.5">🌿 Équilibre (IE)</p>
                 <p className="text-xs text-gray-500">Évalué sur l&apos;équilibre repos/travail et le bien-être général.</p>
               </div>
               <div className="bg-beige rounded-xl p-3">

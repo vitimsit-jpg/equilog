@@ -15,12 +15,12 @@ import type { HorseScore, HorseIndexMode } from "@/lib/supabase/types";
 import { getScoreColor } from "@/lib/utils";
 
 const MODE_LABELS: Partial<Record<HorseIndexMode, string>> = {
-  IC: "Compétition",
-  IE: "Loisir",
-  IP: "Semi-actif",
-  IR: "Convalescence",
-  IS: "Retraite",
-  ICr: "Poulain",
+  IC:  "Compétition",
+  IE:  "Équilibre",
+  IP:  "Rééducation",
+  IR:  "Convalescence",
+  IS:  "Retraite",
+  ICr: "Croissance",
 };
 
 interface ScoreHistoryProps {

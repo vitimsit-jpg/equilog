@@ -239,7 +239,7 @@ function Cell({ horse, date, daySessions, dayPlanned, userName, onTap, isTodayCo
   // Pastilles fantômes = séances planifiées sans linked_session_id
   const phantomPastilles: PastilleConfig[] = dayPlanned
     .filter((p) => p.status === "planned" && !p.linked_session_id)
-    .map((p) => getPastilleConfig(p.qui_monte, p.type, userName, true));
+    .map((p) => getPastilleConfig(p.qui_sen_occupe, p.type, userName, true));
 
   const allPastilles = [...donePastilles, ...phantomPastilles];
   const visible = allPastilles.slice(0, 3);
@@ -507,7 +507,7 @@ function PlanModal({ horse, date, onClose, onSaved }: PlanModalProps) {
       date: format(date, "yyyy-MM-dd"),
       type,
       duration_min_target: duration,
-      qui_monte: rider,
+      qui_sen_occupe: rider,
       notes: notes.trim() || null,
       status: "planned",
       linked_session_id: null,
@@ -721,7 +721,7 @@ export default function TableauHebdomadaire({
         date: dateStr,
         type: "marcheur" as TrainingType,
         duration_min_target: 30,
-        qui_monte: null,
+        qui_sen_occupe: null,
         notes: null,
         status: "planned",
         linked_session_id: null,
@@ -748,7 +748,7 @@ export default function TableauHebdomadaire({
         duration_min: planned.duration_min_target ?? 45,
         intensity: planned.intensity_target ?? (3 as 1 | 2 | 3 | 4 | 5),
         feeling: 3 as 1 | 2 | 3 | 4 | 5,
-        rider: planned.qui_monte ?? null,
+        rider: planned.qui_sen_occupe ?? null,
         notes: planned.notes ?? null,
       })
       .select("id")
@@ -780,7 +780,7 @@ export default function TableauHebdomadaire({
     setQuickModalHorse(horse);
     setQuickPrefill({
       type: planned.type,
-      rider: planned.qui_monte ?? null,
+      rider: planned.qui_sen_occupe ?? null,
       duration: planned.duration_min_target ?? null,
     });
     setCellSheet(null);

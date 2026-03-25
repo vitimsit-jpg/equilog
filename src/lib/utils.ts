@@ -81,6 +81,15 @@ export const TRAINING_TYPE_LABELS: Record<string, string> = {
   cross: "Cross",
 };
 
+export const TRAINING_EMOJIS: Record<string, string> = {
+  dressage: "🎯", plat: "🏇", stretching: "🤸", barres_sol: "📏",
+  cavalettis: "🔲", meca_obstacles: "🚧", obstacles_enchainement: "🏁",
+  cross_entrainement: "🌲", longe: "🌀", longues_renes: "🪢",
+  travail_a_pied: "🦶", balade: "🌿", trotting: "🏃", galop: "💨",
+  marcheur: "⚙️", paddock: "🌾", concours: "🏆", autre: "✳️",
+  repos: "😴", saut: "🏇", endurance: "🏅", cso: "🏁", cross: "🌲",
+};
+
 export const BUDGET_CATEGORY_LABELS: Record<string, string> = {
   pension: "Pension",
   soins: "Soins vétérinaires",

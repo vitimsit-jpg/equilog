@@ -30,14 +30,11 @@ export const DISCIPLINE_ITEMS: { type: TrainingType; emoji: string; label: strin
   { type: "trotting",              emoji: "🏃", label: "Trotting" },
   { type: "galop",                 emoji: "💨", label: "Galop" },
   { type: "marcheur",              emoji: "⚙️", label: "Marcheur" },
+  { type: "paddock",               emoji: "🌾", label: "Paddock" },
   { type: "concours",              emoji: "🏆", label: "Concours" },
   { type: "autre",                 emoji: "✳️", label: "Autre" },
 ];
 
-const COMPLEMENT_OPTIONS = [
-  { value: "marcheur", emoji: "🔄", label: "Marcheur" },
-  { value: "paddock",  emoji: "🌿", label: "Paddock" },
-];
 
 export const INTENSITY_OPTIONS = [
   { value: 2, label: "Léger",   inactive: "bg-green-50 text-green-600 border-green-200",  active: "bg-green-500 text-white border-green-500" },
@@ -71,13 +68,12 @@ const RECUP_OPTIONS = [
   { value: "Rien",             emoji: "—" },
 ];
 
-export const DURATION_PICKS = [15, 20, 30, 45, 60, 90];
+export const DURATION_PICKS = [15, 20, 30, 45, 60, 90, 120, 150];
 
 type DateMode = "today" | "yesterday" | "custom";
 
 export interface PrefillData {
   type?: TrainingType | null;
-  complement?: string[] | null;
   rider?: TrainingRider | null;
   duration?: number | null;
   intensity?: number | null;
@@ -110,7 +106,6 @@ export default function QuickTrainingModal({
 
   // Form state
   const [discipline, setDiscipline] = useState<TrainingType | null>(null);
-  const [enComplement, setEnComplement] = useState<string[]>([]);
   const [riderIdx, setRiderIdx] = useState(0);
   const [intensityIdx, setIntensityIdx] = useState(1);
   const [feelingIdx, setFeelingIdx] = useState(1);
@@ -132,7 +127,6 @@ export default function QuickTrainingModal({
   useEffect(() => {
     if (!open || !prefill) return;
     if (prefill.type) setDiscipline(prefill.type);
-    if (prefill.complement?.length) setEnComplement(prefill.complement);
     if (prefill.rider) {
       const idx = RIDER_OPTIONS.findIndex(r => r.value === prefill.rider);
       if (idx >= 0) setRiderIdx(idx);
@@ -156,11 +150,8 @@ export default function QuickTrainingModal({
     ? format(subDays(new Date(), 1), "yyyy-MM-dd")
     : customDate;
 
-  // Complement-only: hide Qui monte / Intensité / État du cheval
-  const isOnlyComplement = enComplement.length > 0 && !discipline;
-
-  const toggleComplement = (val: string) =>
-    setEnComplement(prev => prev.includes(val) ? prev.filter(x => x !== val) : [...prev, val]);
+  // Marcheur/paddock: hide Qui monte / Intensité / État du cheval
+  const isOnlyComplement = discipline === "marcheur" || discipline === "paddock";
 
   const handleVoiceResult = (data: {
     type?: TrainingType | null;
@@ -226,8 +217,8 @@ export default function QuickTrainingModal({
   };
 
   const handleSave = async () => {
-    if (!discipline && enComplement.length === 0) {
-      toast.error("Sélectionnez un type de travail ou un complément");
+    if (!discipline) {
+      toast.error("Sélectionnez un type de travail");
       return;
     }
     setLoading(true);
@@ -235,7 +226,7 @@ export default function QuickTrainingModal({
     const rider = isOnlyComplement ? null : RIDER_OPTIONS[riderIdx].value;
     const feelingValue = isOnlyComplement ? 3 : FEELING_OPTIONS[feelingIdx].value;
     const intensityValue = isOnlyComplement ? 1 : INTENSITY_OPTIONS[intensityIdx].value;
-    const effectiveType: TrainingType = discipline ?? (enComplement.includes("marcheur") ? "marcheur" : "paddock");
+    const effectiveType: TrainingType = discipline!;
 
     let mediaUrls: string[] = [];
     if (mediaFiles.length > 0) mediaUrls = await uploadMedia(mediaFiles);
@@ -257,7 +248,8 @@ export default function QuickTrainingModal({
       objectif: objectif.trim() || null,
       lieu,
       equipement_recuperation: equipementRecup.length > 0 ? equipementRecup.join(", ") : null,
-      complement: enComplement.length > 0 ? enComplement : null,
+      mode_entree: "logge" as const,
+      est_complement: discipline === "marcheur" || discipline === "paddock",
       wearable_source: null,
       linked_competition_id: linkedCompetitionId || null,
       media_urls: mediaUrls.length > 0 ? mediaUrls : null,
@@ -301,7 +293,6 @@ export default function QuickTrainingModal({
 
   const reset = () => {
     setDiscipline(null);
-    setEnComplement([]);
     setRiderIdx(0);
     setIntensityIdx(1);
     setFeelingIdx(1);
@@ -473,28 +464,6 @@ export default function QuickTrainingModal({
             </div>
           </div>
 
-          {/* En complément */}
-          <div>
-            <p className="text-2xs font-bold uppercase tracking-widest text-gray-400 mb-2">En complément aujourd&apos;hui</p>
-            <div className="flex gap-2">
-              {COMPLEMENT_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => toggleComplement(opt.value)}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 text-xs font-semibold transition-all ${
-                    enComplement.includes(opt.value)
-                      ? "border-orange bg-orange-light text-orange"
-                      : "border-gray-100 bg-gray-50 text-gray-600 hover:border-gray-200"
-                  }`}
-                >
-                  <span className="text-base">{opt.emoji}</span>
-                  <span>{opt.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
           {/* Lier à un concours */}
           {discipline === "concours" && competitions && competitions.length > 0 && (
             <div>
@@ -530,10 +499,10 @@ export default function QuickTrainingModal({
             </div>
           )}
 
-          {/* Qui monte — hidden for complement-only */}
+          {/* Qui s'en occupe — hidden for marcheur/paddock */}
           {!isOnlyComplement && (
             <div>
-              <p className="text-2xs font-bold uppercase tracking-widest text-gray-400 mb-2">Qui monte</p>
+              <p className="text-2xs font-bold uppercase tracking-widest text-gray-400 mb-2">Qui s&apos;en occupe</p>
               <div className="grid grid-cols-3 gap-2">
                 {RIDER_OPTIONS.map((opt, i) => (
                   <button

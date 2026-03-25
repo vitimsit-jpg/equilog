@@ -214,6 +214,12 @@ export interface TrainingSession {
   media_urls: string[] | null;
   complement: string[] | null;
   linked_competition_id: string | null;
+  // TRAV-17 new fields (migration 043)
+  mode_entree: "planifie" | "logge" | null;
+  est_complement: boolean | null;
+  duree_planifiee: number | null;
+  duree_reelle: number | null;
+  note_vocale_brute: string | null;
   created_at: string;
 }
 
@@ -310,7 +316,7 @@ export interface TrainingPlannedSession {
   duration_min_target: number | null;
   intensity_target: 1 | 2 | 3 | 4 | 5 | null;
   complement: string[] | null;
-  qui_monte: TrainingRider | null;
+  qui_sen_occupe: TrainingRider | null;
   notes: string | null;
   status: "planned" | "skipped";
   linked_session_id: string | null;

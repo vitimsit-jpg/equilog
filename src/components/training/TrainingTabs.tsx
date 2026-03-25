@@ -524,7 +524,8 @@ function RehabOverview({ sessions, latestInsight, protocol, horseId }: { session
 
 export default function TrainingTabs({ horseId, horseName, sessions, plannedSessions, latestInsight, horseMode, nextCompetition, healthRecords, activeRehabProtocol, competitions }: Props) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<Tab>("overview");
+  const { overviewLabel: _overviewLabel, showPlanTab: _showPlanTab } = getTabConfig(horseMode);
+  const [activeTab, setActiveTab] = useState<Tab>(_showPlanTab ? "semaine" : "overview");
   const [addOpen, setAddOpen] = useState(false);
   const [reminderDismissed, setReminderDismissed] = useState(false);
   const [programmeExpanded, setProgrammeExpanded] = useState(true);
@@ -543,8 +544,8 @@ export default function TrainingTabs({ horseId, horseName, sessions, plannedSess
   const isIPMode = horseMode === "IP";
 
   const tabs: { id: Tab; label: string; icon: ReactNode }[] = [
-    { id: "overview", label: overviewLabel, icon: <LayoutDashboard className="h-3.5 w-3.5" /> },
     ...(showPlanTab ? [{ id: "semaine" as Tab, label: "Programme", icon: <Calendar className="h-3.5 w-3.5" /> }] : []),
+    { id: "overview", label: overviewLabel, icon: <LayoutDashboard className="h-3.5 w-3.5" /> },
     { id: "historique", label: "Historique", icon: <Clock className="h-3.5 w-3.5" /> },
   ];
 

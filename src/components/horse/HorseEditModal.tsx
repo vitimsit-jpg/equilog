@@ -9,12 +9,8 @@ import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import Textarea from "@/components/ui/Textarea";
 import Button from "@/components/ui/Button";
-import { Edit2, Cloud, Activity, Globe } from "lucide-react";
-import type { Horse, Discipline } from "@/lib/supabase/types";
-import { DISCIPLINE_LABELS } from "@/lib/utils";
-import type { Couverture } from "@/lib/meteo";
-
-const disciplineOptions = Object.entries(DISCIPLINE_LABELS).map(([value, label]) => ({ value, label }));
+import { Edit2, Cloud, Activity, HelpCircle, Globe, X } from "lucide-react";
+import type { Horse } from "@/lib/supabase/types";
 
 const currentYear = new Date().getFullYear();
 const yearOptions = Array.from({ length: 35 }, (_, i) => {
@@ -71,40 +67,41 @@ const regionOptions = [
 
 interface Props {
   horse: Horse;
+  compact?: boolean; // affiche uniquement l'icône (pas de bouton mobile plein-largeur)
 }
 
-export default function HorseEditModal({ horse }: Props) {
+export default function HorseEditModal({ horse, compact = false }: Props) {
   const supabase = createClient();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showModeInfo, setShowModeInfo] = useState(false); // APCU-06
+
   const [form, setForm] = useState({
     name: horse.name,
     breed: horse.breed || "",
     birth_year: horse.birth_year ? String(horse.birth_year) : "",
-    discipline: horse.discipline || "",
+    sexe: (horse as any).sexe || "",
+    // discipline supprimée — APCU-13
     region: horse.region || "",
     ecurie: horse.ecurie || "",
-    sexe: horse.sexe || "",
-    conditions_vie: horse.conditions_vie || "",
-    objectif_saison: horse.objectif_saison || "",
-    maladies_chroniques: horse.maladies_chroniques || "",
-    assurance: horse.assurance || "",
-    sire_number: horse.sire_number || "",
-    fei_number: horse.fei_number || "",
-    tonte: horse.tonte || "",
-    horse_index_mode: horse.horse_index_mode || "IE",
-    visibility: horse.visibility || "national",
+    conditions_vie: (horse as any).conditions_vie || "",
+    // objectif_saison supprimée — APCU-07
+    maladies_chroniques: (horse as any).maladies_chroniques || "",
+    assurance: (horse as any).assurance || "",
+    // sire_number, fei_number supprimés — APCU-08
+    tonte: (horse as any).tonte || "",
+    horse_index_mode: (horse as any).horse_index_mode || "IE",
+    visibility: (horse as any).visibility || "national",
   });
-  const [assure, setAssure] = useState<boolean>(!!horse.assurance);
+  const [assure, setAssure] = useState<boolean>(!!(horse as any).assurance);
   const [moduleNutrition, setModuleNutrition] = useState<boolean>(!!(horse as any).module_nutrition);
 
-  // Trousseau simplifié : set des labels sélectionnés parmi "Légère", "Moyenne", "Chaude"
   const COUV_OPTIONS = ["Légère", "Moyenne", "Chaude"] as const;
   type CouvertureLabel = typeof COUV_OPTIONS[number];
   const initTrousseau = (): Set<CouvertureLabel> => {
     const existing = new Set<CouvertureLabel>();
-    (horse.trousseau || []).forEach((c: Couverture) => {
+    ((horse as any).trousseau || []).forEach((c: { label?: string }) => {
       const match = COUV_OPTIONS.find((o) => o.toLowerCase() === c.label?.toLowerCase());
       if (match) existing.add(match);
     });
@@ -131,19 +128,18 @@ export default function HorseEditModal({ horse }: Props) {
         name: form.name.trim(),
         breed: form.breed || null,
         birth_year: form.birth_year ? parseInt(form.birth_year) : null,
-        discipline: (form.discipline as Discipline) || null,
+        // discipline supprimée — APCU-13
         region: form.region || null,
         ecurie: form.ecurie || null,
         sexe: (form.sexe as Horse["sexe"]) || null,
         conditions_vie: (form.conditions_vie as Horse["conditions_vie"]) || null,
-        objectif_saison: form.objectif_saison || null,
+        // objectif_saison supprimée — APCU-07
         maladies_chroniques: form.maladies_chroniques || null,
         assurance: form.assurance || null,
-        sire_number: form.sire_number || null,
-        fei_number: form.fei_number || null,
+        // sire_number, fei_number supprimés — APCU-08
         tonte: (form.tonte as Horse["tonte"]) || null,
         horse_index_mode: form.horse_index_mode || "IE",
-        ...(form.horse_index_mode !== horse.horse_index_mode && {
+        ...(form.horse_index_mode !== (horse as any).horse_index_mode && {
           horse_index_mode_changed_at: new Date().toISOString(),
         }),
         trousseau: Array.from(trousseauSet).map((label) => ({ label, grammage: 0, impermeable: false })),
@@ -158,13 +154,12 @@ export default function HorseEditModal({ horse }: Props) {
       return;
     }
 
-    // Si le mode de vie a changé, recalculer le Horse Index immédiatement
-    if (form.horse_index_mode !== horse.horse_index_mode) {
+    if (form.horse_index_mode !== (horse as any).horse_index_mode) {
       await fetch("/api/horse-index", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ horseId: horse.id }),
-      }).catch(() => {}); // silencieux si échec
+      }).catch(() => {});
     }
 
     toast.success("Profil mis à jour");
@@ -173,7 +168,15 @@ export default function HorseEditModal({ horse }: Props) {
     setLoading(false);
   };
 
-  return (
+  const triggerButton = compact ? (
+    <button
+      onClick={() => setOpen(true)}
+      className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-black transition-colors"
+      title="Modifier le profil"
+    >
+      <Edit2 className="h-4 w-4" />
+    </button>
+  ) : (
     <>
       {/* Desktop: icon only */}
       <button
@@ -183,7 +186,6 @@ export default function HorseEditModal({ horse }: Props) {
       >
         <Edit2 className="h-4 w-4" />
       </button>
-
       {/* Mobile: full row button for bottom sheet */}
       <button
         onClick={() => setOpen(true)}
@@ -192,6 +194,12 @@ export default function HorseEditModal({ horse }: Props) {
         <Edit2 className="h-4 w-4 text-gray-500" />
         Modifier le profil
       </button>
+    </>
+  );
+
+  return (
+    <>
+      {triggerButton}
 
       <Modal open={open} onClose={() => setOpen(false)} title="Modifier le profil">
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -218,22 +226,14 @@ export default function HorseEditModal({ horse }: Props) {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <Select
-              label="Sexe"
-              value={form.sexe}
-              onChange={(e) => setForm({ ...form, sexe: e.target.value })}
-              options={sexeOptions}
-              placeholder="Sélectionner"
-            />
-            <Select
-              label="Discipline"
-              value={form.discipline}
-              onChange={(e) => setForm({ ...form, discipline: e.target.value })}
-              options={disciplineOptions}
-              placeholder="Sélectionner"
-            />
-          </div>
+          {/* Sexe seul — discipline supprimée APCU-13 */}
+          <Select
+            label="Sexe"
+            value={form.sexe}
+            onChange={(e) => setForm({ ...form, sexe: e.target.value })}
+            options={sexeOptions}
+            placeholder="Sélectionner"
+          />
 
           <Select
             label="Conditions de vie"
@@ -243,12 +243,7 @@ export default function HorseEditModal({ horse }: Props) {
             placeholder="Sélectionner"
           />
 
-          <Input
-            label="Objectif de saison"
-            value={form.objectif_saison}
-            onChange={(e) => setForm({ ...form, objectif_saison: e.target.value })}
-            placeholder="Ex : monter en Amateur 7, préparer le regional..."
-          />
+          {/* objectif_saison supprimée — APCU-07 */}
 
           <div className="grid grid-cols-2 gap-4">
             <Select
@@ -306,36 +301,31 @@ export default function HorseEditModal({ horse }: Props) {
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <Input
-              label="N° SIRE"
-              value={form.sire_number}
-              onChange={(e) => setForm({ ...form, sire_number: e.target.value })}
-              placeholder="Ex : 12345678901"
-            />
-            <Input
-              label="N° FEI"
-              value={form.fei_number}
-              onChange={(e) => setForm({ ...form, fei_number: e.target.value })}
-              placeholder="Ex : FRA12345"
-            />
-          </div>
+          {/* sire_number, fei_number supprimés — APCU-08 */}
 
-          {/* ── Mode de vie (Horse Index) ── */}
+          {/* ── Mode de vie (Horse Index) — APCU-06 infobulle ── */}
           <div className="pt-3 border-t border-gray-100">
             <div className="flex items-center gap-2 mb-3">
               <Activity className="h-4 w-4 text-orange" />
               <h3 className="text-sm font-bold text-black">Mode de vie</h3>
               <span className="text-xs text-gray-400">(pour le Horse Index)</span>
+              <button
+                type="button"
+                onClick={() => setShowModeInfo(true)}
+                className="text-gray-400 hover:text-gray-600 transition-colors ml-auto"
+                aria-label="En savoir plus sur le mode de vie"
+              >
+                <HelpCircle className="h-4 w-4" />
+              </button>
             </div>
             <div className="grid grid-cols-2 gap-2">
               {([
-                { value: "IC",  emoji: "🏆", label: "Compétition",    desc: "En préparation ou en saison de concours" },
-                { value: "IE",  emoji: "🌿", label: "Loisir",          desc: "Monté régulièrement pour le plaisir" },
-                { value: "IP",  emoji: "🐾", label: "Semi-actif",      desc: "Monté occasionnellement, soins prioritaires" },
-                { value: "IR",  emoji: "💊", label: "Convalescence",   desc: "En récupération post-blessure ou opération" },
-                { value: "IS",  emoji: "🌸", label: "Retraite",        desc: "Plus travaillé, vie au pré ou en pension retraite" },
-                { value: "ICr", emoji: "🌱", label: "Poulain",         desc: "En développement, pas encore travaillé" },
+                { value: "IC",  emoji: "🏆", label: "Compétition",  desc: "En préparation ou en saison de concours" },
+                { value: "IE",  emoji: "🌿", label: "Loisir",        desc: "Monté régulièrement pour le plaisir" },
+                { value: "IP",  emoji: "🐾", label: "Semi-actif",    desc: "Monté occasionnellement, soins prioritaires" },
+                { value: "IR",  emoji: "💊", label: "Convalescence", desc: "En récupération post-blessure ou opération" },
+                { value: "IS",  emoji: "🌸", label: "Retraite",      desc: "Plus travaillé, vie au pré ou en pension retraite" },
+                { value: "ICr", emoji: "🌱", label: "Poulain",       desc: "En développement, pas encore travaillé" },
               ] as const).map((m) => (
                 <button
                   key={m.value}
@@ -384,9 +374,10 @@ export default function HorseEditModal({ horse }: Props) {
               placeholder="Sélectionner"
             />
 
+            {/* Trousseau — APCU-11 : couleurs orange */}
             <div className="mt-4">
               <p className="label mb-1">Trousseau de couvertures</p>
-              <p className="text-2xs text-gray-400 mb-2">Vous pouvez sélectionner les 3 options.</p>
+              <p className="text-2xs text-gray-400 mb-2">Sélectionnez les couvertures disponibles dans votre trousseau.</p>
               <div className="flex gap-2">
                 {COUV_OPTIONS.map((label) => (
                   <button
@@ -395,7 +386,7 @@ export default function HorseEditModal({ horse }: Props) {
                     onClick={() => toggleCouv(label)}
                     className={`flex-1 py-2.5 rounded-xl border-2 text-sm font-semibold transition-all ${
                       trousseauSet.has(label)
-                        ? "border-blue-400 bg-blue-50 text-blue-600"
+                        ? "border-orange bg-orange-light text-orange"
                         : "border-gray-200 text-gray-500 hover:border-gray-300"
                     }`}
                   >
@@ -470,6 +461,43 @@ export default function HorseEditModal({ horse }: Props) {
           </div>
         </form>
       </Modal>
+
+      {/* APCU-06 — Infobulle Mode de vie */}
+      {showModeInfo && (
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-6 space-y-4 shadow-xl">
+            <div className="flex items-start justify-between gap-3">
+              <p className="font-bold text-black">Le mode de vie & Horse Index</p>
+              <button onClick={() => setShowModeInfo(false)} className="text-gray-400 hover:text-black flex-shrink-0">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <p className="text-sm text-gray-600 leading-relaxed">
+              Le mode de vie détermine le <span className="font-semibold text-black">barème d&apos;évaluation</span> de votre cheval.
+            </p>
+            <div className="space-y-3 text-sm text-gray-600">
+              <div className="bg-beige rounded-xl p-3">
+                <p className="font-semibold text-black mb-0.5">🏆 Compétition (IC)</p>
+                <p className="text-xs text-gray-500">Évalué sur la régularité d&apos;entraînement, les résultats en concours et la récupération.</p>
+              </div>
+              <div className="bg-beige rounded-xl p-3">
+                <p className="font-semibold text-black mb-0.5">🌿 Loisir (IE)</p>
+                <p className="text-xs text-gray-500">Évalué sur l&apos;équilibre repos/travail et le bien-être général.</p>
+              </div>
+              <div className="bg-beige rounded-xl p-3">
+                <p className="font-semibold text-black mb-0.5">💊 Convalescence (IR) · 🌸 Retraite (IS)</p>
+                <p className="text-xs text-gray-500">La santé et le bien-être prédominent, l&apos;activité est pondérée à la baisse.</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowModeInfo(false)}
+              className="w-full btn-primary text-sm"
+            >
+              Compris
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 }

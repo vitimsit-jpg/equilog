@@ -148,8 +148,7 @@ export default function ScoreBreakdownComponent({ breakdown, horseId, scores }: 
                         width: `${pillarScore}%`,
                         backgroundColor:
                           pillarScore >= 80 ? "#16A34A"
-                          : pillarScore >= 60 ? "#E8440A"
-                          : pillarScore >= 40 ? "#D97706"
+                          : pillarScore >= 50 ? "#D97706"
                           : "#DC2626",
                       }}
                     />
@@ -213,7 +212,7 @@ export default function ScoreBreakdownComponent({ breakdown, horseId, scores }: 
                   style={{
                     width: `${pct}%`,
                     backgroundColor:
-                      pct >= 80 ? "#16A34A" : pct >= 60 ? "#E8440A" : pct >= 40 ? "#D97706" : "#DC2626",
+                      pct >= 80 ? "#16A34A" : pct >= 50 ? "#D97706" : "#DC2626",
                   }}
                 />
               )}

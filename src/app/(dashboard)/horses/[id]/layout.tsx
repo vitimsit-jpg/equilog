@@ -6,7 +6,6 @@ import CoachChat from "@/components/coaching/CoachChat";
 import HorseTabNav from "@/components/horse/HorseTabNav";
 import HorseSwipeNav from "@/components/horse/HorseSwipeNav";
 import HeroActionsWrapper from "@/components/horse/HeroActionsWrapper";
-import HorseEditModal from "@/components/horse/HorseEditModal";
 import RecalculateButton from "@/components/horse-index/RecalculateButton";
 import ShareButton from "@/components/horse/ShareButton";
 import PdfDownloadButton from "@/components/pdf/PdfDownloadButton";
@@ -65,7 +64,7 @@ export default async function HorseLayout({ children, params }: Props) {
       : (horse as any).sexe === "etalon"
       ? "Étalon"
       : null,
-    horse.discipline,
+    // discipline supprimée — APCU-13
     horse.birth_year ? `Né en ${horse.birth_year}` : null,
   ].filter(Boolean);
 
@@ -119,7 +118,6 @@ export default async function HorseLayout({ children, params }: Props) {
                 <ShareButton horseId={horse.id} horseName={horse.name} />
               )}
               <RecalculateButton horseId={horse.id} />
-              <HorseEditModal horse={horse as any} />
             </HeroActionsWrapper>
           </div>
 
@@ -134,11 +132,9 @@ export default async function HorseLayout({ children, params }: Props) {
                   {metaParts.join(" · ")}
                 </p>
               )}
-              {((horse as any).objectif_saison || (horse as any).niveau) && (
+              {(horse as any).niveau && (
                 <p className="text-xs text-gray-400 mt-0.5 truncate">
-                  {(horse as any).niveau && `Niveau ${(horse as any).niveau}`}
-                  {(horse as any).niveau && (horse as any).objectif_saison && " · "}
-                  {(horse as any).objectif_saison && `🎯 ${(horse as any).objectif_saison}`}
+                  Niveau {(horse as any).niveau}
                 </p>
               )}
             </div>

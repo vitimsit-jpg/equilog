@@ -44,9 +44,10 @@ interface Props {
   horseId: string;
   marechalProfile?: MarechalProfile | null;
   horseName?: string;
+  maladiesChroniques?: string | null;
 }
 
-export default function HealthOverview({ records, horseId, marechalProfile, horseName }: Props) {
+export default function HealthOverview({ records, horseId, marechalProfile, horseName, maladiesChroniques }: Props) {
   const router = useRouter();
   const [tab, setTab] = useState<"overview" | "history">("overview");
   const [showAdd, setShowAdd] = useState(false);
@@ -96,6 +97,23 @@ export default function HealthOverview({ records, horseId, marechalProfile, hors
 
   return (
     <div className="space-y-4">
+      {/* APCU-10 — Antécédents connus */}
+      {maladiesChroniques && (
+        <div className="flex items-start gap-3 px-4 py-3 rounded-xl bg-amber-50 border border-amber-200">
+          <span className="text-base flex-shrink-0 mt-0.5">⚕️</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-bold text-amber-800 mb-0.5">Antécédents connus</p>
+            <p className="text-xs text-amber-700 leading-relaxed">{maladiesChroniques}</p>
+          </div>
+          <a
+            href={`/horses/${horseId}`}
+            className="text-2xs text-amber-600 font-semibold hover:underline flex-shrink-0 mt-0.5"
+          >
+            Modifier →
+          </a>
+        </div>
+      )}
+
       {/* Global health status badge */}
       <div className={`flex items-center gap-2.5 px-4 py-3 rounded-xl border ${healthStatus.color}`}>
         <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${healthStatus.dot}`} />

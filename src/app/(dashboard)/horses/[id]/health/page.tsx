@@ -48,6 +48,7 @@ export default async function HealthPage({ params }: Props) {
         horseId={horse.id}
         marechalProfile={marechalProfile ?? null}
         horseName={horse.name}
+        maladiesChroniques={(horse as any).maladies_chroniques ?? null}
       />
     </div>
   );

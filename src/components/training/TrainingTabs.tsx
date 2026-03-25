@@ -8,6 +8,8 @@ import TrainingDashboard from "./TrainingDashboard";
 import VueSemaine from "./VueSemaine";
 import HistoriqueSeances from "./HistoriqueSeances";
 import QuickTrainingModal from "./QuickTrainingModal";
+import EducationTab from "./EducationTab";
+import MovementTab from "./MovementTab";
 import { useRouter } from "next/navigation";
 import Button from "@/components/ui/Button";
 import {
@@ -15,7 +17,7 @@ import {
   startOfWeek, eachDayOfInterval, isToday, addWeeks, subWeeks, addDays,
 } from "date-fns";
 
-type Tab = "overview" | "semaine" | "historique";
+type Tab = "overview" | "semaine" | "historique" | "education" | "mouvement";
 
 interface NextCompetition {
   date: string;
@@ -25,6 +27,7 @@ interface NextCompetition {
 interface Props {
   horseId: string;
   horseName?: string;
+  horseBirthYear?: number | null;
   sessions: TrainingSession[];
   plannedSessions: TrainingPlannedSession[];
   latestInsight: AIInsight | null;
@@ -522,10 +525,18 @@ function RehabOverview({ sessions, latestInsight, protocol, horseId }: { session
   );
 }
 
-export default function TrainingTabs({ horseId, horseName, sessions, plannedSessions, latestInsight, horseMode, nextCompetition, healthRecords, activeRehabProtocol, competitions }: Props) {
+export default function TrainingTabs({ horseId, horseName, horseBirthYear, sessions, plannedSessions, latestInsight, horseMode, nextCompetition, healthRecords, activeRehabProtocol, competitions }: Props) {
   const router = useRouter();
   const { overviewLabel: _overviewLabel, showPlanTab: _showPlanTab } = getTabConfig(horseMode);
-  const [activeTab, setActiveTab] = useState<Tab>(_showPlanTab ? "semaine" : "overview");
+
+  // Mode-specific default tab
+  const getDefaultTab = (): Tab => {
+    if (horseMode === "ICr") return "education";
+    if (horseMode === "IS") return "mouvement";
+    return _showPlanTab ? "semaine" : "overview";
+  };
+
+  const [activeTab, setActiveTab] = useState<Tab>(getDefaultTab());
   const [addOpen, setAddOpen] = useState(false);
   const [reminderDismissed, setReminderDismissed] = useState(false);
   const [programmeExpanded, setProgrammeExpanded] = useState(true);
@@ -542,10 +553,17 @@ export default function TrainingTabs({ horseId, horseName, sessions, plannedSess
   const isWellnessMode = horseMode === "IE" || horseMode === "IS";
   const isRehabMode = horseMode === "IR";
   const isIPMode = horseMode === "IP";
+  const isEducationMode = horseMode === "ICr";
+  const isMovementMode = horseMode === "IS";
 
   const tabs: { id: Tab; label: string; icon: ReactNode }[] = [
+    // ICr — onglet Éducation en premier
+    ...(isEducationMode ? [{ id: "education" as Tab, label: "Éducation", icon: <Sparkles className="h-3.5 w-3.5" /> }] : []),
+    // IS — onglet Mouvement en premier
+    ...(isMovementMode ? [{ id: "mouvement" as Tab, label: "Mouvement", icon: <LayoutDashboard className="h-3.5 w-3.5" /> }] : []),
     ...(showPlanTab ? [{ id: "semaine" as Tab, label: "Programme", icon: <Calendar className="h-3.5 w-3.5" /> }] : []),
-    { id: "overview", label: overviewLabel, icon: <LayoutDashboard className="h-3.5 w-3.5" /> },
+    // Pour IS et ICr, l'onglet overview reste mais devient secondaire
+    ...(!isMovementMode ? [{ id: "overview" as Tab, label: overviewLabel, icon: <LayoutDashboard className="h-3.5 w-3.5" /> }] : []),
     { id: "historique", label: "Historique", icon: <Clock className="h-3.5 w-3.5" /> },
   ];
 
@@ -591,6 +609,15 @@ export default function TrainingTabs({ horseId, horseName, sessions, plannedSess
           </button>
         ))}
       </div>
+
+      {/* Tab content — mode spécifiques */}
+      {activeTab === "education" && (
+        <EducationTab horseId={horseId} horseName={horseName} birthYear={horseBirthYear} />
+      )}
+
+      {activeTab === "mouvement" && (
+        <MovementTab horseId={horseId} horseName={horseName} />
+      )}
 
       {/* Tab content */}
       {activeTab === "overview" && (

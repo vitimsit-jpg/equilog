@@ -78,6 +78,7 @@ export default function OnboardingPage() {
   // Step 3 — cheval
   const [horseName, setHorseName] = useState("");
   const [modeVie, setModeVie] = useState<HorseIndexMode | "">("");
+  const [ridesHorse, setRidesHorse] = useState(true); // TRAV-19
   const [discipline, setDiscipline] = useState("");
   const [breed, setBreed] = useState("");
   const [birthYear, setBirthYear] = useState("");
@@ -225,6 +226,13 @@ export default function OnboardingPage() {
       return;
     }
     setCreatedHorseId(horse.id);
+    // TRAV-19 : enregistrer si l'utilisateur monte ce cheval
+    await supabase.from("horse_user_roles").upsert({
+      horse_id: horse.id,
+      user_id: user.id,
+      role: "owner",
+      rides_horse: ridesHorse,
+    }, { onConflict: "horse_id,user_id" });
     await supabase.from("users").update({ onboarding_step: 3 }).eq("id", user.id);
     nextStep();
     setLoading(false);
@@ -518,6 +526,30 @@ export default function OnboardingPage() {
                     </button>
                   ))}
                 </div>
+              </div>
+
+              {/* TRAV-19 : Montez-vous ce cheval ? */}
+              <div>
+                <label className="label">Vous montez ce cheval ? <span className="text-gray-400 font-normal text-xs">(optionnel)</span></label>
+                <div className="grid grid-cols-2 gap-2 mt-1">
+                  <button
+                    type="button"
+                    onClick={() => setRidesHorse(true)}
+                    className={`p-2.5 rounded-xl border-2 text-xs font-semibold transition-all ${ridesHorse ? "border-black bg-black text-white" : "border-gray-200 text-gray-600 hover:border-gray-300"}`}
+                  >
+                    🐴 Oui, je monte
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRidesHorse(false)}
+                    className={`p-2.5 rounded-xl border-2 text-xs font-semibold transition-all ${!ridesHorse ? "border-black bg-black text-white" : "border-gray-200 text-gray-600 hover:border-gray-300"}`}
+                  >
+                    🌿 Non, je m&apos;en occupe
+                  </button>
+                </div>
+                {!ridesHorse && (
+                  <p className="text-2xs text-gray-400 mt-1">Mode gardien — l&apos;interface sera adaptée en conséquence.</p>
+                )}
               </div>
 
               {/* Discipline — conditionnelle */}

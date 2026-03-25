@@ -242,6 +242,7 @@ export default async function TrainingPage({ params }: Props) {
       <TrainingTabs
         horseId={horse.id}
         horseName={horse.name}
+        horseBirthYear={horse.birth_year}
         sessions={sessions || []}
         plannedSessions={plannedSessions || []}
         latestInsight={latestInsight ?? null}

@@ -9,8 +9,10 @@ import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import Textarea from "@/components/ui/Textarea";
 import Button from "@/components/ui/Button";
-import { Edit2, Cloud, Activity, HelpCircle, Globe, X } from "lucide-react";
-import type { Horse } from "@/lib/supabase/types";
+import { Edit2, Cloud, Activity, HelpCircle, Globe, X, ArrowRight } from "lucide-react";
+import type { Horse, HorseIndexMode } from "@/lib/supabase/types";
+import TransitionWizard from "./TransitionWizard";
+import { HORSE_MODE_LABELS, HORSE_MODE_EMOJIS } from "@/hooks/useHorseMode";
 
 const currentYear = new Date().getFullYear();
 const yearOptions = Array.from({ length: 35 }, (_, i) => {
@@ -76,6 +78,7 @@ export default function HorseEditModal({ horse, compact = false }: Props) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showModeInfo, setShowModeInfo] = useState(false); // APCU-06
+  const [showTransitionWizard, setShowTransitionWizard] = useState(false); // TRAV-23
 
   const [form, setForm] = useState({
     name: horse.name,
@@ -303,7 +306,7 @@ export default function HorseEditModal({ horse, compact = false }: Props) {
 
           {/* sire_number, fei_number supprimés — APCU-08 */}
 
-          {/* ── Mode de vie (Horse Index) — APCU-06 infobulle ── */}
+          {/* ── Mode de vie (Horse Index) — TRAV-23 TransitionWizard ── */}
           <div className="pt-3 border-t border-gray-100">
             <div className="flex items-center gap-2 mb-3">
               <Activity className="h-4 w-4 text-orange" />
@@ -318,39 +321,30 @@ export default function HorseEditModal({ horse, compact = false }: Props) {
                 <HelpCircle className="h-4 w-4" />
               </button>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              {([
-                { value: "IC",  emoji: "🏆", label: "Compétition",  desc: "En préparation ou en saison de concours" },
-                { value: "IE",  emoji: "🌿", label: "Loisir",        desc: "Monté régulièrement pour le plaisir" },
-                { value: "IP",  emoji: "🐾", label: "Semi-actif",    desc: "Monté occasionnellement, soins prioritaires" },
-                { value: "IR",  emoji: "💊", label: "Convalescence", desc: "En récupération post-blessure ou opération" },
-                { value: "IS",  emoji: "🌸", label: "Retraite",      desc: "Plus travaillé, vie au pré ou en pension retraite" },
-                { value: "ICr", emoji: "🌱", label: "Poulain",       desc: "En développement, pas encore travaillé" },
-              ] as const).map((m) => (
-                <button
-                  key={m.value}
-                  type="button"
-                  onClick={() => {
-                    const isChange = form.horse_index_mode && form.horse_index_mode !== m.value;
-                    if (isChange && !confirm(`Changer le mode de vie recalibrera le Horse Index de ${form.name || "ce cheval"} sur 30 jours. Continuer ?`)) return;
-                    setForm({ ...form, horse_index_mode: m.value });
-                  }}
-                  className={`flex items-start gap-2 p-2.5 rounded-xl border text-left transition-colors ${
-                    form.horse_index_mode === m.value
-                      ? "border-orange bg-orange-light"
-                      : "border-gray-200 hover:border-gray-300"
-                  }`}
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <span>{m.emoji}</span>
-                      <span className="text-xs font-bold text-black">{m.label}</span>
-                      <span className="text-2xs font-mono text-gray-400 bg-gray-100 px-1 rounded">{m.value}</span>
-                    </div>
-                    <p className="text-2xs text-gray-400 mt-0.5">{m.desc}</p>
-                  </div>
-                </button>
-              ))}
+
+            {/* Affichage du mode actuel + bouton de changement */}
+            <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-orange-light border border-orange/20">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">
+                  {form.horse_index_mode ? HORSE_MODE_EMOJIS[form.horse_index_mode as HorseIndexMode] : "🐴"}
+                </span>
+                <div>
+                  <p className="text-sm font-bold text-black">
+                    {form.horse_index_mode
+                      ? HORSE_MODE_LABELS[form.horse_index_mode as HorseIndexMode]
+                      : "Non défini"}
+                  </p>
+                  <p className="text-2xs text-gray-500">Mode de vie actuel</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowTransitionWizard(true)}
+                className="flex items-center gap-1 text-xs font-bold text-orange hover:text-orange/80 transition-colors"
+              >
+                Changer
+                <ArrowRight className="h-3 w-3" />
+              </button>
             </div>
           </div>
 
@@ -497,6 +491,16 @@ export default function HorseEditModal({ horse, compact = false }: Props) {
             </button>
           </div>
         </div>
+      )}
+      {/* TRAV-23 — TransitionWizard */}
+      {showTransitionWizard && (
+        <TransitionWizard
+          open={showTransitionWizard}
+          onClose={() => setShowTransitionWizard(false)}
+          horseId={horse.id}
+          horseName={form.name || horse.name}
+          currentMode={(form.horse_index_mode as HorseIndexMode) || null}
+        />
       )}
     </>
   );

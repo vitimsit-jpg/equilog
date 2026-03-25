@@ -95,6 +95,13 @@ export interface Horse {
   module_nutrition: boolean;
   // Visibilité RGPD (migration 045)
   visibility: 'national' | 'stable' | 'private' | null;
+  // TRAV-18 (migration 046)
+  horse_mode_since: string | null;
+  horse_mode_reason: string | null;
+  date_retraite: string | null;
+  carriere_archive: Record<string, unknown> | null;
+  mere_horse_id: string | null;
+  poulain_horse_id: string | null;
   created_at: string;
 }
 
@@ -508,6 +515,147 @@ export interface RehabProtocol {
   updated_at: string;
 }
 
+// ── TRAV-18 : champs ajoutés sur horses ──────────────────────────────────────
+// (horse_mode_since, horse_mode_reason, date_retraite, carriere_archive,
+//  mere_horse_id, poulain_horse_id sont dans Horse via migration 046)
+
+// ── TRAV-19 : Gardien non-cavalier ───────────────────────────────────────────
+export type HorseUserRole = "owner" | "guardian" | "caretaker";
+
+export interface HorseUserRoleEntry {
+  id: string;
+  horse_id: string;
+  user_id: string;
+  role: HorseUserRole;
+  rides_horse: boolean;
+  created_at: string;
+}
+
+// ── TRAV-20 : Croissance / Éducation poulain ─────────────────────────────────
+export type GrowthMilestoneType =
+  | "sevrage"
+  | "debut_debourrage"
+  | "premiere_monte"
+  | "premier_concours"
+  | "vaccination_complete"
+  | "vermifugation"
+  | "identification"
+  | "autre";
+
+export interface HorseGrowthMilestone {
+  id: string;
+  horse_id: string;
+  user_id: string;
+  milestone_type: GrowthMilestoneType;
+  label: string | null;
+  date: string;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface HorseGrowthMeasure {
+  id: string;
+  horse_id: string;
+  user_id: string;
+  date: string;
+  taille_cm: number | null;
+  poids_kg: number | null;
+  tour_poitrine_cm: number | null;
+  notes: string | null;
+  created_at: string;
+}
+
+// ── TRAV-21 : Retraite / Médicaments / Mouvement ─────────────────────────────
+export type MedicationForme = "oral" | "injectable" | "topique" | "autre";
+export type MedicationFrequence = "quotidien" | "matin_soir" | "hebdomadaire" | "si_besoin" | "cure";
+
+export interface HorseMedication {
+  id: string;
+  horse_id: string;
+  user_id: string;
+  nom: string;
+  forme: MedicationForme | null;
+  dose: string | null;
+  frequence: MedicationFrequence | null;
+  date_debut: string | null;
+  date_fin: string | null;
+  vet_prescripteur: string | null;
+  notes: string | null;
+  actif: boolean;
+  created_at: string;
+}
+
+export interface HorseBcsLog {
+  id: string;
+  horse_id: string;
+  user_id: string;
+  date: string;
+  score: number;
+  notes: string | null;
+  created_at: string;
+}
+
+export type MovementLogType =
+  | "paddock_libre"
+  | "pre_libre"
+  | "balade_main"
+  | "longe_douce"
+  | "monte_douce"
+  | "autre";
+
+export interface HorseMovementLog {
+  id: string;
+  horse_id: string;
+  user_id: string;
+  date: string;
+  type: MovementLogType;
+  duration_min: number | null;
+  observation: string | null;
+  created_at: string;
+}
+
+// ── TRAV-22 : Praticiens / Examens médicaux ──────────────────────────────────
+export type PractitionerType = "vet" | "osteo" | "physio" | "kine" | "marechal" | "dentiste" | "autre";
+
+export interface HorsePractitioner {
+  id: string;
+  horse_id: string;
+  user_id: string;
+  type: PractitionerType;
+  nom: string;
+  telephone: string | null;
+  email: string | null;
+  notes: string | null;
+  principal: boolean;
+  created_at: string;
+}
+
+export type MedicalExamType = "radio" | "echo" | "endoscopie" | "bilan_sanguin" | "scintigraphie" | "irm" | "autre";
+
+export interface HorseMedicalExam {
+  id: string;
+  horse_id: string;
+  user_id: string;
+  date: string;
+  type: MedicalExamType;
+  description: string | null;
+  vet_name: string | null;
+  results: string | null;
+  media_urls: string[];
+  created_at: string;
+}
+
+// ── TRAV-23 : Historique des transitions de mode ─────────────────────────────
+export interface HorseModeHistory {
+  id: string;
+  horse_id: string;
+  user_id: string;
+  mode_from: HorseIndexMode | null;
+  mode_to: HorseIndexMode;
+  reason: string | null;
+  changed_at: string;
+}
+
 export interface RiderLog {
   id: string;
   user_id: string;
@@ -551,6 +699,15 @@ export interface Database {
       coach_planned_sessions: T<CoachPlannedSession>;
       training_planned_sessions: T<TrainingPlannedSession>;
       rehab_protocols: T<RehabProtocol>;
+      horse_user_roles: T<HorseUserRoleEntry>;
+      horse_growth_milestones: T<HorseGrowthMilestone>;
+      horse_growth_measures: T<HorseGrowthMeasure>;
+      horse_medications: T<HorseMedication>;
+      horse_bcs_logs: T<HorseBcsLog>;
+      horse_movement_logs: T<HorseMovementLog>;
+      horse_practitioners: T<HorsePractitioner>;
+      horse_medical_exams: T<HorseMedicalExam>;
+      horse_mode_history: T<HorseModeHistory>;
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

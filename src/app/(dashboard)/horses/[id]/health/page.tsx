@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import HealthOverview from "@/components/health/HealthOverview";
 import PdfDownloadButton from "@/components/pdf/PdfDownloadButton";
+import MedicationsSection from "@/components/health/MedicationsSection";
+import MedicalExamsSection from "@/components/health/MedicalExamsSection";
 
 interface Props {
   params: { id: string };
@@ -50,6 +52,16 @@ export default async function HealthPage({ params }: Props) {
         horseName={horse.name}
         maladiesChroniques={(horse as any).maladies_chroniques ?? null}
       />
+
+      {/* TRAV-21 : médicaments pour IS/IR/IP */}
+      {["IS", "IR", "IP"].includes((horse as any).horse_index_mode ?? "") && (
+        <MedicationsSection horseId={horse.id} />
+      )}
+
+      {/* TRAV-22 : examens médicaux pour IR */}
+      {(horse as any).horse_index_mode === "IR" && (
+        <MedicalExamsSection horseId={horse.id} />
+      )}
     </div>
   );
 }

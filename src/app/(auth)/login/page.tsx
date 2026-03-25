@@ -2,13 +2,23 @@
 
 export const dynamic = "force-dynamic";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import toast from "react-hot-toast";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
+
+function DeletedBanner() {
+  const searchParams = useSearchParams();
+  if (searchParams.get("deleted") !== "1") return null;
+  return (
+    <div className="mb-4 px-4 py-3 rounded-xl bg-green-50 border border-green-200 text-sm text-green-700 text-center">
+      Votre compte a bien été supprimé. À bientôt 👋
+    </div>
+  );
+}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -45,6 +55,10 @@ export default function LoginPage() {
           </div>
           <p className="text-sm text-gray-500 font-medium">Le carnet de bord de votre cheval</p>
         </div>
+
+        <Suspense>
+          <DeletedBanner />
+        </Suspense>
 
         <div className="card shadow-card-hover">
           <h1 className="text-xl font-bold text-black mb-1">Bon retour</h1>

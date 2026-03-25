@@ -29,9 +29,14 @@ export async function DELETE() {
       admin.from("horse_history_events").delete().in("horse_id", horseIds),
       admin.from("horse_scores").delete().in("horse_id", horseIds),
       admin.from("ai_insights").delete().in("horse_id", horseIds),
-      // Anonymise budget_entries : retire horse_id et description (obligation légale : montant + date conservés)
-      admin.from("budget_entries").update({ description: null }).in("horse_id", horseIds),
     ]);
+
+    // Anonymise budget_entries avant de supprimer les chevaux
+    // (obligation légale 10 ans : montant + date + catégorie conservés, identifiants supprimés)
+    await admin
+      .from("budget_entries")
+      .update({ description: null, horse_id: null })
+      .in("horse_id", horseIds);
 
     // Supprime les chevaux
     await admin.from("horses").delete().in("id", horseIds);
@@ -43,7 +48,6 @@ export async function DELETE() {
     admin.from("horse_alerts").delete().eq("reporter_id", user.id),
   ]);
 
-  // Anonymise les budget_entries orphelines (plus de horse_id)
   // Supprime le profil utilisateur
   await admin.from("users").delete().eq("id", user.id);
 

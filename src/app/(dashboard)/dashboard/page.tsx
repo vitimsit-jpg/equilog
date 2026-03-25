@@ -590,16 +590,7 @@ export default async function DashboardPage({
       bg: "bg-orange-light",
     });
   }
-  if (firstHorse && noObjectif) {
-    quickActions.push({
-      label: "Définir un objectif",
-      sub: "Objectif de saison manquant",
-      href: `/horses/${firstHorse.id}`,
-      icon: Target,
-      color: "text-green-600",
-      bg: "bg-green-50",
-    });
-  }
+  // objectif_saison supprimé — APCU-07
 
   // ── Build blocks ──────────────────────────────────────────────────────────
 

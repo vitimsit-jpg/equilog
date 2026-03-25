@@ -41,6 +41,8 @@ export interface User {
   rider_activite_frequence: string | null;
   rider_objectifs_cavalier: string[] | null;
   user_modules: Record<string, boolean> | null;
+  // RGPD (migration 044)
+  opt_out_analytics: boolean;
 }
 
 export interface Horse {

@@ -4,6 +4,7 @@ import SettingsForm from "@/components/settings/SettingsForm";
 import GestionEleves from "@/components/settings/GestionEleves";
 import RiderProfileBlock from "@/components/rider/RiderProfileBlock";
 import ModulesPersonnalisation from "@/components/settings/ModulesPersonnalisation";
+import GDPRBlock from "@/components/settings/GDPRBlock";
 import type { CoachStudent } from "@/lib/supabase/types";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
@@ -37,6 +38,11 @@ export default async function ProfilPage() {
       {userProfile?.module_coach && (
         <GestionEleves initialStudents={coachStudents} />
       )}
+      <GDPRBlock
+        userId={authUser.id}
+        optOutAnalytics={userProfile?.opt_out_analytics ?? false}
+      />
+
       {/* Legal */}
       <div className="card p-0 overflow-hidden">
         <p className="px-4 pt-3 pb-2 text-2xs font-bold uppercase tracking-widest text-gray-400">Légal</p>

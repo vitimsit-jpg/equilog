@@ -541,7 +541,18 @@ export default function HorseEditModal({ horse, compact = false }: Props) {
               </button>
               <button
                 type="button"
-                onClick={() => { setModuleNutrition(true); setShowNutritionConsent(false); }}
+                onClick={async () => {
+                  setModuleNutrition(true);
+                  setShowNutritionConsent(false);
+                  const { error } = await supabase.from("horses").update({ module_nutrition: true }).eq("id", horse.id);
+                  if (!error) {
+                    toast.success("Module Nutrition activé !");
+                    router.refresh();
+                  } else {
+                    toast.error("Erreur lors de l'activation");
+                    setModuleNutrition(false);
+                  }
+                }}
                 className="flex-1 py-2.5 rounded-xl bg-black text-white text-sm font-bold hover:bg-gray-800 transition-colors"
               >
                 Activer

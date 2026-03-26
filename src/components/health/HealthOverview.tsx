@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { differenceInDays, parseISO } from "date-fns";
 import { Plus, AlertCircle, Clock, Calendar, CheckCircle2 } from "lucide-react";
@@ -58,10 +58,25 @@ interface Props {
   maladiesChroniques?: string | null;
 }
 
+const HEALTH_CONSENT_KEY = "equistra_health_consent_v1";
+
 export default function HealthOverview({ records, horseId, marechalProfile, horseName, maladiesChroniques }: Props) {
   const router = useRouter();
   const [tab, setTab] = useState<"overview" | "history">("overview");
   const [showAdd, setShowAdd] = useState(false);
+  const [showConsent, setShowConsent] = useState(false);
+
+  // RGPD #17 — Consent modal on first activation
+  useEffect(() => {
+    if (!localStorage.getItem(HEALTH_CONSENT_KEY)) {
+      setShowConsent(true);
+    }
+  }, []);
+
+  const handleAcceptHealthConsent = () => {
+    localStorage.setItem(HEALTH_CONSENT_KEY, new Date().toISOString());
+    setShowConsent(false);
+  };
 
   const latestByType = getLatestByType(records);
 
@@ -285,6 +300,45 @@ export default function HealthOverview({ records, horseId, marechalProfile, hors
           onClose={() => setShowAdd(false)}
           onSaved={() => { setShowAdd(false); router.refresh(); }}
         />
+      )}
+
+      {/* RGPD #17 — Consent modal, first activation */}
+      {showConsent && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-6 space-y-4 shadow-xl">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center flex-shrink-0">
+                <span className="text-xl">🩺</span>
+              </div>
+              <div>
+                <p className="font-bold text-black text-sm">Carnet de santé</p>
+                <p className="text-2xs text-gray-400">Traitement de données de santé</p>
+              </div>
+            </div>
+            <p className="text-sm text-gray-600 leading-relaxed">
+              Le carnet de santé enregistre les soins vétérinaires, vaccins et traitements de votre cheval.
+              Ces données sont stockées de manière sécurisée et ne sont jamais partagées sans votre consentement.
+            </p>
+            <p className="text-2xs text-gray-400 leading-relaxed">
+              Conformément au RGPD (Art. 6.1.a), vous consentez au traitement de ces données de santé.
+              Vous pouvez révoquer ce consentement à tout moment depuis vos réglages.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowConsent(false)}
+                className="flex-1 py-2.5 rounded-xl border-2 border-gray-200 text-sm font-semibold text-gray-500 hover:border-gray-300 transition-colors"
+              >
+                Plus tard
+              </button>
+              <button
+                onClick={handleAcceptHealthConsent}
+                className="flex-1 py-2.5 rounded-xl bg-black text-white text-sm font-bold hover:bg-gray-800 transition-colors"
+              >
+                J&apos;accepte
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

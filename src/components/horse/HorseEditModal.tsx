@@ -79,6 +79,7 @@ export default function HorseEditModal({ horse, compact = false }: Props) {
   const [loading, setLoading] = useState(false);
   const [showModeInfo, setShowModeInfo] = useState(false); // APCU-06
   const [showTransitionWizard, setShowTransitionWizard] = useState(false); // TRAV-23
+  const [showNutritionConsent, setShowNutritionConsent] = useState(false); // RGPD #43
 
   const [form, setForm] = useState({
     name: horse.name,
@@ -431,7 +432,13 @@ export default function HorseEditModal({ horse, compact = false }: Props) {
             </div>
             <button
               type="button"
-              onClick={() => setModuleNutrition((v) => !v)}
+              onClick={() => {
+                if (!moduleNutrition) {
+                  setShowNutritionConsent(true); // RGPD #43 — consent before activation
+                } else {
+                  setModuleNutrition(false);
+                }
+              }}
               className="w-full flex items-center justify-between px-4 py-3 rounded-xl border-2 transition-all"
               style={{ borderColor: moduleNutrition ? "var(--color-orange, #E8670A)" : "#e5e7eb" }}
             >
@@ -501,6 +508,47 @@ export default function HorseEditModal({ horse, compact = false }: Props) {
           horseName={form.name || horse.name}
           currentMode={(form.horse_index_mode as HorseIndexMode) || null}
         />
+      )}
+
+      {/* RGPD #43 — Nutrition consent modal */}
+      {showNutritionConsent && (
+        <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-6 space-y-4 shadow-xl">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-orange-light flex items-center justify-center flex-shrink-0">
+                <span className="text-xl">🥕</span>
+              </div>
+              <div>
+                <p className="font-bold text-black text-sm">Module Nutrition</p>
+                <p className="text-2xs text-gray-400">Traitement de données nutritionnelles</p>
+              </div>
+            </div>
+            <p className="text-sm text-gray-600 leading-relaxed">
+              Le module Nutrition enregistre les rations, compléments et apports alimentaires de votre cheval.
+              Ces données sont stockées de manière sécurisée sur des serveurs européens.
+            </p>
+            <p className="text-2xs text-gray-400 leading-relaxed">
+              Conformément au RGPD (Art. 6.1.a), vous consentez au traitement de ces données.
+              Vous pouvez désactiver ce module à tout moment depuis cette page.
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowNutritionConsent(false)}
+                className="flex-1 py-2.5 rounded-xl border-2 border-gray-200 text-sm font-semibold text-gray-500 hover:border-gray-300 transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={() => { setModuleNutrition(true); setShowNutritionConsent(false); }}
+                className="flex-1 py-2.5 rounded-xl bg-black text-white text-sm font-bold hover:bg-gray-800 transition-colors"
+              >
+                Activer
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

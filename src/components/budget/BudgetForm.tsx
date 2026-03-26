@@ -104,7 +104,7 @@ export default function BudgetForm({ horseId, onSaved, onCancel, defaultValues }
         <Select
           label="Catégorie"
           value={form.category}
-          onChange={(e) => setForm({ ...form, category: e.target.value })}
+          onChange={(e) => setForm({ ...form, category: e.target.value as import("@/lib/supabase/types").BudgetCategory })}
           options={categoryOptions}
         />
       </div>

@@ -27,6 +27,7 @@ export default function VoiceButton({ onResult }: Props) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
   const transcriptRef = useRef<string>("");
+  const hadErrorRef = useRef(false);
   const [supported, setSupported] = useState(true);
 
   useEffect(() => {
@@ -47,6 +48,7 @@ export default function VoiceButton({ onResult }: Props) {
     recognition.continuous = true;
     recognition.interimResults = false;
     transcriptRef.current = "";
+    hadErrorRef.current = false;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     recognition.onresult = (event: any) => {
@@ -56,6 +58,7 @@ export default function VoiceButton({ onResult }: Props) {
     };
 
     recognition.onend = async () => {
+      if (hadErrorRef.current) return; // already handled by onerror
       const text = transcriptRef.current.trim();
       if (!text) {
         setState("idle");
@@ -84,9 +87,21 @@ export default function VoiceButton({ onResult }: Props) {
       setState("idle");
     };
 
-    recognition.onerror = () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    recognition.onerror = (event: any) => {
+      // "aborted" fires normally when stop() is called — not a real error
+      if (event.error === "aborted") return;
+      hadErrorRef.current = true;
       setState("idle");
-      toast.error("Erreur microphone");
+      if (event.error === "not-allowed") {
+        toast.error("Permission microphone refusée — autorisez le micro dans les réglages du navigateur");
+      } else if (event.error === "network") {
+        toast.error("Erreur réseau — vérifiez votre connexion et réessayez");
+      } else if (event.error === "no-speech") {
+        toast("Aucune parole détectée", { icon: "🎤" });
+      } else {
+        toast.error(`Erreur microphone (${event.error})`);
+      }
     };
 
     recognitionRef.current = recognition;

@@ -124,7 +124,7 @@ ${recentComps.map((c) => `- ${formatDate(c.date)}: ${c.event_name} (${c.discipli
 Génère un rapport JSON selon le format demandé.`;
 
   const response = await getClient().messages.create({
-    model: "claude-sonnet-4-20250514",
+    model: "claude-sonnet-4-6",
     max_tokens: 1500,
     system: buildSystemPrompt(userType),
     messages: [{ role: "user", content: userMessage }],
@@ -218,7 +218,7 @@ Génère un JSON avec exactement 7 jours (Lundi à Dimanche) selon ce format:
 Adapte la charge aux concours à venir, à la fatigue récente (ressenti moyen des séances), et aux soins récents. Prévois au moins 2 jours de repos. Réponds uniquement en JSON.`;
 
   const response = await getClient().messages.create({
-    model: "claude-sonnet-4-20250514",
+    model: "claude-sonnet-4-6",
     max_tokens: 1500,
     system: `Tu es Equistra AI, coach équestre expert. Tu génères des plans d'entraînement personnalisés basés sur les données réelles du cheval. Réponse en JSON pur uniquement, sans markdown.`,
     messages: [{ role: "user", content: prompt }],
@@ -256,7 +256,7 @@ export async function generateCompetitionChecklist(data: {
   const { horse, competition, healthRecords } = data;
 
   const response = await getClient().messages.create({
-    model: "claude-sonnet-4-20250514",
+    model: "claude-sonnet-4-6",
     max_tokens: 800,
     system: `Tu es un assistant équestre expert. Génère une checklist J-7 avant concours en JSON.
 Format: array d'objets {ok: boolean, item: string, status: string}.

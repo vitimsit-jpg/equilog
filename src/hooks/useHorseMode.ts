@@ -66,7 +66,7 @@ export function useHorseMode(horseId: string): HorseModeInfo {
 export const HORSE_MODE_LABELS: Record<HorseIndexMode, string> = {
   IC:  "Compétition",
   IE:  "Équilibre",
-  IP:  "Rééducation progressive",
+  IP:  "Rééducation",
   IR:  "Convalescence",
   IS:  "Retraite",
   ICr: "Croissance",

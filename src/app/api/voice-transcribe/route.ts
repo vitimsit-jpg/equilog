@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const response = await client.messages.create({
-      model: "claude-sonnet-4-20250514",
+      model: "claude-haiku-4-5-20251001",
       max_tokens: 400,
       system: `Tu es un assistant d'extraction de données équestres.
 Reçois un texte dicté et retourne UNIQUEMENT en JSON valide :

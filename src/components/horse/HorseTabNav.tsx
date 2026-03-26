@@ -14,7 +14,7 @@ const BASE_TABS: {
   { suffix: "", label: "Aperçu" },
   { suffix: "/health", label: "Santé" },
   { suffix: "/training", label: "Travail", hideForModes: ["IS", "ICr"], labelForMode: { IR: "Rééducation" } },
-  { suffix: "/competitions", label: "Concours", hideForModes: ["IP", "IR", "IS", "ICr"], labelForMode: { IE: "Allégé" } },
+  { suffix: "/competitions", label: "Concours", hideForModes: ["IP", "IR", "IS", "ICr"] },
   { suffix: "/budget", label: "Budget" },
   { suffix: "/historique", label: "Historique" },
   { suffix: "/genealogie", label: "Généalogie" },

@@ -14,7 +14,7 @@ interface Props {
 
 const FORME_OPTIONS = [
   { value: "fatigue" as const,  emoji: "😴", label: "Fatigué" },
-  { value: "normal" as const,   emoji: "😐", label: "Normal" },
+  { value: "normal" as const,   emoji: "🙂", label: "Normal" },
   { value: "en_forme" as const, emoji: "💪", label: "En forme" },
 ];
 
@@ -25,7 +25,7 @@ const ZONES = [
 
 const FORME_DISPLAY: Record<string, { emoji: string; label: string; color: string }> = {
   fatigue:  { emoji: "😴", label: "Fatigué",  color: "text-orange" },
-  normal:   { emoji: "😐", label: "Normal",   color: "text-gray-500" },
+  normal:   { emoji: "🙂", label: "Normal",   color: "text-gray-500" },
   en_forme: { emoji: "💪", label: "En forme", color: "text-green-600" },
 };
 

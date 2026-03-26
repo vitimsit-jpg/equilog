@@ -17,7 +17,7 @@ interface Props {
 
 const FORME_OPTIONS = [
   { value: "fatigue" as const, emoji: "😴", label: "Fatigué" },
-  { value: "normal" as const,  emoji: "😐", label: "Normal" },
+  { value: "normal" as const,  emoji: "🙂", label: "Normal" },
   { value: "en_forme" as const, emoji: "💪", label: "En forme" },
 ];
 

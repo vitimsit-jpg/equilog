@@ -683,6 +683,30 @@ export interface HorseRecoveryEntry {
   created_at: string;
 }
 
+export type ExerciseCategory = "plat" | "obstacle" | "cross" | "longe" | "travail_a_pied";
+export type ExerciseDifficulty = "debutant" | "intermediaire" | "avance";
+
+export interface Exercise {
+  id: string;
+  title: string;
+  description: string | null;
+  objectifs: string[] | null;
+  category: ExerciseCategory;
+  tags: string[] | null;
+  schema_url: string | null;
+  video_url: string | null;
+  training_type: TrainingType;
+  difficulty: ExerciseDifficulty;
+  duration_min: number | null;
+  created_at: string;
+}
+
+export interface UserExerciseFavorite {
+  user_id: string;
+  exercise_id: string;
+  created_at: string;
+}
+
 export interface RiderLog {
   id: string;
   user_id: string;
@@ -736,6 +760,8 @@ export interface Database {
       horse_medical_exams: T<HorseMedicalExam>;
       horse_mode_history: T<HorseModeHistory>;
       horse_recovery_journal: T<HorseRecoveryEntry>;
+      exercises: T<Exercise>;
+      user_exercise_favorites: T<UserExerciseFavorite>;
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

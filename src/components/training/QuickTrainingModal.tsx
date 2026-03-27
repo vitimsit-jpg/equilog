@@ -112,11 +112,14 @@ interface Props {
   riderLog?: { forme: string | null; douleurs: string[] | null; douleur_intensite: string | null } | null;
   prefill?: PrefillData | null;
   initialMode?: "log" | "plan";
+  defaultWorkType?: TrainingType | null;
+  defaultNote?: string | null;
 }
 
 export default function QuickTrainingModal({
   open, onClose, horseId, horseName, onSaved,
   todayPlanned, rehabProtocol, horseMode, competitions, riderLog, prefill, initialMode,
+  defaultWorkType, defaultNote,
 }: Props) {
   const supabase = createClient();
   const router = useRouter();
@@ -153,6 +156,14 @@ export default function QuickTrainingModal({
   // ICr foal session fields (TRAV-20)
   const [foalSessionType, setFoalSessionType] = useState<string | null>(null);
   const [foalReaction, setFoalReaction] = useState<string | null>(null);
+
+  // Apply defaultWorkType / defaultNote when modal opens
+  useEffect(() => {
+    if (!open) return;
+    if (defaultWorkType) setDiscipline(defaultWorkType);
+    if (defaultNote) setNotes(defaultNote);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   // Apply prefill when modal opens with prefill data
   useEffect(() => {

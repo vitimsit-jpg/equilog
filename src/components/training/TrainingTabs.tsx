@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { LayoutDashboard, Calendar, Clock, Sparkles, Plus, Trophy, X, ChevronDown, FileText, BookOpen } from "lucide-react";
+import { LayoutDashboard, Calendar, Clock, Sparkles, Plus, Trophy, X, ChevronDown, FileText, BookOpen, Library } from "lucide-react";
 import type { TrainingSession, TrainingPlannedSession, AIInsight, HorseIndexMode, RehabProtocol } from "@/lib/supabase/types";
 import RehabProtocolCard from "./RehabProtocolCard";
 import TrainingDashboard from "./TrainingDashboard";
@@ -15,6 +15,7 @@ import CareerArchiveTab from "./CareerArchiveTab";
 import ConvalescenceTab from "./ConvalescenceTab";
 import RecoveryJournalTab from "./RecoveryJournalTab";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import Button from "@/components/ui/Button";
 import { useRidesHorse } from "@/hooks/useRidesHorse";
 import {
@@ -618,6 +619,23 @@ export default function TrainingTabs({ horseId, horseName, horseBirthYear, sessi
           Ajouter séance
         </Button>
       </div>
+
+      {/* Bibliothèque d'exercices — visible pour les cavaliers uniquement */}
+      {ridesHorse && (
+        <Link
+          href={`/exercises?horseId=${horseId}`}
+          className="flex items-center gap-2.5 px-4 py-3 bg-beige rounded-xl border border-orange/10 active:opacity-80 transition-opacity"
+        >
+          <div className="w-8 h-8 rounded-lg bg-orange-light flex items-center justify-center flex-shrink-0">
+            <Library className="h-4 w-4 text-orange" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-black leading-tight">Bibliothèque d&apos;exercices</p>
+            <p className="text-2xs text-gray-500 mt-0.5">Plat · Obstacles · Cross · Longe · À pied</p>
+          </div>
+          <ChevronDown className="h-4 w-4 text-gray-400 flex-shrink-0 -rotate-90" />
+        </Link>
+      )}
 
       {/* Tab bar */}
       <div className="flex gap-1 bg-gray-100 rounded-xl p-1">

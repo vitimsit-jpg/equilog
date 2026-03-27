@@ -316,9 +316,12 @@ export default function QuickTrainingModal({
       wearable_source: null,
       linked_competition_id: linkedCompetitionId || null,
       media_urls: mediaUrls.length > 0 ? mediaUrls : null,
-      // ICr foal fields (TRAV-20)
-      session_type: horseMode === "ICr" ? (foalSessionType || null) : null,
-      foal_reaction: horseMode === "ICr" ? (foalReaction || null) : null,
+      // ICr foal fields (TRAV-20) — colonnes ajoutées en migration 051
+      // Ne pas inclure dans le payload pour les autres modes (évite erreur si migration non appliquée)
+      ...(horseMode === "ICr" ? {
+        session_type: foalSessionType || null,
+        foal_reaction: foalReaction || null,
+      } : {}),
     };
 
     if (!navigator.onLine) {

@@ -118,7 +118,8 @@ export interface NutritionFibre {
   id: string;
   type: "foin" | "luzerne" | "melange";
   mode: "fixe" | "volonte";
-  quantite_kg: number | null;
+  quantite_kg?: number | null;
+  distributions_par_jour?: "1" | "2" | "3" | null;
 }
 
 export interface NutritionHerbe {
@@ -145,6 +146,7 @@ export interface NutritionComplement {
   quantite: number | null;
   unite: "ml" | "g" | "dose" | "mesure";
   frequence: "quotidien" | "matin_soir" | "hebdomadaire" | "cure";
+  moment_prise?: "avant_repas" | "pendant_repas" | "apres_repas" | "independant" | null;
   cure_semaines: number | null;
   cure_debut: string | null;
 }

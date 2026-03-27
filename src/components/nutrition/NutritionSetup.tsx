@@ -47,7 +47,7 @@ function BtnGroup<T extends string>({
 
 // ── Defaults ───────────────────────────────────────────────────────────────────
 
-const defaultFibre = (): NutritionFibre => ({ id: uid(), type: "foin", mode: "fixe", quantite_kg: 6 });
+const defaultFibre = (): NutritionFibre => ({ id: uid(), type: "foin", mode: "fixe", distributions_par_jour: "1" });
 const defaultGranule = (): NutritionGranule => ({
   id: uid(), nom: "", type: "standard",
   repas: [{ horaire: "matin", quantite_l: 2 }, { horaire: "soir", quantite_l: 1.5 }],
@@ -88,35 +88,20 @@ function FibreBlock({ fibre, onChange, onDelete }: {
           { value: "volonte", label: "À volonté" },
         ]}
         value={fibre.mode}
-        onChange={(v) => onChange({ ...fibre, mode: v, quantite_kg: v === "volonte" ? null : (fibre.quantite_kg ?? 6) })}
+        onChange={(v) => onChange({ ...fibre, mode: v, distributions_par_jour: v === "volonte" ? null : (fibre.distributions_par_jour ?? "1") })}
       />
       {fibre.mode === "fixe" && (
         <>
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Quantité</p>
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Distributions par jour</p>
           <BtnGroup
             options={[
-              { value: "2" as any, label: "2 kg" },
-              { value: "4" as any, label: "4 kg" },
-              { value: "6" as any, label: "6 kg" },
-              { value: "8" as any, label: "8 kg" },
-              { value: "10" as any, label: "10 kg" },
+              { value: "1" as any, label: "1× par jour" },
+              { value: "2" as any, label: "2× par jour" },
+              { value: "3" as any, label: "3× par jour" },
             ]}
-            value={fibre.quantite_kg !== null && [2,4,6,8,10].includes(fibre.quantite_kg) ? String(fibre.quantite_kg) as any : null}
-            onChange={(v) => onChange({ ...fibre, quantite_kg: Number(v) })}
+            value={fibre.distributions_par_jour ?? null}
+            onChange={(v) => onChange({ ...fibre, distributions_par_jour: v as "1" | "2" | "3" })}
           />
-          <div className="flex items-center gap-2">
-            <input
-              type="number"
-              min={0.5}
-              max={25}
-              step={0.5}
-              value={fibre.quantite_kg ?? ""}
-              onChange={(e) => onChange({ ...fibre, quantite_kg: Number(e.target.value) || null })}
-              placeholder="Personnalisé (kg)"
-              className="flex-1 px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-orange"
-            />
-            <span className="text-sm text-gray-400">kg</span>
-          </div>
         </>
       )}
     </div>
@@ -128,7 +113,7 @@ function GranuleBlock({ granule, onChange, onDelete }: {
   onChange: (updated: NutritionGranule) => void;
   onDelete: () => void;
 }) {
-  const HORAIRES: NutritionRepas["horaire"][] = ["matin", "midi", "apresmidi", "soir"];
+  const HORAIRES: NutritionRepas["horaire"][] = ["matin", "midi", "soir"];
   const HORAIRE_LABELS: Record<NutritionRepas["horaire"], string> = {
     matin: "Matin", midi: "Midi", apresmidi: "Après-midi", soir: "Soir",
   };
@@ -181,20 +166,23 @@ function GranuleBlock({ granule, onChange, onDelete }: {
         options={[
           { value: "2" as any, label: "2 repas" },
           { value: "3" as any, label: "3 repas" },
+          { value: "autre" as any, label: "Personnalisé" },
         ]}
-        value={String(granule.repas.length) as any}
-        onChange={(v) => setNbRepas(Number(v))}
+        value={[2,3].includes(granule.repas.length) ? String(granule.repas.length) as any : "autre" as any}
+        onChange={(v) => setNbRepas(v === "autre" ? 1 : Number(v))}
       />
-      <div className="flex items-center gap-2">
-        <input
-          type="number" min={1} max={5} step={1}
-          placeholder="Personnalisé (1–5)"
-          value={![2,3].includes(granule.repas.length) ? granule.repas.length : ""}
-          onChange={(e) => { const n = Math.min(5, Math.max(1, Number(e.target.value))); if (n) setNbRepas(n); }}
-          className="w-36 px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-orange"
-        />
-        <span className="text-xs text-gray-400">repas par jour</span>
-      </div>
+      {![2,3].includes(granule.repas.length) && (
+        <div className="flex items-center gap-2">
+          <input
+            type="number" min={1} max={5} step={1}
+            placeholder="Nombre de repas (1–5)"
+            value={granule.repas.length}
+            onChange={(e) => { const n = Math.min(5, Math.max(1, Number(e.target.value))); if (n) setNbRepas(n); }}
+            className="w-44 px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-orange"
+          />
+          <span className="text-xs text-gray-400">repas par jour</span>
+        </div>
+      )}
 
       {/* Per-repas detail */}
       <div className="space-y-2 pt-1">
@@ -226,13 +214,6 @@ function GranuleBlock({ granule, onChange, onDelete }: {
                   {q}L
                 </button>
               ))}
-              <input
-                type="number" min={0.1} max={10} step={0.1}
-                value={!QTY_OPTIONS.includes(repas.quantite_l) ? repas.quantite_l : ""}
-                onChange={(e) => updateRepas(idx, { quantite_l: Number(e.target.value) || repas.quantite_l })}
-                placeholder="Autre"
-                className="w-16 px-2 py-1 rounded-lg border border-gray-200 text-xs focus:outline-none focus:border-orange"
-              />
             </div>
           </div>
         ))}
@@ -292,6 +273,17 @@ function ComplementBlock({ complement, onChange, onDelete }: {
           onChange={(v) => onChange({ ...complement, unite: v })}
         />
       </div>
+      <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Moment de prise</p>
+      <BtnGroup
+        options={[
+          { value: "avant_repas", label: "Avant repas" },
+          { value: "pendant_repas", label: "Pendant repas" },
+          { value: "apres_repas", label: "Après repas" },
+          { value: "independant", label: "Indépendant" },
+        ]}
+        value={complement.moment_prise ?? null}
+        onChange={(v) => onChange({ ...complement, moment_prise: v as NutritionComplement["moment_prise"] })}
+      />
       <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Fréquence</p>
       <BtnGroup
         options={[
@@ -311,19 +303,20 @@ function ComplementBlock({ complement, onChange, onDelete }: {
               { value: "2" as any, label: "2 semaines" },
               { value: "4" as any, label: "4 semaines" },
               { value: "6" as any, label: "6 semaines" },
+              { value: "autre" as any, label: "Personnalisé" },
             ]}
-            value={complement.cure_semaines !== null && [2,4,6].includes(complement.cure_semaines) ? String(complement.cure_semaines) as any : null}
-            onChange={(v) => onChange({ ...complement, cure_semaines: Number(v) })}
+            value={complement.cure_semaines !== null && [2,4,6].includes(complement.cure_semaines) ? String(complement.cure_semaines) as any : "autre" as any}
+            onChange={(v) => onChange({ ...complement, cure_semaines: v === "autre" ? 8 : Number(v) })}
           />
-          <div className="flex items-center gap-2">
+          {complement.cure_semaines !== null && ![2,4,6].includes(complement.cure_semaines) && (
             <input
               type="number" min={1} max={52}
-              placeholder="Personnalisé (semaines)"
-              value={complement.cure_semaines !== null && ![2,4,6].includes(complement.cure_semaines) ? complement.cure_semaines : ""}
+              placeholder="Durée en semaines"
+              value={complement.cure_semaines ?? ""}
               onChange={(e) => onChange({ ...complement, cure_semaines: Number(e.target.value) || null })}
               className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-orange"
             />
-          </div>
+          )}
           <div>
             <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Date de début de la cure</p>
             <input
@@ -451,21 +444,6 @@ export default function NutritionSetup({ horseId, existingNutrition, onCancel }:
             Pas de pâture
           </button>
         </div>
-        {herbe.actif && (
-          <>
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Durée estimée par jour</p>
-            <BtnGroup
-              options={[
-                { value: "2", label: "2h" },
-                { value: "4", label: "4h" },
-                { value: "6", label: "6h" },
-                { value: "journee", label: "Toute la journée" },
-              ]}
-              value={herbe.heures}
-              onChange={(v) => setHerbe({ ...herbe, heures: v })}
-            />
-          </>
-        )}
       </section>
 
       {/* ── Section Granulés ── */}

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { History, Plus, Edit2 } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { History, Plus, Edit2, ChevronRight, ChevronDown } from "lucide-react";
 
 const NUTRITION_CONSENT_KEY = "equistra_nutrition_consent_v1";
 import type { HorseNutrition, NutritionHistoryEntry, NutritionComplement } from "@/lib/supabase/types";
@@ -12,7 +12,8 @@ const GRANULE_LABELS: Record<string, string> = { standard: "Granulés", floconne
 const FORME_LABELS: Record<string, string> = { poudre: "Poudre", liquide: "Liquide", granules: "Granulés", seringue: "Seringue", autre: "" };
 const FREQ_LABELS: Record<string, string> = { quotidien: "Quotidien", matin_soir: "Matin + Soir", hebdomadaire: "Hebdomadaire", cure: "En cure" };
 const HORAIRE_LABELS: Record<string, string> = { matin: "Matin", midi: "Midi", apresmidi: "Après-midi", soir: "Soir" };
-const HEURES_LABELS: Record<string, string> = { "2": "2h/jour", "4": "4h/jour", "6": "6h/jour", journee: "Toute la journée" };
+const MOMENT_LABELS: Record<string, string> = { avant_repas: "Avant repas", pendant_repas: "Pendant repas", apres_repas: "Après repas", independant: "Indépendant" };
+const DISTRIB_LABELS: Record<string, string> = { "1": "1× par jour", "2": "2× par jour", "3": "3× par jour" };
 
 function cureBadge(c: NutritionComplement): string | null {
   if (c.frequence !== "cure" || !c.cure_debut || !c.cure_semaines) return null;
@@ -56,11 +57,25 @@ export default function NutritionView({ horseId, horseName, nutrition, history, 
   const [editing, setEditing] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showConsent, setShowConsent] = useState(false);
+  const migrationToastShown = useRef(false);
 
   useEffect(() => {
     if (!localStorage.getItem(NUTRITION_CONSENT_KEY)) {
       setShowConsent(true);
     }
+  }, []);
+
+  // §1 — Migration notice: fibres saved with quantite_kg (old format) → ask user to update
+  useEffect(() => {
+    if (migrationToastShown.current) return;
+    const hasOldFormat = nutrition.fibres.some((f) => f.quantite_kg && f.quantite_kg > 0 && !f.distributions_par_jour);
+    if (hasOldFormat) {
+      migrationToastShown.current = true;
+      import("react-hot-toast").then(({ default: toast }) => {
+        toast("Vos rations de fibres ont été simplifiées — vérifiez le nombre de distributions.", { icon: "🌾", duration: 5000 });
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (editing) {
@@ -79,7 +94,7 @@ export default function NutritionView({ horseId, horseName, nutrition, history, 
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-24">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -125,7 +140,13 @@ export default function NutritionView({ horseId, horseName, nutrition, history, 
               <div key={f.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
                 <span className="text-sm font-semibold text-black">{FIBRE_LABELS[f.type] ?? f.type}</span>
                 <span className="text-sm text-gray-500">
-                  {f.mode === "volonte" ? "À volonté" : `${f.quantite_kg} kg`}
+                  {f.mode === "volonte"
+                    ? "À volonté"
+                    : f.distributions_par_jour
+                    ? DISTRIB_LABELS[f.distributions_par_jour]
+                    : f.quantite_kg
+                    ? `${f.quantite_kg} kg`
+                    : "—"}
                 </span>
               </div>
             ))}
@@ -141,9 +162,7 @@ export default function NutritionView({ horseId, horseName, nutrition, history, 
             <h3 className="text-sm font-bold text-black">Herbe / Pâture</h3>
           </div>
           <span className="text-sm text-gray-500">
-            {nutrition.herbe.actif
-              ? `À volonté · ${HEURES_LABELS[nutrition.herbe.heures ?? ""] ?? ""}`
-              : "Non"}
+            {nutrition.herbe.actif ? "Oui" : "Non"}
           </span>
         </div>
       </div>
@@ -193,7 +212,7 @@ export default function NutritionView({ horseId, horseName, nutrition, history, 
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-bold text-black truncate">{c.nom || "—"}</p>
                       <p className="text-xs text-gray-400 mt-0.5">
-                        {[FORME_LABELS[c.forme], c.quantite ? `${c.quantite} ${c.unite}` : null, FREQ_LABELS[c.frequence]]
+                        {[FORME_LABELS[c.forme], c.quantite ? `${c.quantite} ${c.unite}` : null, FREQ_LABELS[c.frequence], c.moment_prise ? MOMENT_LABELS[c.moment_prise] : null]
                           .filter(Boolean).join(" · ")}
                       </p>
                     </div>
@@ -241,7 +260,10 @@ export default function NutritionView({ horseId, horseName, nutrition, history, 
           <History className="h-4 w-4" />
           Historique des modifications
         </div>
-        <span className="text-xs text-gray-300">{history.length} entrée{history.length !== 1 ? "s" : ""}</span>
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs text-gray-300">{history.length} entrée{history.length !== 1 ? "s" : ""}</span>
+          {showHistory ? <ChevronDown className="h-3.5 w-3.5 text-gray-300" /> : <ChevronRight className="h-3.5 w-3.5 text-gray-300" />}
+        </div>
       </button>
 
       {showHistory && (

@@ -93,9 +93,9 @@ export default function ScoreBreakdownComponent({ breakdown, horseId, scores }: 
           )}
         </div>
 
-        {/* Pilliers visibles — Suivi proprio JAMAIS affiché séparément ─────── */}
+        {/* Pilliers visibles — masqués si poids = 0 pour ce mode ──────────── */}
         <div className="space-y-3">
-          {VISIBLE_PILLARS.map((pillar) => {
+          {VISIBLE_PILLARS.filter((pillar) => Math.round(weights[pillar.weightKey] * 100) > 0).map((pillar) => {
             const rawScore = breakdown[pillar.key as keyof ScoreBreakdown];
             const pillarScore = typeof rawScore === "number" ? rawScore : null;
             const isNull = pillarScore === null;

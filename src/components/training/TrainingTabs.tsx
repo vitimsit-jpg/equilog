@@ -1,23 +1,28 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { LayoutDashboard, Calendar, Clock, Sparkles, Plus, Trophy, X, ChevronDown } from "lucide-react";
+import { LayoutDashboard, Calendar, Clock, Sparkles, Plus, Trophy, X, ChevronDown, FileText, BookOpen } from "lucide-react";
 import type { TrainingSession, TrainingPlannedSession, AIInsight, HorseIndexMode, RehabProtocol } from "@/lib/supabase/types";
 import RehabProtocolCard from "./RehabProtocolCard";
 import TrainingDashboard from "./TrainingDashboard";
+import TrainingPlanCard from "./TrainingPlanCard";
 import VueSemaine from "./VueSemaine";
 import HistoriqueSeances from "./HistoriqueSeances";
 import QuickTrainingModal from "./QuickTrainingModal";
 import EducationTab from "./EducationTab";
 import MovementTab from "./MovementTab";
+import CareerArchiveTab from "./CareerArchiveTab";
+import ConvalescenceTab from "./ConvalescenceTab";
+import RecoveryJournalTab from "./RecoveryJournalTab";
 import { useRouter } from "next/navigation";
 import Button from "@/components/ui/Button";
+import { useRidesHorse } from "@/hooks/useRidesHorse";
 import {
   format, differenceInDays, parseISO,
   startOfWeek, eachDayOfInterval, isToday, addWeeks, subWeeks, addDays,
 } from "date-fns";
 
-type Tab = "overview" | "semaine" | "historique" | "education" | "mouvement";
+type Tab = "overview" | "semaine" | "historique" | "education" | "mouvement" | "carriere" | "convalescence" | "journal";
 
 interface NextCompetition {
   date: string;
@@ -31,6 +36,7 @@ interface Props {
   sessions: TrainingSession[];
   plannedSessions: TrainingPlannedSession[];
   latestInsight: AIInsight | null;
+  latestPlan: AIInsight | null;
   horseMode: HorseIndexMode | null;
   nextCompetition?: NextCompetition | null;
   healthRecords?: { id: string; type: string; date: string }[];
@@ -45,6 +51,7 @@ function getTabConfig(mode: HorseIndexMode | null): { overviewLabel: string; sho
     case "ICr":
       return { overviewLabel: "Vue d'ensemble", showPlanTab: true };
     case "IE":
+      return { overviewLabel: "Suivi", showPlanTab: true };
     case "IS":
       return { overviewLabel: "Suivi", showPlanTab: false };
     case "IP":
@@ -60,7 +67,7 @@ function getTabConfig(mode: HorseIndexMode | null): { overviewLabel: string; sho
 function ModeBadge({ mode }: { mode: HorseIndexMode | null }) {
   if (!mode) return null;
   const labels: Record<HorseIndexMode, { label: string; color: string }> = {
-    IC:  { label: "Compétition",  color: "bg-purple-100 text-purple-700" },
+    IC:  { label: "Compétition intensive", color: "bg-purple-100 text-purple-700" },
     ICr: { label: "Croissance",   color: "bg-blue-100 text-blue-700" },
     IE:  { label: "Équilibre",    color: "bg-green-100 text-green-700" },
     IP:  { label: "Rééducation",  color: "bg-amber-100 text-amber-700" },
@@ -160,7 +167,7 @@ function WorkloadBar({ sessions, mode }: { sessions: TrainingSession[]; mode: Ho
 }
 
 // IE / IS mode: simplified wellness-focused overview
-function WellnessOverview({ sessions, horseId, latestInsight }: { sessions: TrainingSession[]; horseId: string; latestInsight: AIInsight | null }) {
+function WellnessOverview({ sessions, horseId, latestInsight, latestPlan }: { sessions: TrainingSession[]; horseId: string; latestInsight: AIInsight | null; latestPlan: AIInsight | null }) {
   const last7 = sessions.slice(0, 7);
   const weekSessions = sessions.filter((s) => {
     const d = new Date(s.date);
@@ -226,6 +233,9 @@ function WellnessOverview({ sessions, horseId, latestInsight }: { sessions: Trai
           </div>
         </div>
       )}
+
+      {/* Plan IA de la semaine */}
+      <TrainingPlanCard horseId={horseId} latestPlan={latestPlan} />
 
       {/* AI insight if available */}
       {parsedInsight.summary && (
@@ -525,8 +535,9 @@ function RehabOverview({ sessions, latestInsight, protocol, horseId }: { session
   );
 }
 
-export default function TrainingTabs({ horseId, horseName, horseBirthYear, sessions, plannedSessions, latestInsight, horseMode, nextCompetition, healthRecords, activeRehabProtocol, competitions }: Props) {
+export default function TrainingTabs({ horseId, horseName, horseBirthYear, sessions, plannedSessions, latestInsight, latestPlan, horseMode, nextCompetition, healthRecords, activeRehabProtocol, competitions }: Props) {
   const router = useRouter();
+  const { ridesHorse } = useRidesHorse(horseId);
   const { overviewLabel: _overviewLabel, showPlanTab: _showPlanTab } = getTabConfig(horseMode);
 
   // Mode-specific default tab
@@ -561,6 +572,12 @@ export default function TrainingTabs({ horseId, horseName, horseBirthYear, sessi
     ...(isEducationMode ? [{ id: "education" as Tab, label: "Éducation", icon: <Sparkles className="h-3.5 w-3.5" /> }] : []),
     // IS — onglet Mouvement en premier
     ...(isMovementMode ? [{ id: "mouvement" as Tab, label: "Mouvement", icon: <LayoutDashboard className="h-3.5 w-3.5" /> }] : []),
+    // IS — onglet Carrière
+    ...(isMovementMode ? [{ id: "carriere" as Tab, label: "Carrière", icon: <Trophy className="h-3.5 w-3.5" /> }] : []),
+    // IR — onglet Suivi médical (praticiens + examens)
+    ...(isRehabMode ? [{ id: "convalescence" as Tab, label: "Suivi méd.", icon: <FileText className="h-3.5 w-3.5" /> }] : []),
+    // IR — onglet Journal d'évolution
+    ...(isRehabMode ? [{ id: "journal" as Tab, label: "Journal", icon: <BookOpen className="h-3.5 w-3.5" /> }] : []),
     ...(showPlanTab ? [{ id: "semaine" as Tab, label: "Programme", icon: <Calendar className="h-3.5 w-3.5" /> }] : []),
     // Pour IS et ICr, l'onglet overview reste mais devient secondaire
     ...(!isMovementMode ? [{ id: "overview" as Tab, label: overviewLabel, icon: <LayoutDashboard className="h-3.5 w-3.5" /> }] : []),
@@ -619,24 +636,54 @@ export default function TrainingTabs({ horseId, horseName, horseBirthYear, sessi
         <MovementTab horseId={horseId} horseName={horseName} />
       )}
 
+      {activeTab === "carriere" && (
+        <CareerArchiveTab horseId={horseId} horseName={horseName} />
+      )}
+
+      {activeTab === "convalescence" && (
+        <ConvalescenceTab horseId={horseId} horseName={horseName} />
+      )}
+
+      {activeTab === "journal" && (
+        <RecoveryJournalTab horseId={horseId} horseName={horseName} />
+      )}
+
       {/* Tab content */}
       {activeTab === "overview" && (
         <div className="space-y-4">
-          {isWellnessMode ? (
-            <WellnessOverview sessions={sessions} horseId={horseId} latestInsight={latestInsight} />
+          {/* P0 — Vue gérant (non-cavalier) : pas de métriques de performance */}
+          {!ridesHorse ? (
+            <>
+              <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 rounded-xl border border-blue-100">
+                <span className="text-sm">👁️</span>
+                <p className="text-xs text-blue-700 font-medium">Vue gérant — suivi bien-être uniquement</p>
+              </div>
+              <WellnessOverview sessions={sessions} horseId={horseId} latestInsight={latestInsight} latestPlan={latestPlan} />
+            </>
+          ) : isWellnessMode ? (
+            <WellnessOverview sessions={sessions} horseId={horseId} latestInsight={latestInsight} latestPlan={latestPlan} />
           ) : isRehabMode ? (
-            <RehabOverview sessions={sessions} latestInsight={latestInsight} protocol={activeRehabProtocol ?? null} horseId={horseId} />
+            <>
+              <RehabOverview sessions={sessions} latestInsight={latestInsight} protocol={activeRehabProtocol ?? null} horseId={horseId} />
+              <TrainingPlanCard horseId={horseId} latestPlan={latestPlan} />
+            </>
           ) : isIPMode ? (
-            <IPContactView sessions={sessions} latestInsight={latestInsight} />
+            <>
+              <IPContactView sessions={sessions} latestInsight={latestInsight} />
+              <TrainingPlanCard horseId={horseId} latestPlan={latestPlan} />
+            </>
           ) : (
-            <TrainingDashboard
-              sessions={sessions}
-              horseId={horseId}
-              horseName={horseName}
-              latestInsight={latestInsight}
-              hideAddButton
-              todayPlanned={todayPlanned}
-            />
+            <>
+              <TrainingDashboard
+                sessions={sessions}
+                horseId={horseId}
+                horseName={horseName}
+                latestInsight={latestInsight}
+                hideAddButton
+                todayPlanned={todayPlanned}
+              />
+              <TrainingPlanCard horseId={horseId} latestPlan={latestPlan} />
+            </>
           )}
 
           {/* Programme de la semaine inline — collapsible */}

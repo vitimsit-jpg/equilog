@@ -8,6 +8,7 @@ import HorseAvatar from "@/components/ui/HorseAvatar";
 interface SearchParams {
   discipline?: string;
   region?: string;
+  mode?: string;
 }
 
 interface Props {
@@ -19,7 +20,7 @@ export default async function ClassementsPage({ searchParams }: Props) {
 
   const { data: rawScores } = await supabase
     .from("horse_scores")
-    .select("*, horses!inner(id, name, breed, discipline, ecurie, region, share_horse_index, avatar_url)")
+    .select("*, horses!inner(id, name, breed, discipline, ecurie, region, share_horse_index, avatar_url, horse_index_mode)")
     .eq("horses.share_horse_index", true)
     .order("score", { ascending: false })
     .limit(300);
@@ -36,11 +37,19 @@ export default async function ClassementsPage({ searchParams }: Props) {
   // Filtres
   const discipline = searchParams.discipline || "";
   const region = searchParams.region || "";
+  const mode = searchParams.mode || "competitive"; // défaut : IC/IE uniquement
 
   const filtered = scores.filter((s) => {
     const horse = (s as any).horses;
+    const horseMode = horse.horse_index_mode || "IE";
     if (discipline && horse.discipline !== discipline) return false;
     if (region && !horse.region?.toLowerCase().includes(region.toLowerCase())) return false;
+    // Filtre par mode (TRAV-18) — par défaut, seuls les modes compétitifs IC/IE
+    if (mode === "competitive") {
+      if (horseMode !== "IC" && horseMode !== "IE") return false;
+    } else if (mode !== "all") {
+      if (horseMode !== mode) return false;
+    }
     return true;
   });
 

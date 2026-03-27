@@ -83,6 +83,8 @@ export default async function NutritionPage({ params }: Props) {
         horseName={horse.name}
         nutrition={nutrition}
         history={history}
+        horseMode={(horse as any).horse_index_mode ?? null}
+        conditionsVie={(horse as any).conditions_vie ?? null}
       />
     </div>
   );

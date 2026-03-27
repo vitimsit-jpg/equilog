@@ -51,6 +51,8 @@ export default async function HealthPage({ params }: Props) {
         marechalProfile={marechalProfile ?? null}
         horseName={horse.name}
         maladiesChroniques={(horse as any).maladies_chroniques ?? null}
+        horseMode={(horse as any).horse_index_mode ?? null}
+        horseBirthYear={(horse as any).birth_year ?? null}
       />
 
       {/* TRAV-21 : médicaments pour IS/IR/IP */}

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { differenceInDays, parseISO } from "date-fns";
 import { Plus, AlertCircle, Clock, Calendar, CheckCircle2 } from "lucide-react";
 import { daysUntil, formatCurrency, HEALTH_TYPE_LABELS } from "@/lib/utils";
-import type { HealthRecord, MarechalProfile } from "@/lib/supabase/types";
+import type { HealthRecord, HorseIndexMode, MarechalProfile } from "@/lib/supabase/types";
 import HealthCategoryCard, { type CategoryConfig } from "./HealthCategoryCard";
 import HealthTimeline from "./HealthTimeline";
 import QuickHealthModal from "./QuickHealthModal";
@@ -28,6 +28,30 @@ const COMFORT_CATEGORIES: CategoryConfig[] = [
 ];
 
 const CATEGORIES = [...VET_CATEGORIES, ...MANDATORY_CATEGORIES, ...COMFORT_CATEGORIES];
+
+const IS_THERAPEUTIC_CATEGORIES: CategoryConfig[] = [
+  { type: "acupuncture",      label: "Acupuncture",       emoji: "🪡", defaultInterval: null },
+  { type: "physio_laser",     label: "Physio. laser",      emoji: "💡", defaultInterval: null },
+  { type: "physio_ultrasons", label: "Physio. ultrasons",  emoji: "🔊", defaultInterval: null },
+  { type: "physio_tens",      label: "Physio. TENS",       emoji: "⚡", defaultInterval: null },
+  { type: "pemf",             label: "PEMF",               emoji: "🧲", defaultInterval: null },
+  { type: "infrarouge",       label: "Infrarouge",         emoji: "🌡️", defaultInterval: null },
+  { type: "cryotherapie",     label: "Cryothérapie",       emoji: "🧊", defaultInterval: null },
+  { type: "thermotherapie",   label: "Thermothérapie",     emoji: "♨️", defaultInterval: null },
+  { type: "pressotherapie",   label: "Pressothérapie",     emoji: "🩹", defaultInterval: null },
+  { type: "ems",              label: "EMS",                emoji: "⚡", defaultInterval: null },
+  { type: "bandes_repos",     label: "Bandes de repos",    emoji: "🩹", defaultInterval: null },
+  { type: "etirements_passifs", label: "Étirements passifs", emoji: "🤸", defaultInterval: null },
+  { type: "infiltrations",    label: "Infiltrations",      emoji: "💉", defaultInterval: null },
+  { type: "mesotherapie",     label: "Mésothérapie",       emoji: "🔬", defaultInterval: null },
+];
+
+const IR_EXTRA_CATEGORIES: CategoryConfig[] = [
+  { type: "balneotherapie",   label: "Balnéothérapie",     emoji: "🛁", defaultInterval: null },
+  { type: "water_treadmill",  label: "Water treadmill",    emoji: "💧", defaultInterval: null },
+  { type: "tapis_marcheur",   label: "Tapis marcheur",     emoji: "🔄", defaultInterval: null },
+  { type: "ondes_choc",       label: "Ondes de choc",      emoji: "💥", defaultInterval: null },
+];
 
 // Max interval per type (aligns with Horse Index calculator)
 const MAX_DAYS_BY_TYPE: Record<string, number> = {
@@ -56,11 +80,13 @@ interface Props {
   marechalProfile?: MarechalProfile | null;
   horseName?: string;
   maladiesChroniques?: string | null;
+  horseMode?: HorseIndexMode | null;
+  horseBirthYear?: number | null;
 }
 
 const HEALTH_CONSENT_KEY = "equistra_health_consent_v1";
 
-export default function HealthOverview({ records, horseId, marechalProfile, horseName, maladiesChroniques }: Props) {
+export default function HealthOverview({ records, horseId, marechalProfile, horseName, maladiesChroniques, horseMode, horseBirthYear }: Props) {
   const router = useRouter();
   const [tab, setTab] = useState<"overview" | "history">("overview");
   const [showAdd, setShowAdd] = useState(false);
@@ -86,7 +112,7 @@ export default function HealthOverview({ records, horseId, marechalProfile, hors
   const overdue = CATEGORIES.filter((c) => {
     const latest = latestByType[c.type];
     if (!latest) return false;
-    if (latest.next_date) return daysUntil(latest.next_date) < 0;
+    if (latest.next_date) return daysUntil(latest.next_date) < -7;
     // No next_date: check against default max interval
     const maxDays = MAX_DAYS_BY_TYPE[c.type];
     if (!maxDays) return false;
@@ -98,7 +124,7 @@ export default function HealthOverview({ records, horseId, marechalProfile, hors
     if (!latest) return false;
     if (latest.next_date) {
       const d = daysUntil(latest.next_date);
-      return d >= 0 && d <= 14;
+      return d >= -7 && d <= 14;
     }
     // No next_date: check if approaching max interval (within 14 days)
     const maxDays = MAX_DAYS_BY_TYPE[c.type];
@@ -255,6 +281,7 @@ export default function HealthOverview({ records, horseId, marechalProfile, hors
                     config={cat}
                     records={records.filter((r) => r.type === cat.type)}
                     horseId={horseId}
+                    horseMode={horseMode}
                   />
                 ))}
               </div>
@@ -270,6 +297,8 @@ export default function HealthOverview({ records, horseId, marechalProfile, hors
                     horseId={horseId}
                     marechalProfile={cat.type === "ferrage" ? marechalProfile : undefined}
                     horseName={cat.type === "ferrage" ? horseName : undefined}
+                    horseMode={horseMode}
+                    horseBirthYear={cat.type === "ferrage" ? horseBirthYear : undefined}
                   />
                 ))}
               </div>
@@ -283,10 +312,38 @@ export default function HealthOverview({ records, horseId, marechalProfile, hors
                     config={cat}
                     records={records.filter((r) => r.type === cat.type)}
                     horseId={horseId}
+                    horseMode={horseMode}
                   />
                 ))}
               </div>
             </div>
+
+            {/* Soins thérapeutiques IS (retraite) + IR (convalescence) */}
+            {(horseMode === "IS" || horseMode === "IR") && (
+              <div>
+                <p className="text-2xs font-bold text-gray-400 uppercase tracking-wider mb-2 px-0.5">Soins thérapeutiques</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {IS_THERAPEUTIC_CATEGORIES.map((cat) => (
+                    <HealthCategoryCard
+                      key={cat.type}
+                      config={cat}
+                      records={records.filter((r) => r.type === cat.type)}
+                      horseId={horseId}
+                      horseMode={horseMode}
+                    />
+                  ))}
+                  {horseMode === "IR" && IR_EXTRA_CATEGORIES.map((cat) => (
+                    <HealthCategoryCard
+                      key={cat.type}
+                      config={cat}
+                      records={records.filter((r) => r.type === cat.type)}
+                      horseId={horseId}
+                      horseMode={horseMode}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       ) : (

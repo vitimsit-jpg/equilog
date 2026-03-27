@@ -2,7 +2,7 @@
 
 import Modal from "@/components/ui/Modal";
 import HealthEventForm from "./HealthEventForm";
-import type { HealthRecord, HealthType } from "@/lib/supabase/types";
+import type { HealthRecord, HealthType, HorseIndexMode } from "@/lib/supabase/types";
 
 interface Props {
   horseId: string;
@@ -10,9 +10,10 @@ interface Props {
   defaultValues?: Partial<HealthRecord>;
   onClose: () => void;
   onSaved: () => void;
+  horseMode?: HorseIndexMode | null;
 }
 
-export default function HealthEventModal({ horseId, defaultType, defaultValues, onClose, onSaved }: Props) {
+export default function HealthEventModal({ horseId, defaultType, defaultValues, onClose, onSaved, horseMode }: Props) {
   const isEdit = !!defaultValues?.id;
   return (
     <Modal open={true} onClose={onClose} title={isEdit ? "Modifier le soin" : "Nouveau soin"} size="md">
@@ -21,6 +22,7 @@ export default function HealthEventModal({ horseId, defaultType, defaultValues, 
         defaultValues={defaultValues ?? (defaultType ? { type: defaultType } : undefined)}
         onSaved={onSaved}
         onCancel={onClose}
+        horseMode={horseMode}
       />
     </Modal>
   );

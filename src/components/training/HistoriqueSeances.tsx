@@ -229,6 +229,15 @@ export default function HistoriqueSeances({ sessions, horseId }: Props) {
             <div className="bg-gray-50 rounded-xl p-3">
               <p className="text-2xs text-gray-400 mb-0.5">Durée</p>
               <p className="text-sm font-bold text-black">{fmtDuration(s.duration_min)}</p>
+              {s.duree_planifiee != null && s.duree_planifiee !== s.duration_min && (
+                <p className="text-2xs text-gray-400 mt-0.5">
+                  Prévu : {fmtDuration(s.duree_planifiee)}
+                  {s.duration_min > s.duree_planifiee
+                    ? <span className="text-orange ml-1">+{fmtDuration(s.duration_min - s.duree_planifiee)}</span>
+                    : <span className="text-success ml-1">-{fmtDuration(s.duree_planifiee - s.duration_min)}</span>
+                  }
+                </p>
+              )}
             </div>
             <div className="bg-gray-50 rounded-xl p-3">
               <p className="text-2xs text-gray-400 mb-0.5">Intensité</p>
@@ -274,6 +283,34 @@ export default function HistoriqueSeances({ sessions, horseId }: Props) {
           )}
           {s.coach_present && (
             <span className="inline-block text-2xs bg-blue-50 text-blue-600 font-semibold px-2 py-1 rounded-full">Coach présent</span>
+          )}
+          {/* ICr foal fields (TRAV-20) */}
+          {(s.session_type || s.foal_reaction) && (
+            <div className="flex flex-wrap gap-2">
+              {s.session_type && (
+                <span className="text-2xs bg-green-50 text-green-700 font-semibold px-2 py-1 rounded-full capitalize">
+                  🐣 {{
+                    manipulation: "Manipulation",
+                    toilettage: "Toilettage",
+                    longe_douce: "Longe douce",
+                    debourrage: "Débourrage",
+                    premiere_monte: "1ère monte",
+                    autre: "Autre",
+                  }[s.session_type] ?? s.session_type}
+                </span>
+              )}
+              {s.foal_reaction && (
+                <span className="text-2xs bg-gray-50 text-gray-600 font-semibold px-2 py-1 rounded-full">
+                  {{
+                    calme: "😌 Calme",
+                    attentif: "🧐 Attentif",
+                    nerveux: "😬 Nerveux",
+                    agite: "😤 Agité",
+                    difficile: "😣 Difficile",
+                  }[s.foal_reaction] ?? s.foal_reaction}
+                </span>
+              )}
+            </div>
           )}
           {s.linked_competition_id && (
             <span className="inline-flex items-center gap-1 text-2xs bg-orange-light text-orange font-semibold px-2 py-1 rounded-full">

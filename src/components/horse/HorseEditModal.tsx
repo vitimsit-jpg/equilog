@@ -149,6 +149,7 @@ export default function HorseEditModal({ horse, compact = false }: Props) {
         trousseau: Array.from(trousseauSet).map((label) => ({ label, grammage: 0, impermeable: false })),
         module_nutrition: moduleNutrition,
         visibility: form.visibility as Horse["visibility"],
+        share_horse_index: form.visibility === "national",
       })
       .eq("id", horse.id);
 

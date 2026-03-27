@@ -54,6 +54,26 @@ export const HEALTH_TYPE_LABELS: Record<string, string> = {
   veterinaire: "Vétérinaire",
   masseuse: "Masseuse",
   autre: "Autre",
+  // Soins thérapeutiques IS (retraite / bien-être)
+  acupuncture: "Acupuncture",
+  physio_laser: "Physio. laser",
+  physio_ultrasons: "Physio. ultrasons",
+  physio_tens: "Physio. TENS",
+  pemf: "PEMF",
+  infrarouge: "Infrarouge",
+  cryotherapie: "Cryothérapie",
+  thermotherapie: "Thermothérapie",
+  pressotherapie: "Pressothérapie",
+  ems: "EMS",
+  bandes_repos: "Bandes de repos",
+  etirements_passifs: "Étirements passifs",
+  infiltrations: "Infiltrations",
+  mesotherapie: "Mésothérapie",
+  // Soins thérapeutiques IR (convalescence) supplémentaires
+  balneotherapie: "Balnéothérapie",
+  water_treadmill: "Water treadmill",
+  tapis_marcheur: "Tapis marcheur",
+  ondes_choc: "Ondes de choc",
 };
 
 export const TRAINING_TYPE_LABELS: Record<string, string> = {
@@ -135,9 +155,9 @@ export function generateShareToken(): string {
 }
 
 export function getScoreColor(score: number): string {
-  if (score >= 80) return "#16A34A";
-  if (score >= 60) return "#E8440A";
-  if (score >= 40) return "#D97706";
+  if (score >= 75) return "#16A34A";
+  if (score >= 45) return "#E8440A";
+  if (score >= 25) return "#D97706";
   return "#DC2626";
 }
 
@@ -145,6 +165,6 @@ export function getScoreLabel(score: number): string {
   if (score >= 85) return "Excellent";
   if (score >= 70) return "Très bon";
   if (score >= 55) return "Bon";
-  if (score >= 40) return "Moyen";
-  return "À améliorer";
+  if (score >= 35) return "En progression";
+  return "À construire";
 }

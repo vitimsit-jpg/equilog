@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { History, Plus, Edit2 } from "lucide-react";
+
+const NUTRITION_CONSENT_KEY = "equistra_nutrition_consent_v1";
 import type { HorseNutrition, NutritionHistoryEntry, NutritionComplement } from "@/lib/supabase/types";
 import NutritionSetup from "./NutritionSetup";
 
@@ -24,16 +26,42 @@ function cureBadge(c: NutritionComplement): string | null {
   return `En cure · J+${daysIn} / ${daysTotal}`;
 }
 
+// Profile-adapted nutrition context per mode
+const MODE_NUTRITION_CONTEXT: Partial<Record<string, { emoji: string; text: string; color: string }>> = {
+  IC:  { emoji: "🏆", text: "Compétition — besoins énergétiques élevés. Privilégiez les fibres de qualité et ajustez les concentrés avant et après les sorties.", color: "bg-orange/5 border-orange/20 text-orange-800" },
+  IE:  { emoji: "🌿", text: "Loisir — alimentation équilibrée. Foin à volonté conseillé ; limitez les concentrés si l'activité reste légère.", color: "bg-blue-50 border-blue-100 text-blue-800" },
+  IP:  { emoji: "🔄", text: "Reprise progressive — réduisez les concentrés, maintenez les fibres. Évitez la suralimentation en phase de récupération.", color: "bg-gray-50 border-gray-200 text-gray-700" },
+  IR:  { emoji: "💊", text: "Convalescence — limitez les concentrés, renforcez les fibres. Consultez votre vétérinaire pour adapter la ration au traitement en cours.", color: "bg-amber-50 border-amber-200 text-amber-800" },
+  IS:  { emoji: "🌾", text: "Retraite — alimentation légère, riche en fibres, pauvre en sucres. Surveillez le poids et le score corporel régulièrement.", color: "bg-green-50 border-green-100 text-green-800" },
+  ICr: { emoji: "🐣", text: "Croissance — besoins protéiques importants pour le développement. Consultez votre vétérinaire pour adapter la ration à l'âge du poulain.", color: "bg-purple-50 border-purple-100 text-purple-800" },
+};
+
+const CONDITIONS_VIE_CONTEXT: Record<string, string> = {
+  box:          "En box : hydratation surveillée, distribuez le foin en plusieurs fois.",
+  pré:          "En pré : herbe fraîche disponible — adaptez les concentrés selon la saison.",
+  paddock:      "En paddock : alimentation standard, surveiller les apports en herbe.",
+  box_paddock:  "Box + paddock : équilibre herbe/foin à ajuster selon la saison.",
+};
+
 interface Props {
   horseId: string;
   horseName: string;
   nutrition: HorseNutrition;
   history: NutritionHistoryEntry[];
+  horseMode?: string | null;
+  conditionsVie?: string | null;
 }
 
-export default function NutritionView({ horseId, horseName, nutrition, history }: Props) {
+export default function NutritionView({ horseId, horseName, nutrition, history, horseMode, conditionsVie }: Props) {
   const [editing, setEditing] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [showConsent, setShowConsent] = useState(false);
+
+  useEffect(() => {
+    if (!localStorage.getItem(NUTRITION_CONSENT_KEY)) {
+      setShowConsent(true);
+    }
+  }, []);
 
   if (editing) {
     return (
@@ -68,6 +96,22 @@ export default function NutritionView({ horseId, horseName, nutrition, history }
           Modifier
         </button>
       </div>
+
+      {/* ── Contexte profil ── */}
+      {(() => {
+        const modeCtx = horseMode ? MODE_NUTRITION_CONTEXT[horseMode] : null;
+        const condCtx = conditionsVie ? CONDITIONS_VIE_CONTEXT[conditionsVie] : null;
+        if (!modeCtx && !condCtx) return null;
+        return (
+          <div className={`flex items-start gap-3 px-4 py-3 rounded-xl border ${modeCtx?.color ?? "bg-gray-50 border-gray-200 text-gray-700"}`}>
+            <span className="text-lg flex-shrink-0">{modeCtx?.emoji ?? "💡"}</span>
+            <div className="space-y-0.5">
+              {modeCtx && <p className="text-xs leading-relaxed">{modeCtx.text}</p>}
+              {condCtx && <p className="text-2xs opacity-80 mt-0.5">{condCtx}</p>}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── Fibres ── */}
       {nutrition.fibres.length > 0 && (
@@ -226,6 +270,48 @@ export default function NutritionView({ horseId, horseName, nutrition, history }
               </div>
             ))
           )}
+        </div>
+      )}
+
+      {/* RGPD #43 — Consent modal, first activation */}
+      {showConsent && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-6 space-y-4 shadow-xl">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-orange-light flex items-center justify-center flex-shrink-0">
+                <span className="text-xl">🥕</span>
+              </div>
+              <div>
+                <p className="font-bold text-black text-sm">Module Nutrition</p>
+                <p className="text-2xs text-gray-400">Traitement de données alimentaires</p>
+              </div>
+            </div>
+            <p className="text-sm text-gray-600 leading-relaxed">
+              Le module Nutrition enregistre la ration quotidienne, les compléments et l&apos;historique alimentaire de votre cheval.
+              Ces données sont stockées de manière sécurisée et ne sont jamais partagées sans votre consentement.
+            </p>
+            <p className="text-2xs text-gray-400 leading-relaxed">
+              Conformément au RGPD (Art. 6.1.a), vous consentez au traitement de ces données.
+              Vous pouvez révoquer ce consentement à tout moment depuis vos réglages.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowConsent(false)}
+                className="flex-1 py-2.5 rounded-xl border-2 border-gray-200 text-sm font-semibold text-gray-500 hover:border-gray-300 transition-colors"
+              >
+                Plus tard
+              </button>
+              <button
+                onClick={() => {
+                  localStorage.setItem(NUTRITION_CONSENT_KEY, new Date().toISOString());
+                  setShowConsent(false);
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-black text-white text-sm font-bold hover:bg-gray-800 transition-colors"
+              >
+                J&apos;accepte
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

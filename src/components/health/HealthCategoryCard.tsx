@@ -2,9 +2,19 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+
+const EMPTY_STATE_TIPS: Partial<Record<string, string>> = {
+  dentiste: "Un bilan dentaire annuel pour une mastication optimale 🦷",
+  osteo: "Une séance après l'hiver pour relancer la saison en souplesse 🤲",
+  masseuse: "Idéal après un effort intense ou une longue période de repos 💆",
+  vaccin: "La prévention, premier soin de votre cheval 💉",
+  vermifuge: "Un vermifuge régulier, ça change tout pour l'intestin 🌿",
+  ferrage: "Le suivi du pied, base de tout le travail 🔨",
+  veterinaire: "Pas encore de consultation enregistrée 🩺",
+};
 import { Plus, Pencil, Phone, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 import { formatDate, daysUntil } from "@/lib/utils";
-import type { HealthRecord, HealthType, MarechalProfile } from "@/lib/supabase/types";
+import type { HealthRecord, HealthType, HorseIndexMode, MarechalProfile } from "@/lib/supabase/types";
 import HealthEventModal from "@/components/health/HealthEventModal";
 import MarechalLogModal, { buildMarechalSummary } from "@/components/health/MarechalLogModal";
 import MediaGallery from "@/components/media/MediaGallery";
@@ -70,15 +80,20 @@ function StatusBadge({ status, daysLeft }: { status: Status; daysLeft: number | 
   );
 }
 
+// ICr foals under this age (months) should not be shod — parage only
+const ICR_MARECHAL_RESTRICTION_MONTHS = 12;
+
 interface Props {
   config: CategoryConfig;
   records: HealthRecord[];
   horseId: string;
   marechalProfile?: MarechalProfile | null;
   horseName?: string;
+  horseMode?: HorseIndexMode | null;
+  horseBirthYear?: number | null;
 }
 
-export default function HealthCategoryCard({ config, records, horseId, marechalProfile, horseName }: Props) {
+export default function HealthCategoryCard({ config, records, horseId, marechalProfile, horseName, horseMode, horseBirthYear }: Props) {
   const supabase = createClient();
   const router = useRouter();
   const [showAdd, setShowAdd] = useState(false);
@@ -101,6 +116,14 @@ export default function HealthCategoryCard({ config, records, horseId, marechalP
 
   const isUrgent = status === "en_retard" || status === "a_venir";
 
+  // ICr age restriction for ferrage
+  const currentYear = new Date().getFullYear();
+  const showIcrAgeRestriction =
+    isFerrageCard &&
+    horseMode === "ICr" &&
+    horseBirthYear != null &&
+    currentYear - horseBirthYear <= Math.floor(ICR_MARECHAL_RESTRICTION_MONTHS / 12);
+
   return (
     <>
       <div className={`card p-4 flex flex-col gap-3 ${isUrgent ? "ring-1 ring-orange/20" : ""}`}>
@@ -112,6 +135,16 @@ export default function HealthCategoryCard({ config, records, horseId, marechalP
           </div>
           {!config.hidePlanning && <StatusBadge status={status} daysLeft={daysLeft} />}
         </div>
+
+        {/* ICr age restriction banner */}
+        {showIcrAgeRestriction && (
+          <div className="flex items-start gap-2 px-2.5 py-2 rounded-lg bg-amber-50 border border-amber-200">
+            <span className="text-sm flex-shrink-0">🐣</span>
+            <p className="text-2xs text-amber-800 leading-relaxed">
+              Ferrure déconseillée avant {ICR_MARECHAL_RESTRICTION_MONTHS} mois — préférez un parage régulier.
+            </p>
+          </div>
+        )}
 
         {/* Body */}
         {latest ? (
@@ -213,7 +246,9 @@ export default function HealthCategoryCard({ config, records, horseId, marechalP
             )}
           </div>
         ) : (
-          <p className="text-xs text-gray-400">Aucun soin enregistré</p>
+          <p className="text-xs text-gray-400 italic leading-relaxed">
+            {EMPTY_STATE_TIPS[config.type] ?? "Aucun soin enregistré"}
+          </p>
         )}
 
         {/* History toggle */}
@@ -307,6 +342,7 @@ export default function HealthCategoryCard({ config, records, horseId, marechalP
           defaultType={config.type}
           onClose={() => setShowAdd(false)}
           onSaved={() => { setShowAdd(false); router.refresh(); }}
+          horseMode={horseMode}
         />
       )}
       {showEdit && latest && (
@@ -315,6 +351,7 @@ export default function HealthCategoryCard({ config, records, horseId, marechalP
           defaultValues={latest}
           onClose={() => setShowEdit(false)}
           onSaved={() => { setShowEdit(false); router.refresh(); }}
+          horseMode={horseMode}
         />
       )}
     </>

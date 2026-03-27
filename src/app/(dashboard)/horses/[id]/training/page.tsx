@@ -1,13 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import TrainingTabs from "@/components/training/TrainingTabs";
-import TrainingPlanCard from "@/components/training/TrainingPlanCard";
 import PdfDownloadButton from "@/components/pdf/PdfDownloadButton";
 import FeaturesV2Placeholders from "@/components/training/FeaturesV2Placeholders";
-import StreakBadge from "@/components/training/StreakBadge";
-import BadgesDisplay from "@/components/horse/BadgesDisplay";
-import { computeStreak, getStreakTarget } from "@/lib/streaks";
-import { computeEarnedBadgeKeys } from "@/lib/badges";
 import Link from "next/link";
 
 interface Props {
@@ -39,8 +34,6 @@ export default async function TrainingPage({ params }: Props) {
     { data: yearHealth },
     { data: yearCompetitions },
     { data: yearBudget },
-    { data: allCompetitionsForBadges },
-    { data: allHealthForBadges },
   ] = await Promise.all([
     supabase
       .from("training_sessions")
@@ -67,14 +60,6 @@ export default async function TrainingPage({ params }: Props) {
       .select("id, date, category, amount, description")
       .eq("horse_id", horse.id)
       .gte("date", yearStart),
-    supabase
-      .from("competitions")
-      .select("id, date, result_rank, total_riders, level")
-      .eq("horse_id", horse.id),
-    supabase
-      .from("health_records")
-      .select("id")
-      .eq("horse_id", horse.id),
   ]);
 
   const { data: activeRehabProtocol } = await supabase
@@ -153,51 +138,6 @@ export default async function TrainingPage({ params }: Props) {
     );
   }
 
-  const streak = computeStreak(
-    (sessions || []).map((s) => s.date),
-    horse.horse_index_mode ?? null
-  );
-  const streakTarget = getStreakTarget(horse.horse_index_mode ?? null);
-
-  const hasPodium = (allCompetitionsForBadges || []).some(
-    (c) => c.result_rank && c.total_riders && c.result_rank <= 3
-  );
-  const hasWinner = (allCompetitionsForBadges || []).some((c) => c.result_rank === 1);
-
-  // Famille 3 — max competitions in same year
-  const compsByYear: Record<string, number> = {};
-  (allCompetitionsForBadges || []).forEach((c) => {
-    const year = (c as any).date?.slice(0, 4) ?? "unknown";
-    compsByYear[year] = (compsByYear[year] ?? 0) + 1;
-  });
-  const maxSameYearCompetitions = Math.max(0, ...Object.values(compsByYear));
-  const hasAmateurLevel = (allCompetitionsForBadges || []).some(
-    (c) => (c as any).level && ["Amateur 1", "Amateur 2", "Amateur 3"].includes((c as any).level)
-  );
-
-  // Famille 4 — anniversary + complete profile
-  const horseCreatedAt = (horse as any).created_at ?? null;
-  const isCompleteProfile = !!(
-    horse.name && horse.breed && horse.birth_year &&
-    horse.region && (horse as any).horse_index_mode &&
-    horse.discipline && (horse as any).avatar_url
-  );
-
-  const earnedBadgeKeys = computeEarnedBadgeKeys({
-    totalSessions: (sessions || []).length,
-    totalCompetitions: (allCompetitionsForBadges || []).length,
-    totalHealthRecords: (allHealthForBadges || []).length,
-    streak,
-    hasPodium,
-    hasWinner,
-    hasHorseIndex: !!horse.horse_index_mode,
-    sessionTypes: (sessions || []).map((s) => (s as any).type).filter(Boolean),
-    hasAmateurLevel,
-    maxSameYearCompetitions,
-    horseCreatedAt,
-    isCompleteProfile,
-  });
-
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
@@ -219,25 +159,6 @@ export default async function TrainingPage({ params }: Props) {
         </div>
       </div>
 
-      {/* Streak */}
-      {(streak.current > 0 || streak.best > 0) && (
-        <div className="card px-4 py-3">
-          <p className="text-xs font-semibold text-gray-400 mb-2">Régularité</p>
-          <StreakBadge current={streak.current} best={streak.best} target={streakTarget} />
-        </div>
-      )}
-
-      {/* Badges */}
-      {earnedBadgeKeys.length > 0 && (
-        <div className="card px-4 py-4">
-          <p className="text-xs font-semibold text-gray-400 mb-3">Badges</p>
-          <BadgesDisplay earnedKeys={earnedBadgeKeys} />
-        </div>
-      )}
-
-      {/* AI Training Plan card */}
-      <TrainingPlanCard horseId={horse.id} latestPlan={latestPlan ?? null} />
-
       {/* Main tab system */}
       <TrainingTabs
         horseId={horse.id}
@@ -246,6 +167,7 @@ export default async function TrainingPage({ params }: Props) {
         sessions={sessions || []}
         plannedSessions={plannedSessions || []}
         latestInsight={latestInsight ?? null}
+        latestPlan={latestPlan ?? null}
         horseMode={horse.horse_index_mode}
         nextCompetition={
           (yearCompetitions || [])

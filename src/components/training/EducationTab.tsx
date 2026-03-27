@@ -9,19 +9,44 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import { Plus, Ruler, Milestone, Trash2 } from "lucide-react";
+import { Plus, Ruler } from "lucide-react";
 import type { HorseGrowthMilestone, HorseGrowthMeasure, GrowthMilestoneType } from "@/lib/supabase/types";
+import FirstRideButton from "@/components/horse/FirstRideButton";
+import GrowthTimeline from "./GrowthTimeline";
 
-const MILESTONE_OPTIONS: { type: GrowthMilestoneType; label: string; emoji: string }[] = [
-  { type: "identification",     label: "Identification (puce)",         emoji: "🔖" },
-  { type: "sevrage",            label: "Sevrage",                       emoji: "🍼" },
-  { type: "vermifugation",      label: "Premier vermifuge",             emoji: "🌿" },
-  { type: "vaccination_complete", label: "Vaccination complète",        emoji: "💉" },
-  { type: "debut_debourrage",   label: "Début du débourrage",           emoji: "🎓" },
-  { type: "premiere_monte",     label: "Première monte",                emoji: "🐴" },
-  { type: "premier_concours",   label: "Premier concours",              emoji: "🏅" },
-  { type: "autre",              label: "Autre étape",                   emoji: "📋" },
+const MILESTONE_ADD_OPTIONS: { type: GrowthMilestoneType; label: string; emoji: string }[] = [
+  { type: "identification",       label: "Identification (puce)",   emoji: "🔖" },
+  { type: "sevrage",              label: "Sevrage",                 emoji: "🍼" },
+  { type: "vermifugation",        label: "Premier vermifuge",       emoji: "🌿" },
+  { type: "vaccination_complete", label: "Vaccination complète",    emoji: "💉" },
+  { type: "debut_debourrage",     label: "Début du débourrage",     emoji: "🎓" },
+  { type: "premiere_monte",       label: "Première monte",          emoji: "🐴" },
+  { type: "premier_concours",     label: "Premier concours",        emoji: "🏅" },
+  { type: "autre",                label: "Autre étape",             emoji: "📋" },
 ];
+
+// Programme type ICr — 11 jalons calculés depuis l'année de naissance (TRAV-20)
+function getDefaultMilestones(birthYear: number | null): { milestone_type: GrowthMilestoneType; label: string; date: string }[] {
+  const base = birthYear ? new Date(`${birthYear}-01-01`) : new Date();
+  const add = (months: number) => {
+    const d = new Date(base);
+    d.setMonth(d.getMonth() + months);
+    return d.toISOString().split("T")[0];
+  };
+  return [
+    { milestone_type: "identification",       label: "Identification SIRE",         date: add(1)  },
+    { milestone_type: "vermifugation",        label: "Premier vermifuge (3 mois)",  date: add(3)  },
+    { milestone_type: "vaccination_complete", label: "Primo-vaccination",           date: add(4)  },
+    { milestone_type: "sevrage",              label: "Sevrage (6 mois)",            date: add(6)  },
+    { milestone_type: "vaccination_complete", label: "Rappel vaccin 1 an",         date: add(13) },
+    { milestone_type: "vermifugation",        label: "Vermifuge 12 mois",           date: add(12) },
+    { milestone_type: "autre",                label: "Bilan de développement 1 an", date: add(12) },
+    { milestone_type: "autre",                label: "Bilan de développement 2 ans",date: add(24) },
+    { milestone_type: "debut_debourrage",     label: "Début travail à pied (2 ans)",date: add(24) },
+    { milestone_type: "debut_debourrage",     label: "Début débourrage (3 ans)",    date: add(36) },
+    { milestone_type: "premiere_monte",       label: "Première monte (3,5 ans)",    date: add(42) },
+  ];
+}
 
 interface Props {
   horseId: string;
@@ -39,6 +64,7 @@ export default function EducationTab({ horseId, horseName, birthYear }: Props) {
   const [showAddMilestone, setShowAddMilestone] = useState(false);
   const [showAddMeasure, setShowAddMeasure] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [initializing, setInitializing] = useState(false);
 
   // Add milestone form
   const [mType, setMType] = useState<GrowthMilestoneType>("sevrage");
@@ -79,7 +105,7 @@ export default function EducationTab({ horseId, horseName, birthYear }: Props) {
     if (!mDate) { toast.error("La date est requise"); return; }
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    const option = MILESTONE_OPTIONS.find((o) => o.type === mType);
+    const option = MILESTONE_ADD_OPTIONS.find((o) => o.type === mType);
     const { error } = await supabase.from("horse_growth_milestones").insert({
       horse_id: horseId,
       user_id: user.id,
@@ -123,6 +149,26 @@ export default function EducationTab({ horseId, horseName, birthYear }: Props) {
 
   async function deleteMeasure(id: string) {
     await supabase.from("horse_growth_measures").delete().eq("id", id);
+    load();
+  }
+
+  async function initializeMilestones() {
+    setInitializing(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setInitializing(false); return; }
+    const defaults = getDefaultMilestones(birthYear ?? null);
+    const rows = defaults.map((m) => ({
+      horse_id: horseId,
+      user_id: user.id,
+      milestone_type: m.milestone_type,
+      label: m.label,
+      date: m.date,
+      notes: null,
+    }));
+    const { error } = await supabase.from("horse_growth_milestones").insert(rows);
+    if (error) toast.error("Erreur lors de l'initialisation");
+    else toast.success("11 jalons créés — ajustez les dates selon votre poulain !");
+    setInitializing(false);
     load();
   }
 
@@ -183,56 +229,20 @@ export default function EducationTab({ horseId, horseName, birthYear }: Props) {
 
       {/* Timeline */}
       {activeTab === "timeline" && (
-        <div>
-          {milestones.length === 0 ? (
-            <div className="card flex flex-col items-center text-center gap-3 py-10">
-              <span className="text-3xl">🌱</span>
-              <p className="text-sm font-semibold text-gray-700">Aucune étape enregistrée</p>
-              <p className="text-xs text-gray-400">Ajoutez les premières étapes du développement de votre poulain.</p>
-              <button
-                onClick={() => setShowAddMilestone(true)}
-                className="btn-primary text-xs px-4 py-2 mt-1"
-              >
-                Ajouter une étape
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-0">
-              {milestones.map((m, i) => {
-                const opt = MILESTONE_OPTIONS.find((o) => o.type === m.milestone_type);
-                return (
-                  <div key={m.id} className="flex gap-3">
-                    <div className="flex flex-col items-center">
-                      <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-sm flex-shrink-0">
-                        {opt?.emoji ?? "📋"}
-                      </div>
-                      {i < milestones.length - 1 && (
-                        <div className="w-0.5 h-6 bg-green-100 my-1" />
-                      )}
-                    </div>
-                    <div className="flex-1 pb-4">
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <p className="text-sm font-semibold text-black">{m.label ?? opt?.label ?? m.milestone_type}</p>
-                          <p className="text-xs text-gray-400">
-                            {new Date(m.date).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
-                          </p>
-                          {m.notes && <p className="text-xs text-gray-500 mt-1">{m.notes}</p>}
-                        </div>
-                        <button
-                          onClick={() => deleteMilestone(m.id)}
-                          className="text-gray-300 hover:text-red-400 transition-colors flex-shrink-0 mt-0.5"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+        <GrowthTimeline
+          milestones={milestones}
+          birthYear={birthYear}
+          horseName={horseName}
+          initializing={initializing}
+          onDelete={deleteMilestone}
+          onAdd={() => setShowAddMilestone(true)}
+          onInitialize={initializeMilestones}
+        />
+      )}
+
+      {/* P2 — Bouton première monte (affiché dans l'onglet timeline) */}
+      {activeTab === "timeline" && (
+        <FirstRideButton horseId={horseId} horseName={horseName} />
       )}
 
       {/* Mesures */}
@@ -294,7 +304,7 @@ export default function EducationTab({ horseId, horseName, birthYear }: Props) {
             <div>
               <label className="label mb-1.5 block">Type d&apos;étape</label>
               <div className="grid grid-cols-2 gap-2">
-                {MILESTONE_OPTIONS.map((opt) => (
+                {MILESTONE_ADD_OPTIONS.map((opt) => (
                   <button
                     key={opt.type}
                     onClick={() => setMType(opt.type)}

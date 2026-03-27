@@ -18,21 +18,21 @@ export const WINDOW_DAYS: Record<HorseIndexMode, number> = {
   ICr: 180,
 };
 
-// ─── Table de pondération (HI-07) ────────────────────────────────────────────
-// Source exacte : tableau spec HI-07
-// Santé + Bien-être + Activité + Suivi = 100% per mode
+// ─── Table de pondération (HI-07 — TRAV-18 §4) ───────────────────────────────
+// Mapping spec → pilliers : Régularité+Concours → activite | Alimentation → suivi_proprio
+// Activité = 0 pour IR (MASQUÉ) ; Concours masqué pour IS/ICr (géré dans computeActivite)
 export const MODE_WEIGHTS: Record<HorseIndexMode, {
   sante: number;
   bienetre: number;
   activite: number;
   suivi_proprio: number;
 }> = {
-  IC:  { sante: 0.30, bienetre: 0.20, activite: 0.40, suivi_proprio: 0.10 },
-  IE:  { sante: 0.40, bienetre: 0.30, activite: 0.20, suivi_proprio: 0.10 },
+  IC:  { sante: 0.20, bienetre: 0.20, activite: 0.45, suivi_proprio: 0.15 },
+  IE:  { sante: 0.20, bienetre: 0.20, activite: 0.45, suivi_proprio: 0.15 },
   IP:  { sante: 0.45, bienetre: 0.35, activite: 0.15, suivi_proprio: 0.05 },
-  IR:  { sante: 0.50, bienetre: 0.40, activite: 0.10, suivi_proprio: 0.00 },
-  IS:  { sante: 0.50, bienetre: 0.45, activite: 0.05, suivi_proprio: 0.00 },
-  ICr: { sante: 0.50, bienetre: 0.40, activite: 0.10, suivi_proprio: 0.00 },
+  IR:  { sante: 0.50, bienetre: 0.25, activite: 0.00, suivi_proprio: 0.25 }, // activite MASQUÉ
+  IS:  { sante: 0.40, bienetre: 0.20, activite: 0.15, suivi_proprio: 0.25 },
+  ICr: { sante: 0.30, bienetre: 0.25, activite: 0.25, suivi_proprio: 0.20 },
 };
 
 export interface HorseData {
@@ -64,7 +64,7 @@ export function calculateHorseIndex(
   const activite     = computeActivite(data.trainingSessions, data.competitions, now, mode, windowDays);
   const suivi_proprio = weights.suivi_proprio > 0
     ? computeSuiviProprio(data, now)
-    : null; // Pas calculé pour IR/IS/ICr
+    : null; // Non calculé si poids = 0
 
   // ── Score composite ────────────────────────────────────────────────────────
   type PillarKey = keyof typeof weights;

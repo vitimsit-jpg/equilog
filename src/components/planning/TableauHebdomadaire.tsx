@@ -806,6 +806,16 @@ export default function TableauHebdomadaire({
     router.refresh();
   };
 
+  // ── Badge "À vérifier" — séances planifiées passées non validées ───────────
+
+  const todayStr = format(new Date(), "yyyy-MM-dd");
+  const unvalidatedByHorse: Record<string, number> = {};
+  for (const p of plannedSessions) {
+    if (!p.linked_session_id && p.status === "planned" && p.date.slice(0, 10) < todayStr) {
+      unvalidatedByHorse[p.horse_id] = (unvalidatedByHorse[p.horse_id] || 0) + 1;
+    }
+  }
+
   // ── Semaine badge ───────────────────────────────────────────────────────────
 
   const weekBadge =
@@ -943,6 +953,11 @@ export default function TableauHebdomadaire({
                         {(mode === "IR" || mode === "IS") && (
                           <span className="text-[10px] text-gray-400">
                             {mode === "IR" ? "Restrictions" : "Stop travail"}
+                          </span>
+                        )}
+                        {unvalidatedByHorse[horse.id] > 0 && (
+                          <span className="text-[10px] text-amber-600 font-semibold">
+                            ⚠ {unvalidatedByHorse[horse.id]} à vérifier
                           </span>
                         )}
                       </div>

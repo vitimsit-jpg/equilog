@@ -2,7 +2,15 @@ export type UserPlan = "starter" | "pro" | "ecurie";
 export type HorseIndexMode = "IC" | "IE" | "IP" | "IR" | "IS" | "ICr";
 export type UserType = "loisir" | "competition" | "pro" | "gerant_cavalier" | "coach" | "gerant_ecurie";
 export type ProfileType = "loisir" | "competition" | "pro" | "gerant";
-export type HealthType = "vaccin" | "vermifuge" | "dentiste" | "osteo" | "ferrage" | "veterinaire" | "masseuse" | "autre";
+export type HealthType =
+  // Soins standards
+  | "vaccin" | "vermifuge" | "dentiste" | "osteo" | "ferrage" | "veterinaire" | "masseuse" | "autre"
+  // Soins thérapeutiques IS (retraite / bien-être)
+  | "acupuncture" | "physio_laser" | "physio_ultrasons" | "physio_tens" | "pemf"
+  | "infrarouge" | "cryotherapie" | "thermotherapie" | "pressotherapie" | "ems"
+  | "bandes_repos" | "etirements_passifs" | "infiltrations" | "mesotherapie"
+  // Soins thérapeutiques IR (convalescence) supplémentaires
+  | "balneotherapie" | "water_treadmill" | "tapis_marcheur" | "ondes_choc";
 export type TrainingType = "dressage" | "plat" | "stretching" | "barres_sol" | "cavalettis" | "meca_obstacles" | "obstacles_enchainement" | "cross_entrainement" | "longe" | "longues_renes" | "travail_a_pied" | "balade" | "trotting" | "galop" | "marcheur" | "paddock" | "concours" | "autre";
 export type TrainingRider = "owner" | "owner_with_coach" | "coach" | "longe" | "travail_a_pied";
 export type WearableSource = "equisense" | "seaver" | "garmin" | "equilab" | "autre";
@@ -238,6 +246,9 @@ export interface TrainingSession {
   duree_planifiee: number | null;
   duree_reelle: number | null;
   note_vocale_brute: string | null;
+  // TRAV-20 ICr foal session fields (migration 051)
+  session_type: "manipulation" | "toilettage" | "longe_douce" | "debourrage" | "premiere_monte" | "autre" | null;
+  foal_reaction: "calme" | "attentif" | "nerveux" | "agite" | "difficile" | null;
   created_at: string;
 }
 
@@ -656,6 +667,20 @@ export interface HorseModeHistory {
   changed_at: string;
 }
 
+// TRAV P1 — Journal d'évolution IR
+export interface HorseRecoveryEntry {
+  id: string;
+  horse_id: string;
+  user_id: string;
+  date: string;
+  observation: string | null;
+  pain_level: number | null;       // 1 = aucune, 5 = intense
+  mobility_level: number | null;   // 1 = très limitée, 5 = normale
+  vet_validated: boolean;
+  notes: string | null;
+  created_at: string;
+}
+
 export interface RiderLog {
   id: string;
   user_id: string;
@@ -708,6 +733,7 @@ export interface Database {
       horse_practitioners: T<HorsePractitioner>;
       horse_medical_exams: T<HorseMedicalExam>;
       horse_mode_history: T<HorseModeHistory>;
+      horse_recovery_journal: T<HorseRecoveryEntry>;
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

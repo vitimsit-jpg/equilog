@@ -10,7 +10,14 @@ import AvatarUpload from "@/components/horse/AvatarUpload";
 import HorseEditModal from "@/components/horse/HorseEditModal";
 import UpgradeBanner from "@/components/ui/UpgradeBanner";
 import ExportPDFButton from "@/components/horse/ExportPDFButton";
-import type { HorseIndexMode } from "@/lib/supabase/types";
+import StreakBadge from "@/components/training/StreakBadge";
+import BadgesDisplay from "@/components/horse/BadgesDisplay";
+import ModeHistoryTimeline from "@/components/horse/ModeHistoryTimeline";
+import FamilleWidget from "@/components/horse/FamilleWidget";
+import FirstRideButton from "@/components/horse/FirstRideButton";
+import { computeStreak, getStreakTarget } from "@/lib/streaks";
+import { computeEarnedBadgeKeys } from "@/lib/badges";
+import type { HorseIndexMode, HorseModeHistory } from "@/lib/supabase/types";
 
 const MODE_LABELS: Record<HorseIndexMode, string> = {
   IC:  "Compétition",
@@ -62,7 +69,7 @@ export default async function HorsePage({ params }: Props) {
     .eq("id", authUser.id)
     .single();
 
-  const [{ data: scores }, { data: latestInsight }] = await Promise.all([
+  const [{ data: scores }, { data: latestInsight }, { data: allSessions }, { data: allCompetitions }, { data: allHealth }, { data: modeHistory }] = await Promise.all([
     supabase
       .from("horse_scores")
       .select("*")
@@ -77,6 +84,25 @@ export default async function HorsePage({ params }: Props) {
       .order("generated_at", { ascending: false })
       .limit(1)
       .single(),
+    supabase
+      .from("training_sessions")
+      .select("date, type")
+      .eq("horse_id", horse.id)
+      .order("date", { ascending: false }),
+    supabase
+      .from("competitions")
+      .select("date, result_rank, total_riders, level")
+      .eq("horse_id", horse.id),
+    supabase
+      .from("health_records")
+      .select("id")
+      .eq("horse_id", horse.id),
+    supabase
+      .from("horse_mode_history")
+      .select("*")
+      .eq("horse_id", horse.id)
+      .order("changed_at", { ascending: false })
+      .limit(10),
   ]);
 
   const plan = userProfile?.plan ?? "starter";
@@ -109,6 +135,43 @@ export default async function HorsePage({ params }: Props) {
 
   const currentYear = new Date().getFullYear();
   const age = horse.birth_year ? currentYear - horse.birth_year : null;
+
+  // Streak & badges
+  const streak = computeStreak(
+    (allSessions || []).map((s) => s.date),
+    (horse as any).horse_index_mode ?? null
+  );
+  const streakTarget = getStreakTarget((horse as any).horse_index_mode ?? null);
+  const hasPodium = (allCompetitions || []).some((c) => c.result_rank && c.total_riders && c.result_rank <= 3);
+  const hasWinner = (allCompetitions || []).some((c) => c.result_rank === 1);
+  const compsByYear: Record<string, number> = {};
+  (allCompetitions || []).forEach((c) => {
+    const year = c.date?.slice(0, 4) ?? "unknown";
+    compsByYear[year] = (compsByYear[year] ?? 0) + 1;
+  });
+  const maxSameYearCompetitions = Math.max(0, ...Object.values(compsByYear));
+  const hasAmateurLevel = (allCompetitions || []).some(
+    (c) => (c as any).level && ["Amateur 1", "Amateur 2", "Amateur 3"].includes((c as any).level)
+  );
+  const isCompleteProfile = !!(
+    horse.name && horse.breed && horse.birth_year &&
+    horse.region && (horse as any).horse_index_mode &&
+    horse.discipline && (horse as any).avatar_url
+  );
+  const earnedBadgeKeys = computeEarnedBadgeKeys({
+    totalSessions: (allSessions || []).length,
+    totalCompetitions: (allCompetitions || []).length,
+    totalHealthRecords: (allHealth || []).length,
+    streak,
+    hasPodium,
+    hasWinner,
+    hasHorseIndex: !!(horse as any).horse_index_mode,
+    sessionTypes: (allSessions || []).map((s) => (s as any).type).filter(Boolean),
+    hasAmateurLevel,
+    maxSameYearCompetitions,
+    horseCreatedAt: (horse as any).created_at ?? null,
+    isCompleteProfile,
+  });
   const horseSexe = (horse as any).sexe as string | null;
   const conditionsVie = (horse as any).conditions_vie as string | null;
   const horseMode = (horse as any).horse_index_mode as HorseIndexMode | null;
@@ -266,7 +329,43 @@ export default async function HorsePage({ params }: Props) {
         </div>
       </div>
 
-      {/* 5. Carte Détail du score */}
+      {/* P2 — Bouton "Je commence à monter" pour les ICr */}
+      {horseMode === "ICr" && (
+        <FirstRideButton horseId={horse.id} horseName={horse.name} />
+      )}
+
+      {/* 5. Streak */}
+      {(streak.current > 0 || streak.best > 0) && (
+        <div className="card px-4 py-3">
+          <p className="text-xs font-semibold text-gray-400 mb-2">Régularité</p>
+          <StreakBadge current={streak.current} best={streak.best} target={streakTarget} />
+        </div>
+      )}
+
+      {/* 6. Badges */}
+      {earnedBadgeKeys.length > 0 && (
+        <div className="card px-4 py-4">
+          <p className="text-xs font-semibold text-gray-400 mb-3">Badges</p>
+          <BadgesDisplay earnedKeys={earnedBadgeKeys} />
+        </div>
+      )}
+
+      {/* TRAV P2 — Widget mère / poulain */}
+      <FamilleWidget
+        horseId={horse.id}
+        mereHorseId={(horse as any).mere_horse_id ?? null}
+        poulainHorseId={(horse as any).poulain_horse_id ?? null}
+      />
+
+      {/* TRAV-23 — Historique des modes */}
+      {modeHistory && modeHistory.length > 0 && (
+        <ModeHistoryTimeline
+          history={modeHistory as HorseModeHistory[]}
+          currentMode={horseMode}
+        />
+      )}
+
+      {/* 7. Carte Détail du score */}
       {breakdown && (
         <div className="card">
           <h2 className="font-bold text-black text-sm mb-4">Détail du score</h2>

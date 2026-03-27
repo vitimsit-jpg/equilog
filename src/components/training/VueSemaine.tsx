@@ -222,6 +222,7 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
         rider: fromPlanned.qui_sen_occupe ?? null,
         duration: fromPlanned.duration_min_target ?? null,
         intensity: fromPlanned.intensity_target ? fromPlanned.intensity_target : null,
+        duree_planifiee: fromPlanned.duration_min_target ?? null,
       });
     } else {
       setLogPrefill(null);
@@ -243,6 +244,7 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
       coach_present: null,
       mode_entree: "planifie" as const,
       est_complement: planned.type === "marcheur" || planned.type === "paddock",
+      duree_planifiee: planned.duration_min_target ?? null,
     };
     const { data, error } = await supabase.from("training_sessions").insert(payload).select("id").single();
     if (error) { toast.error("Erreur"); return; }
@@ -586,8 +588,8 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
                 </div>
               ))}
 
-              {/* Done sessions */}
-              {!isRepos && daySessions.map((s) => (
+              {/* Done sessions — main (non-complement) */}
+              {!isRepos && daySessions.filter((s) => !s.est_complement && s.type !== "marcheur" && s.type !== "paddock").map((s) => (
                 <div key={s.id} className="flex items-center gap-2 mb-1 px-2.5 py-2 rounded-lg bg-white border border-green-100">
                   <span className="text-base leading-none flex-shrink-0">{TRAINING_EMOJIS[s.type] || "🏇"}</span>
                   <div className="flex-1 min-w-0">
@@ -607,6 +609,14 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
                       <div key={idx} className={`w-1.5 h-3 rounded-full ${idx < s.intensity ? "bg-orange" : "bg-gray-100"}`} />
                     ))}
                   </div>
+                </div>
+              ))}
+              {/* Done sessions — complement (marcheur / paddock) as secondary grey line */}
+              {!isRepos && daySessions.filter((s) => s.est_complement || s.type === "marcheur" || s.type === "paddock").map((s) => (
+                <div key={s.id} className="flex items-center gap-1.5 mb-1 px-2.5 py-1 rounded-lg bg-gray-50 border border-gray-100">
+                  <span className="text-sm leading-none flex-shrink-0 opacity-60">{TRAINING_EMOJIS[s.type] || "⚙️"}</span>
+                  <span className="text-2xs text-gray-400 font-medium">{TRAINING_TYPE_LABELS[s.type] || s.type}</span>
+                  <span className="text-2xs text-gray-300">{s.duration_min}min</span>
                 </div>
               ))}
 

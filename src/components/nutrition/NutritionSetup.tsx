@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+
+const NUTRITION_CONSENT_KEY = "equistra_nutrition_consent_v1";
 import toast from "react-hot-toast";
 import { Plus, Trash2 } from "lucide-react";
 import type { HorseNutrition, NutritionFibre, NutritionHerbe, NutritionGranule, NutritionComplement, NutritionRepas } from "@/lib/supabase/types";
@@ -348,6 +350,13 @@ interface Props {
 export default function NutritionSetup({ horseId, existingNutrition, onCancel }: Props) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
+  const [showConsent, setShowConsent] = useState(false);
+
+  useEffect(() => {
+    if (!localStorage.getItem(NUTRITION_CONSENT_KEY)) {
+      setShowConsent(true);
+    }
+  }, []);
 
   const [fibres, setFibres] = useState<NutritionFibre[]>(
     existingNutrition?.fibres ?? [defaultFibre()]
@@ -553,6 +562,48 @@ export default function NutritionSetup({ horseId, existingNutrition, onCancel }:
           {saving ? "Enregistrement…" : "Enregistrer la ration"}
         </button>
       </div>
+
+      {/* RGPD #43 — Consent modal, first activation */}
+      {showConsent && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-6 space-y-4 shadow-xl">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-orange-light flex items-center justify-center flex-shrink-0">
+                <span className="text-xl">🥕</span>
+              </div>
+              <div>
+                <p className="font-bold text-black text-sm">Module Nutrition</p>
+                <p className="text-2xs text-gray-400">Traitement de données alimentaires</p>
+              </div>
+            </div>
+            <p className="text-sm text-gray-600 leading-relaxed">
+              Le module Nutrition enregistre la ration quotidienne, les compléments et l&apos;historique alimentaire de votre cheval.
+              Ces données sont stockées de manière sécurisée et ne sont jamais partagées sans votre consentement.
+            </p>
+            <p className="text-2xs text-gray-400 leading-relaxed">
+              Conformément au RGPD (Art. 6.1.a), vous consentez au traitement de ces données.
+              Vous pouvez révoquer ce consentement à tout moment depuis vos réglages.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowConsent(false)}
+                className="flex-1 py-2.5 rounded-xl border-2 border-gray-200 text-sm font-semibold text-gray-500 hover:border-gray-300 transition-colors"
+              >
+                Plus tard
+              </button>
+              <button
+                onClick={() => {
+                  localStorage.setItem(NUTRITION_CONSENT_KEY, new Date().toISOString());
+                  setShowConsent(false);
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-black text-white text-sm font-bold hover:bg-gray-800 transition-colors"
+              >
+                J&apos;accepte
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

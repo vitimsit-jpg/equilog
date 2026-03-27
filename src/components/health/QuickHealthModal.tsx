@@ -22,7 +22,7 @@ const HEALTH_ITEMS: { type: HealthType; emoji: string; label: string }[] = [
   { type: "autre",       emoji: "📋", label: "Autre" },
 ];
 
-const DEFAULT_INTERVALS: Record<HealthType, number | null> = {
+const DEFAULT_INTERVALS: Partial<Record<HealthType, number | null>> = {
   vaccin: 180, vermifuge: 90, ferrage: 35, dentiste: 365,
   osteo: 180, veterinaire: null, masseuse: 90, autre: null,
 };

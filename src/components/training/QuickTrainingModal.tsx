@@ -3,9 +3,9 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import toast from "react-hot-toast";
-import { format, subDays } from "date-fns";
+import { format, subDays, addDays } from "date-fns";
 import { fr } from "date-fns/locale";
-import type { TrainingType, TrainingRider, TrainingPlannedSession, RehabProtocol, HorseIndexMode } from "@/lib/supabase/types";
+import type { TrainingType, TrainingRider, TrainingPlannedSession, RehabProtocol, HorseIndexMode, HorseGrowthMilestone } from "@/lib/supabase/types";
 import { trackEvent } from "@/lib/trackEvent";
 import Modal from "@/components/ui/Modal";
 import VoiceButton from "./VoiceButton";
@@ -34,6 +34,25 @@ export const DISCIPLINE_ITEMS: { type: TrainingType; emoji: string; label: strin
   { type: "concours",              emoji: "🏆", label: "Concours" },
   { type: "autre",                 emoji: "✳️", label: "Autre" },
 ];
+
+// Types autorisés par mode non-actif (TRAV-18)
+const MODE_ALLOWED_TYPES: Partial<Record<HorseIndexMode, TrainingType[]>> = {
+  IR: ["stretching", "longe", "marcheur", "travail_a_pied", "balade", "paddock", "autre"],
+  IS: ["balade", "marcheur", "travail_a_pied", "stretching", "paddock", "autre"],
+  ICr: ["travail_a_pied", "longe", "longues_renes", "balade", "stretching", "marcheur", "paddock", "autre"],
+};
+
+// Intensité max par mode (valeur sur 5)
+const MODE_MAX_INTENSITY: Partial<Record<HorseIndexMode, number>> = {
+  IR: 3, // Normal max
+  IS: 2, // Léger max
+};
+
+const MODE_RESTRICTION_LABEL: Partial<Record<HorseIndexMode, string>> = {
+  IR: "Mode Convalescence — seuls les exercices doux sont proposés.",
+  IS: "Mode Retraite — seuls les contacts légers sont proposés.",
+  ICr: "Mode Croissance — travail à pied et longe uniquement.",
+};
 
 
 export const INTENSITY_OPTIONS = [
@@ -77,6 +96,7 @@ export interface PrefillData {
   rider?: TrainingRider | null;
   duration?: number | null;
   intensity?: number | null;
+  duree_planifiee?: number | null;
 }
 
 interface Props {
@@ -91,11 +111,12 @@ interface Props {
   competitions?: { id: string; event_name: string; date: string }[] | null;
   riderLog?: { forme: string | null; douleurs: string[] | null; douleur_intensite: string | null } | null;
   prefill?: PrefillData | null;
+  initialMode?: "log" | "plan";
 }
 
 export default function QuickTrainingModal({
   open, onClose, horseId, horseName, onSaved,
-  todayPlanned, rehabProtocol, horseMode, competitions, riderLog, prefill,
+  todayPlanned, rehabProtocol, horseMode, competitions, riderLog, prefill, initialMode,
 }: Props) {
   const supabase = createClient();
   const router = useRouter();
@@ -103,6 +124,13 @@ export default function QuickTrainingModal({
   const [showHealthBridge, setShowHealthBridge] = useState(false);
   const [showCoachMsg, setShowCoachMsg] = useState(false);
   const [coachMsg, setCoachMsg] = useState("");
+  // ICr — validation jalon après séance
+  const [showMilestoneStep, setShowMilestoneStep] = useState(false);
+  const [pendingMilestones, setPendingMilestones] = useState<HorseGrowthMilestone[]>([]);
+  const [selectedMilestoneId, setSelectedMilestoneId] = useState<string | null>(null);
+  const [milestoneLoading, setMilestoneLoading] = useState(false);
+  const [mode, setMode] = useState<"log" | "plan">(initialMode ?? "log");
+  const [planDate, setPlanDate] = useState(format(addDays(new Date(), 1), "yyyy-MM-dd"));
 
   // Form state
   const [discipline, setDiscipline] = useState<TrainingType | null>(null);
@@ -122,6 +150,9 @@ export default function QuickTrainingModal({
   const [objectif, setObjectif] = useState("");
   const [coachPresent, setCoachPresent] = useState<boolean | null>(null);
   const [mediaFiles, setMediaFiles] = useState<File[]>([]);
+  // ICr foal session fields (TRAV-20)
+  const [foalSessionType, setFoalSessionType] = useState<string | null>(null);
+  const [foalReaction, setFoalReaction] = useState<string | null>(null);
 
   // Apply prefill when modal opens with prefill data
   useEffect(() => {
@@ -152,6 +183,14 @@ export default function QuickTrainingModal({
 
   // Marcheur/paddock: hide Qui monte / Intensité / État du cheval
   const isOnlyComplement = discipline === "marcheur" || discipline === "paddock";
+
+  // Mode-based restrictions (TRAV-18)
+  const allowedTypes = horseMode ? MODE_ALLOWED_TYPES[horseMode] ?? null : null;
+  const maxIntensityValue = horseMode ? (MODE_MAX_INTENSITY[horseMode] ?? 5) : 5;
+  const modeRestrictionLabel = horseMode ? MODE_RESTRICTION_LABEL[horseMode] ?? null : null;
+  const filteredDisciplineItems = allowedTypes
+    ? DISCIPLINE_ITEMS.filter((item) => allowedTypes.includes(item.type))
+    : DISCIPLINE_ITEMS;
 
   const handleVoiceResult = (data: {
     type?: TrainingType | null;
@@ -223,6 +262,29 @@ export default function QuickTrainingModal({
     }
     setLoading(true);
 
+    // ── Plan mode ────────────────────────────────────────────────────────
+    if (mode === "plan") {
+      const planPayload = {
+        horse_id: horseId,
+        date: planDate,
+        type: discipline!,
+        duration_min_target: effectiveDuration,
+        notes: notes.trim() || null,
+        qui_sen_occupe: isOnlyComplement ? null : (RIDER_OPTIONS[riderIdx].value as TrainingRider),
+        intensity_target: isOnlyComplement ? null : (INTENSITY_OPTIONS[intensityIdx].value as 1|2|3|4|5),
+      };
+      const { error } = await supabase.from("training_planned_sessions").insert(planPayload);
+      if (error) {
+        toast.error("Erreur lors de l'enregistrement");
+      } else {
+        toast.success("Séance planifiée !");
+        reset();
+        onSaved();
+      }
+      setLoading(false);
+      return;
+    }
+
     const rider = isOnlyComplement ? null : RIDER_OPTIONS[riderIdx].value;
     const feelingValue = isOnlyComplement ? 3 : FEELING_OPTIONS[feelingIdx].value;
     const intensityValue = isOnlyComplement ? 1 : INTENSITY_OPTIONS[intensityIdx].value;
@@ -250,9 +312,13 @@ export default function QuickTrainingModal({
       equipement_recuperation: equipementRecup.length > 0 ? equipementRecup.join(", ") : null,
       mode_entree: "logge" as const,
       est_complement: discipline === "marcheur" || discipline === "paddock",
+      duree_planifiee: prefill?.duree_planifiee ?? null,
       wearable_source: null,
       linked_competition_id: linkedCompetitionId || null,
       media_urls: mediaUrls.length > 0 ? mediaUrls : null,
+      // ICr foal fields (TRAV-20)
+      session_type: horseMode === "ICr" ? (foalSessionType || null) : null,
+      foal_reaction: horseMode === "ICr" ? (foalReaction || null) : null,
     };
 
     if (!navigator.onLine) {
@@ -279,6 +345,19 @@ export default function QuickTrainingModal({
       event_category: "training",
       properties: { type: effectiveType, mode: "quick", duration_min: effectiveDuration, rider: rider || "complement_only" },
     });
+
+    // ICr — proposer la validation d'un jalon après la séance
+    if (horseMode === "ICr") {
+      const { data: ms } = await supabase
+        .from("horse_growth_milestones")
+        .select("*")
+        .eq("horse_id", horseId)
+        .order("date", { ascending: true });
+      setPendingMilestones((ms as HorseGrowthMilestone[]) ?? []);
+      setShowMilestoneStep(true);
+      setLoading(false);
+      return;
+    }
 
     if (!isOnlyComplement && feelingValue === 1) {
       setShowHealthBridge(true);
@@ -308,13 +387,34 @@ export default function QuickTrainingModal({
     setObjectif("");
     setCoachPresent(null);
     setMediaFiles([]);
+    setFoalSessionType(null);
+    setFoalReaction(null);
     setShowHealthBridge(false);
     setShowCoachMsg(false);
     setCoachMsg("");
     setLinkedCompetitionId(null);
+    setShowMilestoneStep(false);
+    setPendingMilestones([]);
+    setSelectedMilestoneId(null);
+    setMode(initialMode ?? "log");
+    setPlanDate(format(addDays(new Date(), 1), "yyyy-MM-dd"));
   };
 
   const handleClose = () => { reset(); onClose(); };
+
+  const handleMilestoneValidate = async () => {
+    if (selectedMilestoneId) {
+      setMilestoneLoading(true);
+      await supabase
+        .from("horse_growth_milestones")
+        .update({ date: effectiveDate, notes: `Validé depuis séance du ${new Date(effectiveDate).toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}` })
+        .eq("id", selectedMilestoneId);
+      setMilestoneLoading(false);
+      toast.success("Jalon validé !");
+    }
+    reset();
+    onSaved();
+  };
 
   // suppress unused import warning
   void router;
@@ -323,7 +423,9 @@ export default function QuickTrainingModal({
     <Modal
       open={open}
       onClose={handleClose}
-      title={horseName ? `Logger — ${horseName}` : "Logger une séance"}
+      title={mode === "plan"
+        ? (horseName ? `Planifier — ${horseName}` : "Planifier une séance")
+        : (horseName ? `Logger — ${horseName}` : "Logger une séance")}
     >
       {/* Message coach post-séance */}
       {showCoachMsg && (
@@ -336,8 +438,61 @@ export default function QuickTrainingModal({
         </div>
       )}
 
+      {/* ICr — Validation jalon après séance */}
+      {!showCoachMsg && showMilestoneStep ? (
+        <div className="space-y-4 py-2">
+          <div className="text-center space-y-1.5">
+            <span className="text-3xl">🏅</span>
+            <p className="text-sm font-bold text-black">Valider un jalon ?</p>
+            <p className="text-xs text-gray-500 leading-relaxed">
+              Cette séance correspond-elle à une étape clé du développement de {horseName ?? "votre cheval"} ?
+            </p>
+          </div>
+
+          {pendingMilestones.length > 0 ? (
+            <div className="space-y-1.5 max-h-56 overflow-y-auto">
+              {pendingMilestones.map((m) => {
+                const isSelected = selectedMilestoneId === m.id;
+                return (
+                  <button
+                    key={m.id}
+                    onClick={() => setSelectedMilestoneId(isSelected ? null : m.id)}
+                    className={`w-full text-left px-3 py-2.5 rounded-xl border-2 transition-all ${
+                      isSelected ? "border-orange bg-orange/5" : "border-gray-100 hover:border-gray-300"
+                    }`}
+                  >
+                    <p className="text-xs font-semibold text-black">{m.label ?? m.milestone_type}</p>
+                    <p className="text-2xs text-gray-400 mt-0.5">
+                      Prévu le {new Date(m.date).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-xs text-gray-400 text-center py-3">Aucun jalon à valider pour le moment.</p>
+          )}
+
+          <div className="flex gap-2 pt-1">
+            <button
+              onClick={() => { reset(); onSaved(); }}
+              className="btn-ghost flex-1 text-sm py-2.5"
+            >
+              Ignorer
+            </button>
+            <button
+              onClick={handleMilestoneValidate}
+              disabled={milestoneLoading}
+              className="btn-primary flex-1 text-sm py-2.5 disabled:opacity-40"
+            >
+              {milestoneLoading ? "Enregistrement…" : selectedMilestoneId ? "Valider le jalon" : "Continuer sans valider"}
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       {/* Pont Travail→Santé */}
-      {!showCoachMsg && showHealthBridge ? (
+      {!showCoachMsg && !showMilestoneStep && showHealthBridge ? (
         <div className="space-y-4">
           <div className="flex flex-col items-center text-center gap-3 py-4">
             <div className="w-14 h-14 rounded-full bg-orange-light flex items-center justify-center">
@@ -364,11 +519,33 @@ export default function QuickTrainingModal({
             </Link>
           </div>
         </div>
-      ) : !showCoachMsg && !showHealthBridge ? (
+      ) : !showCoachMsg && !showMilestoneStep && !showHealthBridge ? (
         <div className="space-y-5">
 
-          {/* Voice */}
-          <VoiceButton onResult={handleVoiceResult} />
+          {/* Mode toggle */}
+          <div className="flex rounded-xl overflow-hidden border border-gray-200">
+            <button
+              type="button"
+              onClick={() => setMode("log")}
+              className={`flex-1 py-2.5 text-xs font-bold transition-colors ${
+                mode === "log" ? "bg-black text-white" : "bg-white text-gray-400 hover:text-black"
+              }`}
+            >
+              Je logge
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode("plan")}
+              className={`flex-1 py-2.5 text-xs font-bold transition-colors ${
+                mode === "plan" ? "bg-black text-white" : "bg-white text-gray-400 hover:text-black"
+              }`}
+            >
+              Je planifie
+            </button>
+          </div>
+
+          {/* Voice — log only */}
+          {mode === "log" && <VoiceButton onResult={handleVoiceResult} />}
 
           {/* IR rehab protocol banner */}
           {(() => {
@@ -392,7 +569,7 @@ export default function QuickTrainingModal({
           })()}
 
           {/* Copier séance prévue */}
-          {todayPlanned && (
+          {todayPlanned && mode === "log" && (
             <button
               type="button"
               onClick={copyFromPlanned}
@@ -413,40 +590,58 @@ export default function QuickTrainingModal({
 
           {/* Date */}
           <div>
-            <p className="text-2xs font-bold uppercase tracking-widest text-gray-400 mb-2">Date</p>
-            <div className="flex gap-2">
-              {(["today", "yesterday", "custom"] as DateMode[]).map((d) => (
-                <button
-                  key={d}
-                  type="button"
-                  onClick={() => setDateMode(d)}
-                  className={`flex-1 py-2.5 rounded-xl border-2 text-xs font-bold transition-all ${
-                    dateMode === d
-                      ? "border-orange bg-orange-light text-orange"
-                      : "border-gray-100 bg-gray-50 text-gray-600 hover:border-gray-200"
-                  }`}
-                >
-                  {d === "today" ? "Aujourd'hui" : d === "yesterday" ? "Hier" : "Autre"}
-                </button>
-              ))}
-            </div>
-            {dateMode === "custom" && (
+            <p className="text-2xs font-bold uppercase tracking-widest text-gray-400 mb-2">Date {mode === "plan" ? "prévue" : ""}</p>
+            {mode === "plan" ? (
               <input
                 type="date"
-                value={customDate}
-                onChange={(e) => setCustomDate(e.target.value)}
-                max={format(new Date(), "yyyy-MM-dd")}
-                className="mt-2 w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-orange"
-                autoFocus
+                value={planDate}
+                onChange={(e) => setPlanDate(e.target.value)}
+                min={format(new Date(), "yyyy-MM-dd")}
+                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-orange"
               />
+            ) : (
+              <>
+                <div className="flex gap-2">
+                  {(["today", "yesterday", "custom"] as DateMode[]).map((d) => (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => setDateMode(d)}
+                      className={`flex-1 py-2.5 rounded-xl border-2 text-xs font-bold transition-all ${
+                        dateMode === d
+                          ? "border-orange bg-orange-light text-orange"
+                          : "border-gray-100 bg-gray-50 text-gray-600 hover:border-gray-200"
+                      }`}
+                    >
+                      {d === "today" ? "Aujourd'hui" : d === "yesterday" ? "Hier" : "Autre"}
+                    </button>
+                  ))}
+                </div>
+                {dateMode === "custom" && (
+                  <input
+                    type="date"
+                    value={customDate}
+                    onChange={(e) => setCustomDate(e.target.value)}
+                    max={format(new Date(), "yyyy-MM-dd")}
+                    className="mt-2 w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-orange"
+                    autoFocus
+                  />
+                )}
+              </>
             )}
           </div>
 
           {/* Type de travail */}
           <div>
             <p className="text-2xs font-bold uppercase tracking-widest text-gray-400 mb-2">Type de travail</p>
+            {modeRestrictionLabel && (
+              <div className="flex items-center gap-2 px-3 py-2 mb-2 bg-amber-50 rounded-xl border border-amber-100">
+                <AlertTriangle className="h-3.5 w-3.5 text-amber-500 flex-shrink-0" />
+                <p className="text-2xs text-amber-700 leading-snug">{modeRestrictionLabel}</p>
+              </div>
+            )}
             <div className="grid grid-cols-3 gap-2">
-              {DISCIPLINE_ITEMS.map((item) => (
+              {filteredDisciplineItems.map((item) => (
                 <button
                   key={item.type}
                   type="button"
@@ -563,27 +758,35 @@ export default function QuickTrainingModal({
             )}
           </div>
 
-          {/* Intensité — hidden for complement-only */}
-          {!isOnlyComplement && (
+          {/* Intensité — hidden for complement-only and plan mode */}
+          {!isOnlyComplement && mode === "log" && (
             <div>
               <p className="text-2xs font-bold uppercase tracking-widest text-gray-400 mb-2">Intensité</p>
               <div className="grid grid-cols-3 gap-2">
-                {INTENSITY_OPTIONS.map((opt, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => setIntensityIdx(i)}
-                    className={`py-3 rounded-xl border-2 text-sm font-bold transition-all ${intensityIdx === i ? opt.active : opt.inactive}`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
+                {INTENSITY_OPTIONS.map((opt, i) => {
+                  const isDisabled = opt.value > maxIntensityValue;
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      disabled={isDisabled}
+                      onClick={() => !isDisabled && setIntensityIdx(i)}
+                      className={`py-3 rounded-xl border-2 text-sm font-bold transition-all ${
+                        isDisabled
+                          ? "opacity-30 cursor-not-allowed border-gray-100 bg-gray-50 text-gray-400"
+                          : intensityIdx === i ? opt.active : opt.inactive
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
 
-          {/* État du cheval — hidden for complement-only */}
-          {!isOnlyComplement && (
+          {/* État du cheval — hidden for complement-only and plan mode */}
+          {!isOnlyComplement && mode === "log" && (
             <div>
               <p className="text-2xs font-bold uppercase tracking-widest text-gray-400 mb-2">
                 {horseMode === "IR" ? "Tolérance du travail" : "État du cheval"}
@@ -626,6 +829,46 @@ export default function QuickTrainingModal({
               className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-orange resize-none"
             />
           </div>
+
+          {/* ICr — type de séance & réaction du poulain (TRAV-20) */}
+          {horseMode === "ICr" && (
+            <div className="space-y-3 p-3 rounded-xl bg-green-50 border border-green-100">
+              <p className="text-xs font-semibold text-green-800">🐣 Séance poulain</p>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <p className="label mb-1">Type d&apos;activité</p>
+                  <select
+                    value={foalSessionType ?? ""}
+                    onChange={(e) => setFoalSessionType(e.target.value || null)}
+                    className="w-full text-xs border border-gray-200 rounded-xl px-2 py-2 focus:outline-none focus:ring-2 focus:ring-orange/30"
+                  >
+                    <option value="">— choisir —</option>
+                    <option value="manipulation">Manipulation</option>
+                    <option value="toilettage">Toilettage</option>
+                    <option value="longe_douce">Longe douce</option>
+                    <option value="debourrage">Débourrage</option>
+                    <option value="premiere_monte">Première monte</option>
+                    <option value="autre">Autre</option>
+                  </select>
+                </div>
+                <div>
+                  <p className="label mb-1">Réaction du poulain</p>
+                  <select
+                    value={foalReaction ?? ""}
+                    onChange={(e) => setFoalReaction(e.target.value || null)}
+                    className="w-full text-xs border border-gray-200 rounded-xl px-2 py-2 focus:outline-none focus:ring-2 focus:ring-orange/30"
+                  >
+                    <option value="">— observer —</option>
+                    <option value="calme">😌 Calme</option>
+                    <option value="attentif">🧐 Attentif</option>
+                    <option value="nerveux">😬 Nerveux</option>
+                    <option value="agite">😤 Agité</option>
+                    <option value="difficile">😣 Difficile</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Ajouter des détails */}
           <div>

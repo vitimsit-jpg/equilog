@@ -7,18 +7,24 @@ import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import Textarea from "@/components/ui/Textarea";
 import Button from "@/components/ui/Button";
-import type { HealthRecord, HealthType } from "@/lib/supabase/types";
+import type { HealthRecord, HealthType, HorseIndexMode } from "@/lib/supabase/types";
 import { trackEvent } from "@/lib/trackEvent";
 import { HEALTH_TYPE_LABELS } from "@/lib/utils";
 import { format, addDays } from "date-fns";
 
-const typeOptions = Object.entries(HEALTH_TYPE_LABELS).map(([value, label]) => ({
-  value,
-  label,
-}));
+const STANDARD_TYPES: HealthType[] = ["vaccin", "vermifuge", "dentiste", "osteo", "ferrage", "veterinaire", "masseuse", "autre"];
+const IS_THERAPEUTIC_TYPES: HealthType[] = ["acupuncture", "physio_laser", "physio_ultrasons", "physio_tens", "pemf", "infrarouge", "cryotherapie", "thermotherapie", "pressotherapie", "ems", "bandes_repos", "etirements_passifs", "infiltrations", "mesotherapie"];
+const IR_EXTRA_TYPES: HealthType[] = ["balneotherapie", "water_treadmill", "tapis_marcheur", "ondes_choc"];
+
+function getTypeOptions(horseMode?: HorseIndexMode | null) {
+  const types: HealthType[] = [...STANDARD_TYPES];
+  if (horseMode === "IS" || horseMode === "IR") types.push(...IS_THERAPEUTIC_TYPES);
+  if (horseMode === "IR") types.push(...IR_EXTRA_TYPES);
+  return types.map((value) => ({ value, label: HEALTH_TYPE_LABELS[value] ?? value }));
+}
 
 // Default intervals in days per type
-const defaultIntervals: Record<HealthType, number | null> = {
+const defaultIntervals: Partial<Record<HealthType, number | null>> = {
   vaccin: 180,
   vermifuge: 90,
   ferrage: 35,
@@ -27,6 +33,12 @@ const defaultIntervals: Record<HealthType, number | null> = {
   veterinaire: null,
   masseuse: 90,
   autre: null,
+  // Thérapeutiques — pas d'intervalle prédéfini
+  acupuncture: null, physio_laser: null, physio_ultrasons: null, physio_tens: null,
+  pemf: null, infrarouge: null, cryotherapie: null, thermotherapie: null,
+  pressotherapie: null, ems: null, bandes_repos: null, etirements_passifs: null,
+  infiltrations: null, mesotherapie: null,
+  balneotherapie: null, water_treadmill: null, tapis_marcheur: null, ondes_choc: null,
 };
 
 // Vaccin subtypes with their interval in days (règles FFE)
@@ -41,6 +53,7 @@ interface Props {
   onSaved: () => void;
   onCancel: () => void;
   defaultValues?: Partial<HealthRecord>;
+  horseMode?: HorseIndexMode | null;
 }
 
 function loadPractitioner(type: HealthType): { vet_name: string; practitioner_phone: string } {
@@ -55,7 +68,7 @@ function savePractitioner(type: HealthType, vet_name: string, practitioner_phone
   try { localStorage.setItem(`equistra_pract_${type}`, JSON.stringify({ vet_name, practitioner_phone })); } catch {}
 }
 
-export default function HealthEventForm({ horseId, onSaved, onCancel, defaultValues }: Props) {
+export default function HealthEventForm({ horseId, onSaved, onCancel, defaultValues, horseMode }: Props) {
   const supabase = createClient();
   const today = format(new Date(), "yyyy-MM-dd");
   const [loading, setLoading] = useState(false);
@@ -134,12 +147,25 @@ export default function HealthEventForm({ horseId, onSaved, onCancel, defaultVal
     if (error) toast.error("Erreur lors de l'enregistrement");
     else {
       savePractitioner(form.type, form.vet_name, form.practitioner_phone);
+      // #38 — Sync coût soin → budget (création uniquement, pas modification)
+      if (!defaultValues?.id && payload.cost && payload.cost > 0) {
+        const desc = [HEALTH_TYPE_LABELS[form.type], form.vet_name].filter(Boolean).join(" — ");
+        await supabase.from("budget_entries").insert({
+          horse_id: horseId,
+          date: payload.date,
+          category: "soins",
+          amount: payload.cost,
+          description: desc || null,
+        });
+      }
       toast.success("Soin enregistré !");
       if (!defaultValues?.id) trackEvent({ event_name: "health_record_created", event_category: "health", properties: { type: form.type } });
       onSaved();
     }
     setLoading(false);
   };
+
+  const typeOptions = getTypeOptions(horseMode);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">

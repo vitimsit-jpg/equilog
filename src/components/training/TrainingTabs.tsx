@@ -567,7 +567,15 @@ export default function TrainingTabs({ horseId, horseName, horseBirthYear, sessi
   const isEducationMode = horseMode === "ICr";
   const isMovementMode = horseMode === "IS";
 
-  const tabs: { id: Tab; label: string; icon: ReactNode }[] = [
+  // P3-11 — Badge "À vérifier" : séances planifiées passées non loggées
+  const todayMidnight = new Date(); todayMidnight.setHours(0, 0, 0, 0);
+  const aLoggerCount = plannedSessions.filter((p) => {
+    if (p.status !== "planned") return false;
+    const d = parseISO(p.date); d.setHours(0, 0, 0, 0);
+    return d < todayMidnight;
+  }).length;
+
+  const tabs: { id: Tab; label: string; icon: ReactNode; badge?: number }[] = [
     // ICr — onglet Éducation en premier
     ...(isEducationMode ? [{ id: "education" as Tab, label: "Éducation", icon: <Sparkles className="h-3.5 w-3.5" /> }] : []),
     // IS — onglet Mouvement en premier
@@ -578,7 +586,7 @@ export default function TrainingTabs({ horseId, horseName, horseBirthYear, sessi
     ...(isRehabMode ? [{ id: "convalescence" as Tab, label: "Suivi méd.", icon: <FileText className="h-3.5 w-3.5" /> }] : []),
     // IR — onglet Journal d'évolution
     ...(isRehabMode ? [{ id: "journal" as Tab, label: "Journal", icon: <BookOpen className="h-3.5 w-3.5" /> }] : []),
-    ...(showPlanTab ? [{ id: "semaine" as Tab, label: "Programme", icon: <Calendar className="h-3.5 w-3.5" /> }] : []),
+    ...(showPlanTab ? [{ id: "semaine" as Tab, label: "Programme", icon: <Calendar className="h-3.5 w-3.5" />, badge: aLoggerCount > 0 ? aLoggerCount : undefined }] : []),
     // Pour IS et ICr, l'onglet overview reste mais devient secondaire
     ...(!isMovementMode ? [{ id: "overview" as Tab, label: overviewLabel, icon: <LayoutDashboard className="h-3.5 w-3.5" /> }] : []),
     { id: "historique", label: "Historique", icon: <Clock className="h-3.5 w-3.5" /> },
@@ -617,12 +625,17 @@ export default function TrainingTabs({ horseId, horseName, horseBirthYear, sessi
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all ${
+            className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all ${
               activeTab === tab.id ? "bg-white text-black shadow-sm" : "text-gray-400 hover:text-gray-600"
             }`}
           >
             {tab.icon}
             <span>{tab.label}</span>
+            {tab.badge !== undefined && (
+              <span className="bg-orange text-white text-2xs font-bold rounded-full min-w-[14px] h-3.5 flex items-center justify-center px-0.5 leading-none flex-shrink-0">
+                {tab.badge}
+              </span>
+            )}
           </button>
         ))}
       </div>

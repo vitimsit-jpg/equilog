@@ -186,6 +186,17 @@ export default function HealthEventForm({ horseId, onSaved, onCancel, defaultVal
         />
       )}
 
+      {/* P3-12 — Avertissement parage poulain (ICr) */}
+      {horseMode === "ICr" && form.type === "ferrage" && (
+        <div className="flex items-start gap-2.5 px-3 py-2.5 bg-amber-50 border border-amber-200 rounded-xl">
+          <span className="text-base flex-shrink-0">🐣</span>
+          <p className="text-xs text-amber-800 leading-relaxed">
+            <span className="font-semibold">Poulain</span> — premier parage recommandé à partir de 6–8 mois.
+            Consultez votre maréchal avant toute intervention.
+          </p>
+        </div>
+      )}
+
       <div className={`grid gap-4 ${form.type === "veterinaire" ? "grid-cols-1" : "grid-cols-2"}`}>
         <Input
           label="Date du soin"

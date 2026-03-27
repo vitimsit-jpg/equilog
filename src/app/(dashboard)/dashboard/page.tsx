@@ -34,7 +34,7 @@ import WeatherWidget from "@/components/weather/WeatherWidget";
 import OnboardingChecklist from "@/components/dashboard/OnboardingChecklist";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import PaddockToggle from "@/components/dashboard/PaddockToggle";
-import ProgrammeSemaine from "@/components/dashboard/ProgrammeSemaine";
+import HorsePlanningCards from "@/components/dashboard/HorsePlanningCards";
 import DashboardModeToggle from "@/components/dashboard/DashboardModeToggle";
 import TodoEcurie from "@/components/dashboard/TodoEcurie";
 import AlerteCheval from "@/components/horses/AlerteCheval";
@@ -195,7 +195,7 @@ export default async function DashboardPage({
     horseIds.length
       ? supabase
           .from("training_sessions")
-          .select("id, horse_id, date, type, intensity, coach_present")
+          .select("id, horse_id, date, type, intensity, coach_present, rider, est_complement")
           .in("horse_id", horseIds)
           .gte("date", weekStartStr)
           .lte("date", weekEndStr)
@@ -209,6 +209,17 @@ export default async function DashboardPage({
           .eq("date", todayStr)
       : Promise.resolve({ data: [] }),
   ]);
+
+  // §DASHBOARD-01 — Planned sessions de la semaine courante (pour les cards planning)
+  const { data: weekPlannedSessions } = horseIds.length
+    ? await supabase
+        .from("training_planned_sessions")
+        .select("id, horse_id, date, type, qui_sen_occupe, status")
+        .in("horse_id", horseIds)
+        .gte("date", weekStartStr)
+        .lte("date", weekEndStr)
+        .eq("status", "planned")
+    : { data: [] };
 
   // Last session per horse (for notes block + >14j message)
   const lastSessionByHorse: Record<string, { date: string; notes: string | null; type: string }> = {};
@@ -1065,15 +1076,29 @@ export default async function DashboardPage({
 
   const programmeBlock =
     horseCount > 0 ? (
-      <ProgrammeSemaine
-        horses={(horses || []).map((h) => ({ id: h.id, name: h.name }))}
-        sessions={(weekSessions || []) as {
+      <HorsePlanningCards
+        horses={(horses || []).map((h) => ({
+          id: h.id,
+          name: h.name,
+          avatar_url: (h as any).avatar_url ?? null,
+          horse_index_mode: (h as any).horse_index_mode ?? null,
+          date_retraite: (h as any).date_retraite ?? null,
+        }))}
+        weekSessions={(weekSessions || []) as {
           id: string;
           horse_id: string;
           date: string;
           type: string;
-          intensity: number;
-          coach_present?: boolean | null;
+          rider: string | null;
+          est_complement: boolean | null;
+        }[]}
+        weekPlannedSessions={(weekPlannedSessions || []) as {
+          id: string;
+          horse_id: string;
+          date: string;
+          type: string;
+          qui_sen_occupe: string | null;
+          status: string;
         }[]}
       />
     ) : null;

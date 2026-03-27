@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useRef } from "react";
 import {
   startOfWeek,
   endOfWeek,
@@ -23,7 +23,6 @@ import Modal from "@/components/ui/Modal";
 import QuickTrainingModal, { DISCIPLINE_ITEMS, INTENSITY_OPTIONS, RIDER_OPTIONS } from "./QuickTrainingModal";
 import type { PrefillData } from "./QuickTrainingModal";
 
-// Health type dot colors
 const HEALTH_DOT: Record<string, string> = {
   vaccin: "bg-green-400",
   vermifuge: "bg-teal-400",
@@ -71,26 +70,16 @@ function getDayState(isCurrentDay: boolean, isPast: boolean, hasSessions: boolea
   return "REPOS";
 }
 
-function getDayCardClass(state: DayState): string {
-  switch (state) {
-    case "REPOS":       return "border-[#F5F5F5] bg-[#F5F5F5]";
-    case "PLANIFIE":    return "border-[#E8E8E8] bg-white";
-    case "AUJOURD_HUI": return "border-orange bg-[#FFF5F2]";
-    case "A_LOGGER":    return "border-orange/30 bg-[#F5F5F5]";
-    case "FAIT":        return "border-green-200 bg-white";
-  }
-}
-
 function getCompletionColor(pct: number | null, weekOffset: number): string {
   if (pct === null) return "text-gray-400";
-  // Past/future weeks: standard coloring
   if (weekOffset !== 0) return pct >= 80 ? "text-success" : pct >= 50 ? "text-orange" : "text-danger";
-  // Current week: color depends on day of week
-  const dow = new Date().getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
-  if (dow >= 1 && dow <= 3) return "text-gray-500"; // Mon-Wed: always gray
-  if (dow === 4 || dow === 5) return pct < 50 ? "text-orange" : "text-success"; // Thu-Fri: orange if <50%
-  return pct < 80 ? "text-danger" : "text-success"; // Sat-Sun: red if <80%
+  const dow = new Date().getDay();
+  if (dow >= 1 && dow <= 3) return "text-gray-500";
+  if (dow === 4 || dow === 5) return pct < 50 ? "text-orange" : "text-success";
+  return pct < 80 ? "text-danger" : "text-success";
 }
+
+const DAY_LABELS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 
 export default function VueSemaine({ horseId, sessions, plannedSessions, healthRecords }: Props) {
   const supabase = createClient();
@@ -98,6 +87,7 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
   const [isPending, startTransition] = useTransition();
 
   const [weekOffset, setWeekOffset] = useState(0);
+  const [selectedDayKey, setSelectedDayKey] = useState(() => format(new Date(), "yyyy-MM-dd"));
   const [showPlanModal, setShowPlanModal] = useState(false);
   const [showLogModal, setShowLogModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -117,6 +107,11 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
   const [suggestingIA, setSuggestingIA] = useState(false);
   const [confirmToast, setConfirmToast] = useState<ConfirmToast | null>(null);
 
+  // Swipe refs
+  const stripSwipeRef = useRef<number | null>(null);
+  const zoneSwipeRef = useRef<number | null>(null);
+
+  // ── Week computation ──────────────────────────────────────────────
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -137,9 +132,31 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
 
   const isWeekFutureOrCurrent = weekOffset >= 0;
 
-  const DAY_LABELS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
+  // selectedDateKey — always valid within current week
+  const selectedDateKey = days.some(d => format(d, "yyyy-MM-dd") === selectedDayKey)
+    ? selectedDayKey
+    : format(days[0], "yyyy-MM-dd");
 
-  // Index sessions by date
+  // ── Navigate week / day ───────────────────────────────────────────
+  const navigateWeek = (dir: -1 | 1) => {
+    const newOffset = weekOffset + dir;
+    setWeekOffset(newOffset);
+    if (newOffset === 0) {
+      setSelectedDayKey(format(new Date(), "yyyy-MM-dd"));
+    } else {
+      const newBase = dir > 0 ? addWeeks(weekBase, 1) : subWeeks(weekBase, 1);
+      const newStart = startOfWeek(newBase, { weekStartsOn: 1 });
+      setSelectedDayKey(format(newStart, "yyyy-MM-dd"));
+    }
+  };
+
+  const navigateDay = (dir: -1 | 1) => {
+    const idx = days.findIndex(d => format(d, "yyyy-MM-dd") === selectedDateKey);
+    const newIdx = Math.max(0, Math.min(6, idx + dir));
+    setSelectedDayKey(format(days[newIdx], "yyyy-MM-dd"));
+  };
+
+  // ── Index by date ─────────────────────────────────────────────────
   const sessionsByDate: Record<string, TrainingSession[]> = {};
   for (const s of sessions) {
     const key = s.date.slice(0, 10);
@@ -147,7 +164,6 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
     sessionsByDate[key].push(s);
   }
 
-  // Index planned by date
   const plannedByDate: Record<string, TrainingPlannedSession[]> = {};
   for (const p of plannedSessions) {
     const key = p.date.slice(0, 10);
@@ -155,7 +171,6 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
     plannedByDate[key].push(p);
   }
 
-  // Index health records by date
   const healthByDate: Record<string, { type: string }[]> = {};
   for (const h of (healthRecords || [])) {
     const key = h.date.slice(0, 10);
@@ -163,7 +178,7 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
     healthByDate[key].push({ type: h.type });
   }
 
-  // Week stats
+  // ── Week stats ────────────────────────────────────────────────────
   const weekSessionsList = sessions.filter((s) => {
     const d = parseISO(s.date);
     return d >= weekStart && d <= weekEnd;
@@ -178,7 +193,6 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
     ? Math.round((weekSessionsList.length / completionDenom) * 100)
     : null;
 
-  // "Copier sem. précédente"
   const prevWeekStart = subWeeks(weekStart, 1);
   const prevWeekEnd = subWeeks(weekEnd, 1);
   const prevWeekPlanned = plannedSessions.filter((p) => {
@@ -190,9 +204,36 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
     return d >= weekStart && d <= weekEnd;
   });
   const canCopyPrev = isWeekFutureOrCurrent && !currentWeekHasPlanned && prevWeekPlanned.length > 0;
-
   const hasEverPlanned = plannedSessions.length > 0;
 
+  // ── Presence circle helper ────────────────────────────────────────
+  const getPresence = (dateKey: string) => {
+    const activePlanned = (plannedByDate[dateKey] || []).filter(p => p.status === "planned");
+    const doneSessions = (sessionsByDate[dateKey] || []).filter(
+      s => !s.est_complement && s.type !== "marcheur" && s.type !== "paddock"
+    );
+
+    let hasOwner = false;
+    let hasCoach = false;
+
+    for (const p of activePlanned) {
+      if (p.qui_sen_occupe === "owner" || p.qui_sen_occupe === "longe" || p.qui_sen_occupe === "travail_a_pied") hasOwner = true;
+      if (p.qui_sen_occupe === "owner_with_coach") { hasOwner = true; hasCoach = true; }
+      if (p.qui_sen_occupe === "coach") hasCoach = true;
+    }
+    for (const s of doneSessions) {
+      if (s.rider === "owner" || s.rider === "longe" || s.rider === "travail_a_pied") hasOwner = true;
+      if (s.rider === "owner_with_coach") { hasOwner = true; hasCoach = true; }
+      if (s.rider === "coach") hasCoach = true;
+    }
+
+    const hasAnySessions = (sessionsByDate[dateKey] || []).length > 0;
+    const complementOnly = hasAnySessions && doneSessions.length === 0 && activePlanned.length === 0;
+
+    return { hasOwner, hasCoach, complementOnly };
+  };
+
+  // ── Business logic ────────────────────────────────────────────────
   const openPlanModal = (dateStr: string, planned?: TrainingPlannedSession) => {
     if (planned) {
       setEditPlanned(planned);
@@ -237,7 +278,7 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
       date: dateKey,
       type: planned.type,
       duration_min: planned.duration_min_target ?? 45,
-      intensity: intensity as 1|2|3|4|5,
+      intensity: intensity as 1 | 2 | 3 | 4 | 5,
       feeling: 3 as const,
       notes: null,
       rider: planned.qui_sen_occupe ?? null,
@@ -273,7 +314,7 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
         duration_min_target: parseInt(planForm.duration_min_target) || 45,
         notes: planForm.notes || null,
         qui_sen_occupe: planForm.qui_sen_occupe || null,
-        intensity_target: planForm.intensity_target ? parseInt(planForm.intensity_target) as (1|2|3|4|5) : null,
+        intensity_target: planForm.intensity_target ? parseInt(planForm.intensity_target) as (1 | 2 | 3 | 4 | 5) : null,
       };
       const { error } = editPlanned
         ? await supabase.from("training_planned_sessions").update(payload).eq("id", editPlanned.id)
@@ -347,12 +388,64 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
     setSuggestingIA(false);
   };
 
+  const toggleComplement = async (type: "marcheur" | "paddock") => {
+    const allDaySessions = sessionsByDate[selectedDateKey] || [];
+    const existing = allDaySessions.find(s => s.type === type);
+    if (existing) {
+      const { error } = await supabase.from("training_sessions").delete().eq("id", existing.id);
+      if (error) toast.error("Erreur");
+      else startTransition(() => router.refresh());
+    } else {
+      const { error } = await supabase.from("training_sessions").insert({
+        horse_id: horseId,
+        date: selectedDateKey,
+        type,
+        duration_min: 30,
+        intensity: 1 as const,
+        feeling: 3 as const,
+        est_complement: true,
+        notes: null,
+        rider: null,
+      });
+      if (error) toast.error("Erreur");
+      else startTransition(() => router.refresh());
+    }
+  };
+
+  // ── Selected day data ─────────────────────────────────────────────
+  const selectedDay = days.find(d => format(d, "yyyy-MM-dd") === selectedDateKey) || days[0];
+  const selectedDaySessions = sessionsByDate[selectedDateKey] || [];
+  const selectedDayPlanned = plannedByDate[selectedDateKey] || [];
+  const selectedDayActivePlanned = selectedDayPlanned.filter(p => p.status === "planned");
+  const selectedDaySkipped = selectedDayPlanned.filter(p => p.status === "skipped");
+  const selectedDayIsToday = isToday(selectedDay);
+  const selectedDayIsPast = isPastDay(selectedDay);
+  const selectedDayHealth = healthByDate[selectedDateKey] || [];
+  const selectedDayState = getDayState(
+    selectedDayIsToday, selectedDayIsPast,
+    selectedDaySessions.filter(s => !s.est_complement && s.type !== "marcheur" && s.type !== "paddock").length > 0,
+    selectedDayActivePlanned.length > 0
+  );
+
+  const selectedDayMainSessions = selectedDaySessions.filter(
+    s => !s.est_complement && s.type !== "marcheur" && s.type !== "paddock"
+  );
+  const selectedDayComplements = selectedDaySessions.filter(
+    s => s.est_complement || s.type === "marcheur" || s.type === "paddock"
+  );
+
+  const hasPaddock = selectedDayComplements.some(s => s.type === "paddock");
+  const hasMarcheur = selectedDayComplements.some(s => s.type === "marcheur");
+
+  const hasAnything = selectedDayMainSessions.length > 0 || selectedDayActivePlanned.length > 0 || selectedDaySkipped.length > 0;
+
+  // ── Render ────────────────────────────────────────────────────────
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Week navigation */}
       <div className="flex items-center justify-between">
         <button
-          onClick={() => setWeekOffset((o) => o - 1)}
+          onClick={() => navigateWeek(-1)}
           className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
         >
           <ChevronLeft className="h-4 w-4 text-gray-500" />
@@ -369,7 +462,7 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
           </p>
         </div>
         <button
-          onClick={() => setWeekOffset((o) => o + 1)}
+          onClick={() => navigateWeek(1)}
           className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
         >
           <ChevronRight className="h-4 w-4 text-gray-500" />
@@ -401,39 +494,105 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
         </div>
       )}
 
-      {/* First-use empty state */}
-      {!hasEverPlanned && isWeekFutureOrCurrent && (
-        <div className="card text-center py-8">
-          <div className="text-3xl mb-3">📅</div>
-          <p className="text-sm font-bold text-black mb-1">Planifiez votre programme</p>
-          <p className="text-xs text-gray-400 mb-5 max-w-xs mx-auto">
-            Aucune séance planifiée pour l&apos;instant. Ajoutez des séances manuellement ou laissez l&apos;IA construire un plan adapté à votre cheval.
-          </p>
-          <div className="flex gap-2 justify-center">
-            <button
-              onClick={() => openPlanModal(format(new Date(), "yyyy-MM-dd"))}
-              className="flex items-center gap-1.5 text-xs font-semibold btn-secondary px-4 py-2"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              Planifier manuellement
-            </button>
-            <button
-              onClick={suggestIA}
-              disabled={suggestingIA}
-              className="flex items-center gap-1.5 text-xs font-semibold btn-primary px-4 py-2"
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-              {suggestingIA ? "Génération..." : "Suggérer IA"}
-            </button>
-          </div>
-        </div>
-      )}
+      {/* ── ZONE A: Strip horizontal ────────────────────────────────── */}
+      <div
+        className="bg-[#F5F5F5] rounded-2xl p-2 select-none"
+        onTouchStart={(e) => { stripSwipeRef.current = e.touches[0].clientX; }}
+        onTouchEnd={(e) => {
+          if (stripSwipeRef.current === null) return;
+          const delta = e.changedTouches[0].clientX - stripSwipeRef.current;
+          stripSwipeRef.current = null;
+          if (Math.abs(delta) > 50) navigateWeek(delta > 0 ? -1 : 1);
+        }}
+      >
+        <div className="flex gap-1">
+          {days.map((day, i) => {
+            const dateKey = format(day, "yyyy-MM-dd");
+            const isSelected = dateKey === selectedDateKey;
+            const isCurrentDay = isToday(day);
+            const isPast = isPastDay(day);
+            const daySessions = sessionsByDate[dateKey] || [];
+            const dayPlanned = plannedByDate[dateKey] || [];
+            const activePlanned = dayPlanned.filter(p => p.status === "planned");
+            const dayMainSessions = daySessions.filter(s => !s.est_complement && s.type !== "marcheur" && s.type !== "paddock");
+            const dayState = getDayState(isCurrentDay, isPast, dayMainSessions.length > 0, activePlanned.length > 0);
+            const { hasOwner, hasCoach, complementOnly } = getPresence(dateKey);
 
-      {/* Week summary banner */}
+            return (
+              <button
+                key={dateKey}
+                onClick={() => setSelectedDayKey(dateKey)}
+                className={`flex flex-col items-center py-2.5 px-1 rounded-xl transition-all flex-1 gap-1 ${
+                  isSelected ? "bg-white shadow-sm" : "hover:bg-white/60"
+                }`}
+              >
+                {/* Day label */}
+                <span className={`text-2xs font-semibold leading-none ${
+                  isSelected ? "text-orange" : isCurrentDay ? "text-gray-600" : "text-gray-400"
+                }`}>
+                  {DAY_LABELS[i]}
+                </span>
+                {/* Day number */}
+                <span className={`text-sm font-black leading-none ${
+                  isSelected ? "text-orange" : isCurrentDay ? "text-black" : isPast ? "text-gray-400" : "text-gray-600"
+                }`}>
+                  {format(day, "d")}
+                </span>
+                {/* Presence indicator */}
+                <div className="h-5 flex items-center justify-center">
+                  {(hasOwner || hasCoach || complementOnly) ? (
+                    complementOnly ? (
+                      <div className="w-4 h-4 rounded bg-green-100 border border-green-300 flex items-center justify-center">
+                        <span className="text-[8px] text-green-600 font-bold leading-none">■</span>
+                      </div>
+                    ) : hasOwner && hasCoach ? (
+                      <div className="relative w-6 h-4 flex-shrink-0">
+                        <div className="absolute left-0 w-4 h-4 rounded-full bg-orange flex items-center justify-center">
+                          <span className="text-[8px] text-white font-bold leading-none">M</span>
+                        </div>
+                        <div className="absolute right-0 w-4 h-4 rounded-full bg-blue-400 flex items-center justify-center border border-white">
+                          <span className="text-[8px] text-white font-bold leading-none">C</span>
+                        </div>
+                      </div>
+                    ) : hasOwner ? (
+                      <div className="w-4 h-4 rounded-full bg-orange/20 border-2 border-orange flex items-center justify-center">
+                        <span className="text-[8px] text-orange font-bold leading-none">M</span>
+                      </div>
+                    ) : (
+                      <div className="w-4 h-4 rounded-full bg-blue-100 border-2 border-blue-400 flex items-center justify-center">
+                        <span className="text-[8px] text-blue-500 font-bold leading-none">C</span>
+                      </div>
+                    )
+                  ) : (
+                    <div className="w-4 h-4" />
+                  )}
+                </div>
+                {/* Status dot */}
+                <div className="h-2 flex items-center justify-center">
+                  {dayState === "FAIT" && (
+                    <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                  )}
+                  {(dayState === "AUJOURD_HUI" || dayState === "PLANIFIE") && (
+                    <div className="w-1.5 h-1.5 rounded-full bg-orange" />
+                  )}
+                  {dayState === "A_LOGGER" && (
+                    <div className="w-1.5 h-1.5 rounded-full border-2 border-orange border-dashed" />
+                  )}
+                  {dayState === "REPOS" && (
+                    <div className="w-1.5 h-1.5" />
+                  )}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Bande résumé semaine (~32px) ──────────────────────────── */}
       {(weekSessionsList.length > 0 || weekPlannedList.length > 0) && (
-        <div className="flex items-center gap-4 px-4 py-3 rounded-xl bg-beige border border-gray-100 text-xs">
+        <div className="flex items-center gap-3 px-3 py-2 rounded-xl bg-beige border border-gray-100 text-xs">
           <span className="font-semibold text-black">
-            {weekSessionsList.length} séance{weekSessionsList.length !== 1 ? "s" : ""} réalisée{weekSessionsList.length !== 1 ? "s" : ""}
+            {weekSessionsList.filter(s => !s.est_complement && s.type !== "marcheur" && s.type !== "paddock").length} séance{weekSessionsList.filter(s => !s.est_complement && s.type !== "marcheur" && s.type !== "paddock").length !== 1 ? "s" : ""}
           </span>
           {weekMinutes > 0 && (
             <span className="text-gray-500">
@@ -448,188 +607,240 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
             </span>
           )}
           {weekPlannedList.length > 0 && (
-            <span className="text-gray-400">{weekPlannedList.length} prévu{weekPlannedList.length !== 1 ? "s" : ""}</span>
+            <span className="ml-auto text-gray-400 text-2xs">{weekPlannedList.length} prévu{weekPlannedList.length !== 1 ? "s" : ""}</span>
           )}
         </div>
       )}
 
-      {/* Day cards */}
-      <div className="space-y-2">
-        {days.map((day, i) => {
-          const dateKey = format(day, "yyyy-MM-dd");
-          const daySessions = sessionsByDate[dateKey] || [];
-          const dayPlanned = plannedByDate[dateKey] || [];
-          const activePlanned = dayPlanned.filter((p) => p.status === "planned");
-          const isCurrentDay = isToday(day);
-          const isPast = isPastDay(day);
-          const dayHealth = healthByDate[dateKey] || [];
-
-          const state = getDayState(isCurrentDay, isPast, daySessions.length > 0, activePlanned.length > 0);
-          const isRepos = state === "REPOS";
-
-          return (
-            <div
-              key={dateKey}
-              className={`rounded-xl border transition-colors ${getDayCardClass(state)} ${isRepos ? "py-2 px-3" : "p-3"}`}
-              style={state === "AUJOURD_HUI" ? { borderWidth: "1.5px" } : undefined}
+      {/* ── ZONE B: Vue du jour ────────────────────────────────────── */}
+      <div
+        className="card space-y-0 p-4"
+        onTouchStart={(e) => { zoneSwipeRef.current = e.touches[0].clientX; }}
+        onTouchEnd={(e) => {
+          if (zoneSwipeRef.current === null) return;
+          const delta = e.changedTouches[0].clientX - zoneSwipeRef.current;
+          zoneSwipeRef.current = null;
+          if (Math.abs(delta) > 50) navigateDay(delta > 0 ? -1 : 1);
+        }}
+      >
+        {/* Day header */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigateDay(-1)}
+              className="p-1 rounded-lg hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-600"
             >
-              {/* Day header */}
-              <div className={`flex items-center justify-between ${isRepos ? "" : "mb-2"}`}>
-                <div className="flex items-center gap-2">
-                  <span className={`text-xs font-bold ${isCurrentDay ? "text-orange" : isPast ? "text-gray-300" : "text-gray-400"}`}>
-                    {DAY_LABELS[i]}
-                  </span>
-                  <span className={`text-sm font-black ${isCurrentDay ? "text-orange" : isPast ? "text-gray-400" : "text-black"}`}>
-                    {format(day, "d")}
-                  </span>
-                  {isCurrentDay && (
-                    <span className="text-2xs font-semibold bg-orange text-white px-1.5 py-0.5 rounded-full">Aujourd&apos;hui</span>
-                  )}
-                  {state === "A_LOGGER" && (
-                    <span className="text-2xs font-semibold bg-orange/10 text-orange px-1.5 py-0.5 rounded-full">À logger</span>
-                  )}
-                  {/* Health dots */}
-                  {dayHealth.length > 0 && (
-                    <div className="flex items-center gap-0.5" title={`${dayHealth.length} soin${dayHealth.length > 1 ? "s" : ""} ce jour`}>
-                      {dayHealth.slice(0, 3).map((h, idx) => (
-                        <span
-                          key={idx}
-                          className={`w-1.5 h-1.5 rounded-full ${HEALTH_DOT[h.type] || HEALTH_DOT.autre}`}
-                        />
-                      ))}
-                      {dayHealth.length > 3 && (
-                        <span className="text-2xs text-gray-400">+{dayHealth.length - 3}</span>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* Add button */}
-                {!isRepos && (
-                  <button
-                    onClick={() => isWeekFutureOrCurrent || isPast ? openLogModal(dateKey) : openPlanModal(dateKey)}
-                    className="flex items-center gap-1 text-2xs font-semibold text-gray-400 hover:text-black px-2 py-1 rounded-lg hover:bg-gray-100 transition-colors"
-                  >
-                    <Plus className="h-3 w-3" />
-                    Ajouter
-                  </button>
-                )}
-                {isRepos && (
-                  <button
-                    onClick={() => openPlanModal(dateKey)}
-                    className="flex items-center gap-1 text-2xs text-gray-300 hover:text-gray-500 transition-colors"
-                  >
-                    <Plus className="h-3 w-3" />
-                  </button>
-                )}
-              </div>
-
-              {/* Planned sessions */}
-              {!isRepos && activePlanned.map((p) => (
-                <div
-                  key={p.id}
-                  className="flex items-center gap-2 mb-1.5 px-2.5 py-2 rounded-lg border border-dashed border-gray-200 bg-white/60"
-                >
-                  <span className="text-base leading-none flex-shrink-0">{TRAINING_EMOJIS[p.type] || "🏇"}</span>
-                  <div className="flex-1 min-w-0">
-                    <span className="text-xs font-semibold text-gray-600">
-                      {TRAINING_TYPE_LABELS[p.type] || p.type}
-                    </span>
-                    {p.duration_min_target && (
-                      <span className="text-xs text-gray-400 ml-1.5">{p.duration_min_target}min</span>
-                    )}
-                    {p.notes && <p className="text-2xs text-gray-400 truncate">{p.notes}</p>}
-                  </div>
-                  <div className="flex gap-1">
-                    {/* Quick confirm (1 tap) */}
-                    <button
-                      onClick={() => handleConfirmSession(p, dateKey)}
-                      title="Confirmer réalisée"
-                      className="p-1.5 hover:bg-green-50 rounded-lg text-gray-300 hover:text-success transition-colors"
-                    >
-                      <Check className="h-3.5 w-3.5" />
-                    </button>
-                    <button
-                      onClick={() => openLogModal(dateKey, p)}
-                      title="Logger avec détails"
-                      className="p-1.5 hover:bg-orange-light rounded-lg text-gray-300 hover:text-orange transition-colors"
-                    >
-                      <Pencil className="h-3 w-3" />
-                    </button>
-                    <button
-                      onClick={() => openPlanModal(dateKey, p)}
-                      title="Modifier la planification"
-                      className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-300 hover:text-gray-600 transition-colors"
-                    >
-                      <Pencil className="h-2.5 w-2.5" />
-                    </button>
-                    <button
-                      onClick={() => skipPlanned(p.id)}
-                      title="Passer"
-                      className="p-1.5 hover:bg-red-50 rounded-lg text-gray-300 hover:text-danger transition-colors"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-
-              {/* Skipped planned */}
-              {!isRepos && dayPlanned.filter((p) => p.status === "skipped").map((p) => (
-                <div key={p.id} className="flex items-center gap-2 mb-1.5 px-2.5 py-1.5 rounded-lg opacity-40">
-                  <span className="text-sm leading-none flex-shrink-0">{TRAINING_EMOJIS[p.type] || "🏇"}</span>
-                  <span className="text-xs text-gray-400 line-through flex-1">{TRAINING_TYPE_LABELS[p.type] || p.type}</span>
-                  <button
-                    onClick={() => deletePlanned(p.id)}
-                    className="p-1 hover:bg-red-50 rounded text-gray-300 hover:text-danger transition-colors"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </div>
-              ))}
-
-              {/* Done sessions — main (non-complement) */}
-              {!isRepos && daySessions.filter((s) => !s.est_complement && s.type !== "marcheur" && s.type !== "paddock").map((s) => (
-                <div key={s.id} className="flex items-center gap-2 mb-1 px-2.5 py-2 rounded-lg bg-white border border-green-100">
-                  <span className="text-base leading-none flex-shrink-0">{TRAINING_EMOJIS[s.type] || "🏇"}</span>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-semibold text-gray-700">{TRAINING_TYPE_LABELS[s.type] || s.type}</span>
-                      <span className="text-2xs text-gray-400">{s.duration_min}min</span>
-                      {s.coach_present && (
-                        <span className="text-2xs bg-blue-50 text-blue-600 font-semibold px-1.5 py-0.5 rounded-full">Coach</span>
-                      )}
-                    </div>
-                    {s.objectif && <p className="text-2xs text-gray-500 truncate mt-0.5">{s.objectif}</p>}
-                    {s.notes && !s.objectif && <p className="text-2xs text-gray-400 truncate mt-0.5">{s.notes}</p>}
-                  </div>
-                  {/* Intensity dots */}
-                  <div className="flex gap-0.5 flex-shrink-0">
-                    {Array.from({ length: 5 }).map((_, idx) => (
-                      <div key={idx} className={`w-1.5 h-3 rounded-full ${idx < s.intensity ? "bg-orange" : "bg-gray-100"}`} />
-                    ))}
-                  </div>
-                </div>
-              ))}
-              {/* Done sessions — complement (marcheur / paddock) as secondary grey line */}
-              {!isRepos && daySessions.filter((s) => s.est_complement || s.type === "marcheur" || s.type === "paddock").map((s) => (
-                <div key={s.id} className="flex items-center gap-1.5 mb-1 px-2.5 py-1 rounded-lg bg-gray-50 border border-gray-100">
-                  <span className="text-sm leading-none flex-shrink-0 opacity-60">{TRAINING_EMOJIS[s.type] || "⚙️"}</span>
-                  <span className="text-2xs text-gray-400 font-medium">{TRAINING_TYPE_LABELS[s.type] || s.type}</span>
-                  <span className="text-2xs text-gray-300">{s.duration_min}min</span>
-                </div>
-              ))}
-
-              {/* REPOS — compact, just add button inline */}
-              {isRepos && daySessions.length === 0 && activePlanned.length === 0 && (
-                <span className="text-2xs text-gray-300 ml-2">Repos</span>
+              <ChevronLeft className="h-3.5 w-3.5" />
+            </button>
+            <div>
+              <h3 className="text-sm font-bold text-black capitalize">
+                {format(selectedDay, "EEEE d MMMM", { locale: fr })}
+              </h3>
+              {selectedDayIsToday && (
+                <span className="text-2xs font-semibold text-orange">Aujourd&apos;hui</span>
+              )}
+              {!selectedDayIsToday && selectedDayState === "A_LOGGER" && (
+                <span className="text-2xs font-semibold text-orange">À logger</span>
               )}
             </div>
-          );
-        })}
+            <button
+              onClick={() => navigateDay(1)}
+              className="p-1 rounded-lg hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-600"
+            >
+              <ChevronRight className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <div className="flex items-center gap-1">
+            {/* Health dots */}
+            {selectedDayHealth.length > 0 && (
+              <div className="flex items-center gap-0.5 mr-1" title={`${selectedDayHealth.length} soin${selectedDayHealth.length > 1 ? "s" : ""} ce jour`}>
+                {selectedDayHealth.slice(0, 3).map((h, idx) => (
+                  <span key={idx} className={`w-1.5 h-1.5 rounded-full ${HEALTH_DOT[h.type] || HEALTH_DOT.autre}`} />
+                ))}
+              </div>
+            )}
+            <button
+              onClick={() => openLogModal(selectedDateKey)}
+              className="flex items-center gap-1 text-2xs font-semibold text-gray-400 hover:text-black px-2 py-1 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              <Plus className="h-3 w-3" />
+              Ajouter
+            </button>
+            {isWeekFutureOrCurrent && (
+              <button
+                onClick={() => openPlanModal(selectedDateKey)}
+                className="flex items-center gap-1 text-2xs font-semibold text-orange px-2 py-1 rounded-lg hover:bg-orange-light transition-colors"
+              >
+                Planifier
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* First-use empty state */}
+        {!hasEverPlanned && isWeekFutureOrCurrent && (
+          <div className="text-center py-8">
+            <div className="text-3xl mb-3">📅</div>
+            <p className="text-sm font-bold text-black mb-1">Planifiez votre programme</p>
+            <p className="text-xs text-gray-400 mb-5 max-w-xs mx-auto">
+              Aucune séance planifiée pour l&apos;instant. Ajoutez des séances manuellement ou laissez l&apos;IA construire un plan adapté à votre cheval.
+            </p>
+            <div className="flex gap-2 justify-center">
+              <button
+                onClick={() => openPlanModal(selectedDateKey)}
+                className="flex items-center gap-1.5 text-xs font-semibold btn-secondary px-4 py-2"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Planifier manuellement
+              </button>
+              <button
+                onClick={suggestIA}
+                disabled={suggestingIA}
+                className="flex items-center gap-1.5 text-xs font-semibold btn-primary px-4 py-2"
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                {suggestingIA ? "Génération..." : "Suggérer IA"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Day content — REPOS empty */}
+        {hasEverPlanned && !hasAnything && selectedDayMainSessions.length === 0 && (
+          <div className="text-center py-6">
+            <p className="text-sm text-gray-300 mb-3">Repos — rien de prévu</p>
+            <button
+              onClick={() => openPlanModal(selectedDateKey)}
+              className="text-xs text-orange hover:underline font-semibold"
+            >
+              + Ajouter une séance
+            </button>
+          </div>
+        )}
+
+        {/* Planned sessions */}
+        {selectedDayActivePlanned.map((p) => (
+          <div
+            key={p.id}
+            className="flex items-center gap-2 mb-2 px-3 py-2.5 rounded-xl border border-dashed border-gray-200 bg-gray-50"
+          >
+            <span className="text-base leading-none flex-shrink-0">{TRAINING_EMOJIS[p.type] || "🏇"}</span>
+            <div className="flex-1 min-w-0">
+              <span className="text-xs font-semibold text-gray-700">
+                {TRAINING_TYPE_LABELS[p.type] || p.type}
+              </span>
+              {p.duration_min_target && (
+                <span className="text-xs text-gray-400 ml-1.5">{p.duration_min_target}min</span>
+              )}
+              {p.intensity_target && (
+                <span className="text-2xs text-gray-400 ml-1.5">· intensité {p.intensity_target}/5</span>
+              )}
+              {p.notes && <p className="text-2xs text-gray-400 truncate mt-0.5">{p.notes}</p>}
+            </div>
+            <div className="flex gap-1 flex-shrink-0">
+              <button
+                onClick={() => handleConfirmSession(p, selectedDateKey)}
+                title="Confirmer réalisée"
+                className="p-1.5 hover:bg-green-50 rounded-lg text-gray-300 hover:text-success transition-colors"
+              >
+                <Check className="h-3.5 w-3.5" />
+              </button>
+              <button
+                onClick={() => openLogModal(selectedDateKey, p)}
+                title="Logger avec détails"
+                className="p-1.5 hover:bg-orange-light rounded-lg text-gray-300 hover:text-orange transition-colors"
+              >
+                <Pencil className="h-3 w-3" />
+              </button>
+              <button
+                onClick={() => openPlanModal(selectedDateKey, p)}
+                title="Modifier la planification"
+                className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-300 hover:text-gray-600 transition-colors"
+              >
+                <Pencil className="h-2.5 w-2.5" />
+              </button>
+              <button
+                onClick={() => skipPlanned(p.id)}
+                title="Passer"
+                className="p-1.5 hover:bg-red-50 rounded-lg text-gray-300 hover:text-danger transition-colors"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          </div>
+        ))}
+
+        {/* Skipped planned */}
+        {selectedDaySkipped.map((p) => (
+          <div key={p.id} className="flex items-center gap-2 mb-1.5 px-2.5 py-1.5 rounded-lg opacity-40">
+            <span className="text-sm leading-none flex-shrink-0">{TRAINING_EMOJIS[p.type] || "🏇"}</span>
+            <span className="text-xs text-gray-400 line-through flex-1">{TRAINING_TYPE_LABELS[p.type] || p.type}</span>
+            <button
+              onClick={() => deletePlanned(p.id)}
+              className="p-1 hover:bg-red-50 rounded text-gray-300 hover:text-danger transition-colors"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </div>
+        ))}
+
+        {/* Done sessions — main */}
+        {selectedDayMainSessions.map((s) => (
+          <div key={s.id} className="flex items-center gap-2 mb-2 px-3 py-2.5 rounded-xl bg-white border border-green-100">
+            <span className="text-base leading-none flex-shrink-0">{TRAINING_EMOJIS[s.type] || "🏇"}</span>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-xs font-semibold text-gray-700">{TRAINING_TYPE_LABELS[s.type] || s.type}</span>
+                <span className="text-2xs text-gray-400">{s.duration_min}min</span>
+                {s.coach_present && (
+                  <span className="text-2xs bg-blue-50 text-blue-600 font-semibold px-1.5 py-0.5 rounded-full">Coach</span>
+                )}
+                <span className="text-2xs bg-green-50 text-green-600 font-semibold px-1.5 py-0.5 rounded-full">✓ Réalisée</span>
+              </div>
+              {s.objectif && <p className="text-2xs text-gray-500 truncate mt-0.5">{s.objectif}</p>}
+              {s.notes && !s.objectif && <p className="text-2xs text-gray-400 truncate mt-0.5">{s.notes}</p>}
+            </div>
+            <div className="flex gap-0.5 flex-shrink-0">
+              {Array.from({ length: 5 }).map((_, idx) => (
+                <div key={idx} className={`w-1.5 h-3 rounded-full ${idx < s.intensity ? "bg-orange" : "bg-gray-100"}`} />
+              ))}
+            </div>
+          </div>
+        ))}
+
+        {/* ── Compléments section ──────────────────────────────────── */}
+        <div className={`${hasAnything || selectedDayMainSessions.length > 0 ? "mt-3 pt-3 border-t border-gray-100" : "mt-1"}`}>
+          <p className="text-2xs text-gray-400 font-semibold mb-2">Compléments</p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => toggleComplement("paddock")}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border-2 text-xs font-semibold transition-all flex-1 justify-center ${
+                hasPaddock
+                  ? "border-green-400 bg-green-50 text-green-700"
+                  : "border-gray-200 bg-white text-gray-500 hover:border-gray-300"
+              }`}
+            >
+              <span>🌿</span>
+              <span>Paddock</span>
+              {hasPaddock && <Check className="h-3 w-3" />}
+            </button>
+            <button
+              onClick={() => toggleComplement("marcheur")}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border-2 text-xs font-semibold transition-all flex-1 justify-center ${
+                hasMarcheur
+                  ? "border-green-400 bg-green-50 text-green-700"
+                  : "border-gray-200 bg-white text-gray-500 hover:border-gray-300"
+              }`}
+            >
+              <span>🚶</span>
+              <span>Marcheur</span>
+              {hasMarcheur && <Check className="h-3 w-3" />}
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* Confirm toast snackbar */}
+      {/* ── Confirm toast snackbar (Level 2) ──────────────────────── */}
       {confirmToast && (
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-sm">
           <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-4 space-y-3">
@@ -647,7 +858,7 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
               <div>
                 <p className="text-2xs text-gray-400 mb-1">Intensité</p>
                 <div className="flex gap-1">
-                  {[1,2,3,4,5].map((v) => (
+                  {[1, 2, 3, 4, 5].map((v) => (
                     <button
                       key={v}
                       onClick={() => updateConfirmToast("intensity", v)}
@@ -659,7 +870,7 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
               <div>
                 <p className="text-2xs text-gray-400 mb-1">État cheval</p>
                 <div className="flex gap-1">
-                  {["😴","😕","😐","🙂","😄"].map((emoji, idx) => (
+                  {["😴", "😕", "😐", "🙂", "😄"].map((emoji, idx) => (
                     <button
                       key={idx}
                       onClick={() => updateConfirmToast("feeling", idx + 1)}
@@ -681,14 +892,13 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
         </div>
       )}
 
-      {/* Plan modal */}
+      {/* ── Plan modal ────────────────────────────────────────────── */}
       <Modal
         open={showPlanModal}
         onClose={() => { setShowPlanModal(false); setEditPlanned(null); }}
         title={editPlanned ? "Modifier la séance prévue" : "Planifier une séance"}
       >
         <div className="space-y-4">
-          {/* Day / date picker */}
           <div>
             <label className="label mb-2">Jour</label>
             {!editPlanned && weekOffset === 0 ? (
@@ -726,7 +936,6 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
             )}
           </div>
 
-          {/* Type de travail */}
           <div>
             <label className="label mb-2">Type de travail</label>
             <div className="grid grid-cols-3 gap-2">
@@ -748,7 +957,6 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
             </div>
           </div>
 
-          {/* Qui s'en occupe */}
           <div>
             <label className="label mb-2">Qui s&apos;en occupe</label>
             <div className="grid grid-cols-3 gap-2">
@@ -770,7 +978,6 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
             </div>
           </div>
 
-          {/* Intensité cible */}
           <div>
             <label className="label mb-2">Intensité cible</label>
             <div className="grid grid-cols-3 gap-2">
@@ -789,7 +996,6 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
             </div>
           </div>
 
-          {/* Durée cible */}
           <div>
             <label className="label mb-2">Durée cible</label>
             <div className="flex flex-wrap gap-2">
@@ -831,7 +1037,6 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
             )}
           </div>
 
-          {/* Notes */}
           <div>
             <label className="label">Notes</label>
             <textarea

@@ -9,7 +9,7 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import { Plus, Ruler } from "lucide-react";
+import { Plus, Ruler, Trash2 } from "lucide-react";
 import type { HorseGrowthMilestone, HorseGrowthMeasure, GrowthMilestoneType } from "@/lib/supabase/types";
 import FirstRideButton from "@/components/horse/FirstRideButton";
 import GrowthTimeline from "./GrowthTimeline";

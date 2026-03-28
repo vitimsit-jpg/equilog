@@ -91,7 +91,7 @@ export default async function EcuriePage({ params }: Props) {
               <h1 className="text-2xl font-black text-black">{ecurieName}</h1>
               <p className="text-sm text-gray-400 mt-0.5">
                 {horses[0]?.region && `${horses[0].region} · `}
-                {rankedHorses.length} cheval{rankedHorses.length > 1 ? "x" : ""}
+                {rankedHorses.length} cheval{rankedHorses.length > 1 ? "aux" : ""}
               </p>
             </div>
           </div>

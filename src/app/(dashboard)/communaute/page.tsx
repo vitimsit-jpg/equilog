@@ -617,7 +617,7 @@ export default async function CommunautePage({ searchParams }: Props) {
               {userEcuries[0]}
               {horsesForFeed.length > 0 && (
                 <span className="ml-1.5 px-1.5 py-0.5 bg-gray-100 rounded-full text-2xs font-semibold text-gray-500">
-                  {horsesForFeed.length} cheval{horsesForFeed.length > 1 ? "x" : ""}
+                  {horsesForFeed.length} cheval{horsesForFeed.length > 1 ? "aux" : ""}
                 </span>
               )}
             </p>

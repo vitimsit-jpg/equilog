@@ -1,6 +1,6 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { format, formatDistanceToNow, differenceInDays, parseISO } from "date-fns";
+import { format, formatDistanceToNow, differenceInDays, parseISO, startOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
 
 export function cn(...inputs: ClassValue[]) {
@@ -19,7 +19,7 @@ export function formatDateRelative(date: string | Date) {
 
 export function daysUntil(date: string | Date): number {
   const d = typeof date === "string" ? parseISO(date) : date;
-  return differenceInDays(d, new Date());
+  return differenceInDays(startOfDay(d), startOfDay(new Date()));
 }
 
 export function formatCurrency(amount: number): string {
@@ -112,7 +112,7 @@ export const TRAINING_EMOJIS: Record<string, string> = {
 
 export const BUDGET_CATEGORY_LABELS: Record<string, string> = {
   pension: "Pension",
-  soins: "Soins vétérinaires",
+  soins: "Soins vét.",
   concours: "Concours",
   equipement: "Équipement",
   "maréchalerie": "Maréchalerie",

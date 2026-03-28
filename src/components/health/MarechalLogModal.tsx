@@ -445,7 +445,7 @@ export default function MarechalLogModal({
       {/* Header */}
       <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-gray-100 flex-shrink-0">
         <p className="font-bold text-black">
-          {defaultValues?.id ? "Modifier le passage" : "Logger un passage maréchal"}
+          {defaultValues?.id ? "Modifier le passage" : "Enregistrer un passage maréchal"}
         </p>
         <button onClick={handleClose} className="text-gray-400 hover:text-black"><X className="h-4 w-4" /></button>
       </div>
@@ -641,6 +641,7 @@ export default function MarechalLogModal({
               />
             </div>
           </div>
+          <p className="text-2xs text-gray-400">📵 Le numéro est mémorisé uniquement pour vous, jamais partagé.</p>
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}

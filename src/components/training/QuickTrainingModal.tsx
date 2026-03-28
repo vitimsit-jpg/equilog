@@ -74,7 +74,6 @@ export const RIDER_OPTIONS: { value: TrainingRider; label: string; emoji: string
   { value: "owner",             emoji: "🧑", label: "Moi seule" },
   { value: "owner_with_coach",  emoji: "🎓", label: "Cours coach" },
   { value: "coach",             emoji: "👤", label: "Coach seul·e" },
-  { value: "longe",             emoji: "🌀", label: "Longe" },
   { value: "travail_a_pied",    emoji: "🧘", label: "À pied" },
 ];
 
@@ -439,7 +438,7 @@ export default function QuickTrainingModal({
       onClose={handleClose}
       title={mode === "plan"
         ? (horseName ? `Planifier — ${horseName}` : "Planifier une séance")
-        : (horseName ? `Logger — ${horseName}` : "Logger une séance")}
+        : (horseName ? `Enregistrer — ${horseName}` : "Enregistrer une séance")}
     >
       {/* Message coach post-séance */}
       {showCoachMsg && (
@@ -545,7 +544,7 @@ export default function QuickTrainingModal({
                 mode === "log" ? "bg-black text-white" : "bg-white text-gray-400 hover:text-black"
               }`}
             >
-              Je logge
+              J&apos;enregistre
             </button>
             <button
               type="button"

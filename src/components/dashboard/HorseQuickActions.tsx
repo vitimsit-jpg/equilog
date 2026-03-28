@@ -38,7 +38,7 @@ export default function HorseQuickActions({ horses }: Props) {
               <HorseAvatar name={horse.name} photoUrl={horse.avatar_url} size="xs" rounded="lg" />
               <div className="text-left min-w-0">
                 <p className="text-sm font-semibold text-black truncate">{horse.name}</p>
-                <p className="text-xs text-gray-400">Logger l&apos;état →</p>
+                <p className="text-xs text-gray-400">Enregistrer l&apos;état →</p>
               </div>
             </button>
           ))}

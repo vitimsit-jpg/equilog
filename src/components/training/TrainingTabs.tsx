@@ -19,7 +19,7 @@ import Link from "next/link";
 import Button from "@/components/ui/Button";
 import { useRidesHorse } from "@/hooks/useRidesHorse";
 import {
-  format, differenceInDays, parseISO,
+  format, differenceInDays, parseISO, startOfDay,
   startOfWeek, eachDayOfInterval, isToday, addWeeks, subWeeks, addDays,
 } from "date-fns";
 
@@ -68,7 +68,7 @@ function getTabConfig(mode: HorseIndexMode | null): { overviewLabel: string; sho
 function ModeBadge({ mode }: { mode: HorseIndexMode | null }) {
   if (!mode) return null;
   const labels: Record<HorseIndexMode, { label: string; color: string }> = {
-    IC:  { label: "Compétition intensive", color: "bg-purple-100 text-purple-700" },
+    IC:  { label: "Compétition intensive", color: "bg-orange-light text-orange" },
     ICr: { label: "Croissance",   color: "bg-blue-100 text-blue-700" },
     IE:  { label: "Équilibre",    color: "bg-green-100 text-green-700" },
     IP:  { label: "Rééducation",  color: "bg-amber-100 text-amber-700" },
@@ -558,7 +558,7 @@ export default function TrainingTabs({ horseId, horseName, horseBirthYear, sessi
   const showReminder = !reminderDismissed && !!todayPlanned && new Date().getHours() >= 18;
 
   const daysUntilCompetition = nextCompetition
-    ? differenceInDays(parseISO(nextCompetition.date), new Date())
+    ? differenceInDays(startOfDay(parseISO(nextCompetition.date)), startOfDay(new Date()))
     : null;
 
   const { overviewLabel, showPlanTab } = getTabConfig(horseMode);
@@ -814,13 +814,13 @@ export default function TrainingTabs({ horseId, horseName, horseBirthYear, sessi
         {showReminder && (
           <div className="mb-2 flex items-center gap-2 px-3 py-2 bg-orange-light rounded-lg">
             <span className="text-xs text-orange font-medium flex-1 leading-snug">
-              Séance de <strong>{todayPlanned!.type}</strong> prévue aujourd&apos;hui — non loggée.
+              Séance de <strong>{TRAINING_TYPE_LABELS[todayPlanned!.type] || todayPlanned!.type}</strong> prévue aujourd&apos;hui — non enregistrée.
             </span>
             <button
               onClick={() => { setAddOpen(true); setReminderDismissed(true); }}
               className="text-xs font-bold text-orange underline whitespace-nowrap"
             >
-              Logger →
+              Enregistrer →
             </button>
             <button onClick={() => setReminderDismissed(true)} className="text-gray-400 flex-shrink-0">
               <X className="h-3.5 w-3.5" />

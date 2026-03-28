@@ -778,7 +778,7 @@ export default async function DashboardPage({
                       href={`/horses/${horse.id}/training`}
                       className="text-xs font-semibold text-orange hover:underline"
                     >
-                      Logger une séance →
+                      Enregistrer une séance →
                     </Link>
                     <Link
                       href={`/horses/${horse.id}/health`}
@@ -1340,7 +1340,7 @@ export default async function DashboardPage({
     <div>
       <div className="flex items-center justify-between mb-3">
         <h2 className="font-bold text-black">Mes pensionnaires</h2>
-        <span className="text-xs text-gray-400">{rankedEcurieHorses.length} cheval{rankedEcurieHorses.length > 1 ? "x" : ""}</span>
+        <span className="text-xs text-gray-400">{rankedEcurieHorses.length} cheval{rankedEcurieHorses.length > 1 ? "aux" : ""}</span>
       </div>
       <div className="card divide-y divide-gray-50">
         {rankedEcurieHorses.slice(0, 10).map((horse) => {
@@ -1588,7 +1588,7 @@ export default async function DashboardPage({
 
       {/* ── Alerte vaccins FEI non silençable ─────────────────────── */}
       {vaccinsAlerte.length > 0 && (
-        <div className="rounded-2xl border-2 border-red-400 bg-red-50 p-4 space-y-2">
+        <div className="rounded-2xl bg-red-50 p-4 space-y-2" style={{ boxShadow: "0 0 0 2px #f87171" }}>
           <div className="flex items-center gap-2">
             <span className="text-red-600 font-black text-sm uppercase tracking-wide">⚠ Vaccins FEI requis</span>
           </div>

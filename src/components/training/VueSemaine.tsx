@@ -643,7 +643,7 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
                 <span className="text-2xs font-semibold text-orange">Aujourd&apos;hui</span>
               )}
               {!selectedDayIsToday && selectedDayState === "A_LOGGER" && (
-                <span className="text-2xs font-semibold text-orange">À logger</span>
+                <span className="text-2xs font-semibold text-orange">À enregistrer</span>
               )}
             </div>
             <button
@@ -750,7 +750,7 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
               </button>
               <button
                 onClick={() => openLogModal(selectedDateKey, p)}
-                title="Logger avec détails"
+                title="Enregistrer avec détails"
                 className="p-1.5 hover:bg-orange-light rounded-lg text-gray-300 hover:text-orange transition-colors"
               >
                 <Pencil className="h-3 w-3" />

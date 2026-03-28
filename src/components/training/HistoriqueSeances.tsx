@@ -319,7 +319,7 @@ export default function HistoriqueSeances({ sessions, horseId }: Props) {
           )}
           {s.mode_entree && (
             <p className="text-2xs text-gray-300">
-              {s.mode_entree === "planifie" ? "Issu du programme" : "Loggé directement"}
+              {s.mode_entree === "planifie" ? "Issu du programme" : "Enregistré directement"}
             </p>
           )}
           <MediaGallery

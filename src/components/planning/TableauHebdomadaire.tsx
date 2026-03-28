@@ -345,7 +345,7 @@ function EmptySheet({ horse, date, onClose, onLogNow, onPlan, onQuickMarcheur, i
               onClick={onLogNow}
               className="btn-primary w-full justify-center"
             >
-              Logger maintenant
+              Enregistrer maintenant
             </button>
           )}
 

@@ -75,7 +75,7 @@ export default async function ChevauxPage() {
           <p className="text-sm text-gray-400 mt-0.5">
             {horseList.length === 0
               ? "Aucun cheval enregistré"
-              : `${horseList.length} cheval${horseList.length > 1 ? "x" : ""}`}
+              : `${horseList.length} cheval${horseList.length > 1 ? "aux" : ""}`}
           </p>
         </div>
         <Link href="/horses/new" className="btn-primary">
@@ -131,7 +131,7 @@ export default async function ChevauxPage() {
                   {score && (
                     <div className="text-right flex-shrink-0">
                       <div className="flex items-center gap-1 justify-end">
-                        <Star className="h-3.5 w-3.5 text-orange" />
+                        <Star className="h-3.5 w-3.5 text-orange fill-orange" />
                         <span className="font-black text-black text-lg">{score}</span>
                       </div>
                       <span className="text-2xs text-gray-400">Horse Index</span>

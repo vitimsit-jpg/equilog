@@ -249,7 +249,7 @@ export default function WeatherWidget({ horses, ecurie }: Props) {
                 </p>
               ))}
               {recos.length > 2 && (
-                <p className="text-xs text-gray-400">{recos.length - 2} autre{recos.length - 2 > 1 ? "s" : ""} cheval{recos.length - 2 > 1 ? "x" : ""} →</p>
+                <p className="text-xs text-gray-400">{recos.length - 2} autre{recos.length - 2 > 1 ? "s" : ""} cheval{recos.length - 2 > 1 ? "aux" : ""} →</p>
               )}
             </div>
           )}

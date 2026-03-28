@@ -149,7 +149,7 @@ export default async function DocumentsPage({ params }: Props) {
           </div>
           <p className="font-semibold text-black text-sm">Aucun document</p>
           <p className="text-xs text-gray-400 max-w-xs leading-relaxed">
-            Les fichiers uploadés depuis les onglets Santé et Budget apparaîtront ici.
+            Les fichiers ajoutés depuis les onglets Santé et Budget apparaîtront ici.
           </p>
         </div>
       ) : (

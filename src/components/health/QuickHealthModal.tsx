@@ -18,7 +18,7 @@ const HEALTH_ITEMS: { type: HealthType; emoji: string; label: string }[] = [
   { type: "dentiste",    emoji: "🦷", label: "Dentiste" },
   { type: "osteo",       emoji: "🤝", label: "Ostéo" },
   { type: "veterinaire", emoji: "🏥", label: "Vétérinaire" },
-  { type: "masseuse",    emoji: "💆", label: "Masseuse" },
+  { type: "masseuse",    emoji: "🤲", label: "Masseuse" },
   { type: "autre",       emoji: "📋", label: "Autre" },
 ];
 
@@ -130,7 +130,7 @@ export default function QuickHealthModal({ open, onClose, horseId, onSaved, defa
   const showDetailLink = selectedType && TYPES_WITH_DETAIL.includes(selectedType);
 
   return (
-    <Modal open={open} onClose={handleClose} title={mode === "detail" ? "Logger un soin — Détails" : "Logger un soin"}>
+    <Modal open={open} onClose={handleClose} title={mode === "detail" ? "Enregistrer un soin — Détails" : "Enregistrer un soin"}>
       {mode === "detail" ? (
         <HealthEventForm
           horseId={horseId}

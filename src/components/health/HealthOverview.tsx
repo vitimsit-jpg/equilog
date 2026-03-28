@@ -23,7 +23,7 @@ const MANDATORY_CATEGORIES: CategoryConfig[] = [
 
 const COMFORT_CATEGORIES: CategoryConfig[] = [
   { type: "osteo", label: "Ostéopathie", emoji: "🤲", defaultInterval: 180 },
-  { type: "masseuse", label: "Masseuse", emoji: "💆", defaultInterval: 90 },
+  { type: "masseuse", label: "Masseuse", emoji: "🤲", defaultInterval: 90 },
   { type: "autre", label: "Autre", emoji: "📋", defaultInterval: null },
 ];
 

@@ -156,7 +156,7 @@ export default function MobileBottomNav({ horses, overdueByHorse = {}, userId }:
                   <Dumbbell className="h-6 w-6 text-white" />
                 </div>
                 <div>
-                  <p className="font-bold text-black text-sm">Logger une séance</p>
+                  <p className="font-bold text-black text-sm">Enregistrer une séance</p>
                   <p className="text-xs text-gray-500 mt-0.5">Enregistrer un entraînement</p>
                 </div>
               </button>
@@ -166,10 +166,10 @@ export default function MobileBottomNav({ horses, overdueByHorse = {}, userId }:
                 className="w-full flex items-center gap-4 p-4 rounded-2xl bg-gray-50 border-2 border-gray-100 hover:border-gray-300 transition-all text-left disabled:opacity-40"
               >
                 <div className="w-12 h-12 rounded-xl bg-gray-200 flex items-center justify-center flex-shrink-0">
-                  <Heart className="h-6 w-6 text-gray-500" />
+                  <Heart className="h-6 w-6 text-gray-400 fill-gray-400" />
                 </div>
                 <div>
-                  <p className="font-bold text-black text-sm">Logger un soin</p>
+                  <p className="font-bold text-black text-sm">Enregistrer un soin</p>
                   <p className="text-xs text-gray-500 mt-0.5">Vaccin, vétérinaire, ferrage…</p>
                 </div>
               </button>
@@ -178,7 +178,7 @@ export default function MobileBottomNav({ horses, overdueByHorse = {}, userId }:
                   <User className="h-6 w-6 text-white" />
                 </div>
                 <div>
-                  <p className="font-bold text-black text-sm">Logger mon état</p>
+                  <p className="font-bold text-black text-sm">Enregistrer mon état</p>
                   <p className="text-xs text-gray-500 mt-0.5">Forme, fatigue, douleurs...</p>
                 </div>
               </button>

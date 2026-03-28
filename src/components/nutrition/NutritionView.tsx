@@ -57,6 +57,8 @@ export default function NutritionView({ horseId, horseName, nutrition, history, 
   const [editing, setEditing] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showConsent, setShowConsent] = useState(false);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({ fibres: true, herbe: true, granules: true, complements: true });
+  const toggleSection = (key: string) => setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
   const migrationToastShown = useRef(false);
 
   useEffect(() => {
@@ -130,113 +132,135 @@ export default function NutritionView({ horseId, horseName, nutrition, history, 
 
       {/* ── Fibres ── */}
       {nutrition.fibres.length > 0 && (
-        <div className="card p-4 space-y-3">
-          <div className="flex items-center gap-2">
-            <span className="text-lg">🌾</span>
-            <h3 className="text-sm font-bold text-black">Fibres</h3>
-          </div>
-          <div className="space-y-2">
-            {nutrition.fibres.map((f) => (
-              <div key={f.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
-                <span className="text-sm font-semibold text-black">{FIBRE_LABELS[f.type] ?? f.type}</span>
-                <span className="text-sm text-gray-500">
-                  {f.mode === "volonte"
-                    ? "À volonté"
-                    : f.distributions_par_jour
-                    ? DISTRIB_LABELS[f.distributions_par_jour]
-                    : f.quantite_kg
-                    ? `${f.quantite_kg} kg`
-                    : "—"}
-                </span>
-              </div>
-            ))}
-          </div>
+        <div className="card p-0 overflow-hidden">
+          <button onClick={() => toggleSection("fibres")} className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">🌾</span>
+              <h3 className="text-sm font-bold text-black">Fibres</h3>
+              <span className="text-2xs text-gray-400">{nutrition.fibres.length} type{nutrition.fibres.length > 1 ? "s" : ""}</span>
+            </div>
+            {expanded.fibres ? <ChevronDown className="h-4 w-4 text-gray-300" /> : <ChevronRight className="h-4 w-4 text-gray-300" />}
+          </button>
+          {expanded.fibres && (
+            <div className="px-4 pb-3 space-y-2 border-t border-gray-50">
+              {nutrition.fibres.map((f) => (
+                <div key={f.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+                  <span className="text-sm font-semibold text-black">{FIBRE_LABELS[f.type] ?? f.type}</span>
+                  <span className="text-sm text-gray-500">
+                    {f.mode === "volonte"
+                      ? "À volonté"
+                      : f.distributions_par_jour
+                      ? DISTRIB_LABELS[f.distributions_par_jour]
+                      : f.quantite_kg
+                      ? `${f.quantite_kg} kg`
+                      : "—"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
       {/* ── Herbe ── */}
-      <div className="card p-4">
-        <div className="flex items-center justify-between">
+      <div className="card p-0 overflow-hidden">
+        <button onClick={() => toggleSection("herbe")} className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors">
           <div className="flex items-center gap-2">
             <span className="text-lg">🌿</span>
             <h3 className="text-sm font-bold text-black">Herbe / Pâture</h3>
+            <span className="text-2xs text-gray-400">{nutrition.herbe.actif ? "Oui" : "Non"}</span>
           </div>
-          <span className="text-sm text-gray-500">
-            {nutrition.herbe.actif ? "Oui" : "Non"}
-          </span>
-        </div>
+          {expanded.herbe ? <ChevronDown className="h-4 w-4 text-gray-300" /> : <ChevronRight className="h-4 w-4 text-gray-300" />}
+        </button>
+        {expanded.herbe && nutrition.herbe.actif && nutrition.herbe.heures_par_jour && (
+          <div className="px-4 pb-3 border-t border-gray-50">
+            <p className="text-sm text-gray-500 py-2">{nutrition.herbe.heures_par_jour}h par jour</p>
+          </div>
+        )}
       </div>
 
       {/* ── Granulés ── */}
       {nutrition.granules.length > 0 && (
-        <div className="card p-4 space-y-3">
-          <div className="flex items-center gap-2">
-            <span className="text-lg">🥣</span>
-            <h3 className="text-sm font-bold text-black">Granulés</h3>
-          </div>
-          <div className="space-y-3">
-            {nutrition.granules.map((g) => (
-              <div key={g.id} className="border-b border-gray-50 last:border-0 pb-3 last:pb-0">
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-sm font-bold text-black">{g.nom || "—"}</span>
-                  <span className="text-2xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
-                    {GRANULE_LABELS[g.type] || g.type}
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {g.repas.map((r, idx) => (
-                    <span key={idx} className="text-xs text-gray-500 bg-gray-50 border border-gray-100 px-2 py-1 rounded-lg">
-                      {HORAIRE_LABELS[r.horaire]} — {r.quantite_l}L
+        <div className="card p-0 overflow-hidden">
+          <button onClick={() => toggleSection("granules")} className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">🥣</span>
+              <h3 className="text-sm font-bold text-black">Granulés</h3>
+              <span className="text-2xs text-gray-400">{nutrition.granules.length} produit{nutrition.granules.length > 1 ? "s" : ""}</span>
+            </div>
+            {expanded.granules ? <ChevronDown className="h-4 w-4 text-gray-300" /> : <ChevronRight className="h-4 w-4 text-gray-300" />}
+          </button>
+          {expanded.granules && (
+            <div className="px-4 pb-3 space-y-3 border-t border-gray-50">
+              {nutrition.granules.map((g) => (
+                <div key={g.id} className="border-b border-gray-50 last:border-0 pb-3 last:pb-0 pt-3 first:pt-0">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-sm font-bold text-black">{g.nom || "—"}</span>
+                    <span className="text-2xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+                      {GRANULE_LABELS[g.type] || g.type}
                     </span>
-                  ))}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {g.repas.map((r, idx) => (
+                      <span key={idx} className="text-xs text-gray-500 bg-gray-50 border border-gray-100 px-2 py-1 rounded-lg">
+                        {HORAIRE_LABELS[r.horaire]} — {r.quantite_l}L
+                      </span>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
       {/* ── Compléments ── */}
       {nutrition.complements.length > 0 && (
-        <div className="card p-4 space-y-3">
-          <div className="flex items-center gap-2">
-            <span className="text-lg">💊</span>
-            <h3 className="text-sm font-bold text-black">Compléments</h3>
-          </div>
-          <div className="space-y-3">
-            {nutrition.complements.map((c) => {
-              const badge = cureBadge(c);
-              return (
-                <div key={c.id} className="border-b border-gray-50 last:border-0 pb-3 last:pb-0">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-black truncate">{c.nom || "—"}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        {[FORME_LABELS[c.forme], c.quantite ? `${c.quantite} ${c.unite}` : null, FREQ_LABELS[c.frequence], c.moment_prise ? MOMENT_LABELS[c.moment_prise] : null]
-                          .filter(Boolean).join(" · ")}
-                      </p>
-                    </div>
-                    {badge && (
-                      <span className={`flex-shrink-0 text-2xs font-semibold px-2 py-0.5 rounded-full ${
-                        badge === "Terminée"
-                          ? "bg-gray-100 text-gray-400"
-                          : "bg-orange-light text-orange"
-                      }`}>
-                        {badge}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          <button
-            onClick={() => setEditing(true)}
-            className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border border-dashed border-gray-200 text-xs font-semibold text-gray-400 hover:border-orange hover:text-orange transition-colors"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            Ajouter un complément
+        <div className="card p-0 overflow-hidden">
+          <button onClick={() => toggleSection("complements")} className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">💊</span>
+              <h3 className="text-sm font-bold text-black">Compléments</h3>
+              <span className="text-2xs text-gray-400">{nutrition.complements.length} produit{nutrition.complements.length > 1 ? "s" : ""}</span>
+            </div>
+            {expanded.complements ? <ChevronDown className="h-4 w-4 text-gray-300" /> : <ChevronRight className="h-4 w-4 text-gray-300" />}
           </button>
+          {expanded.complements && (
+            <div className="px-4 pb-3 space-y-3 border-t border-gray-50">
+              {nutrition.complements.map((c) => {
+                const badge = cureBadge(c);
+                return (
+                  <div key={c.id} className="border-b border-gray-50 last:border-0 pb-3 last:pb-0 pt-3 first:pt-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-black truncate">{c.nom || "—"}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          {[FORME_LABELS[c.forme], c.quantite ? `${c.quantite} ${c.unite}` : null, FREQ_LABELS[c.frequence], c.moment_prise ? MOMENT_LABELS[c.moment_prise] : null]
+                            .filter(Boolean).join(" · ")}
+                        </p>
+                      </div>
+                      {badge && (
+                        <span className={`flex-shrink-0 text-2xs font-semibold px-2 py-0.5 rounded-full ${
+                          badge === "Terminée"
+                            ? "bg-gray-100 text-gray-400"
+                            : "bg-orange-light text-orange"
+                        }`}>
+                          {badge}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+              <button
+                onClick={() => setEditing(true)}
+                className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border border-dashed border-gray-200 text-xs font-semibold text-gray-400 hover:border-orange hover:text-orange transition-colors"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Ajouter un complément
+              </button>
+            </div>
+          )}
         </div>
       )}
 

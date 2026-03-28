@@ -13,7 +13,7 @@ export default function CalibrationBadge({ daysIn }: Props) {
   return (
     <div className="relative flex items-center gap-1">
       <span className="text-2xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
-        En calibrage J+{daysIn}/30
+        Calibrage en cours · encore {30 - daysIn} jour{30 - daysIn > 1 ? "s" : ""}
       </span>
       <button
         type="button"
@@ -35,7 +35,7 @@ export default function CalibrationBadge({ daysIn }: Props) {
               </button>
             </div>
             <p className="text-gray-300">
-              Le score s&apos;affine sur 30 jours au fur et à mesure que vous enregistrez des séances et des soins. Plus vous loggez, plus l&apos;index est précis.
+              Le score s&apos;affine sur 30 jours au fur et à mesure que vous enregistrez des séances et des soins. Plus vous enregistrez, plus l&apos;index est précis.
             </p>
             {/* Tooltip caret */}
             <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-black" />

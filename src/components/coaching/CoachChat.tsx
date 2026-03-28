@@ -35,10 +35,29 @@ export default function CoachChat({ horseId, horseName, hasRecentCompetition }: 
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
+  const [buttonVisible, setButtonVisible] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const lastScrollY = useRef(0);
+  const scrollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => { setMounted(true); }, []);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentY = window.scrollY;
+      if (currentY > lastScrollY.current + 10) {
+        setButtonVisible(false);
+      } else if (currentY < lastScrollY.current - 10) {
+        setButtonVisible(true);
+      }
+      lastScrollY.current = currentY;
+      if (scrollTimer.current) clearTimeout(scrollTimer.current);
+      scrollTimer.current = setTimeout(() => setButtonVisible(true), 800);
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => { window.removeEventListener("scroll", handleScroll); if (scrollTimer.current) clearTimeout(scrollTimer.current); };
+  }, []);
 
   const suggestions = hasRecentCompetition
     ? [...SUGGESTIONS.after_competition, ...SUGGESTIONS.default.slice(0, 3)]
@@ -112,7 +131,8 @@ export default function CoachChat({ horseId, horseName, hasRecentCompetition }: 
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="fixed bottom-20 right-4 md:bottom-6 md:right-6 z-50 flex items-center gap-2 bg-black text-white px-4 py-3 rounded-2xl shadow-lg hover:bg-gray-900 transition-all hover:scale-105 animate-fade-in"
+          className={`fixed bottom-20 right-4 md:bottom-6 md:right-6 z-50 flex items-center gap-2 bg-black text-white px-4 py-3 rounded-2xl shadow-lg hover:bg-gray-900 transition-all hover:scale-105 ${buttonVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"}`}
+          style={{ transition: "opacity 0.2s, transform 0.2s" }}
         >
           <Sparkles className="h-4 w-4 text-orange" />
           <span className="text-sm font-bold">Coach IA</span>

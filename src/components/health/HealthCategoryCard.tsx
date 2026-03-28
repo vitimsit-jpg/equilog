@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 const EMPTY_STATE_TIPS: Partial<Record<string, string>> = {
   dentiste: "Un bilan dentaire annuel pour une mastication optimale 🦷",
   osteo: "Une séance après l'hiver pour relancer la saison en souplesse 🤲",
-  masseuse: "Idéal après un effort intense ou une longue période de repos 💆",
+  masseuse: "Idéal après un effort intense ou une longue période de repos 🤲",
   vaccin: "La prévention, premier soin de votre cheval 💉",
   vermifuge: "Un vermifuge régulier, ça change tout pour l'intestin 🌿",
   ferrage: "Le suivi du pied, base de tout le travail 🔨",

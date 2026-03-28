@@ -27,7 +27,7 @@ export default function ChevauxQuickAdd({ horse }: Props) {
         className="flex items-center justify-center gap-1.5 py-3 text-xs font-semibold text-orange hover:bg-orange-light transition-colors"
       >
         <Plus className="h-3.5 w-3.5" />
-        Logger
+        Enregistrer
       </button>
 
       {open && (

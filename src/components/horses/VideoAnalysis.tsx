@@ -483,10 +483,11 @@ export default function VideoAnalysis({ horse, initialHistory = [], userId }: { 
         <div onDrop={handleDrop} onDragOver={(e) => e.preventDefault()}
           className="rounded-2xl border-2 border-dashed border-gray-200 py-10 px-6 flex flex-col items-center gap-5">
           <div className="flex gap-3 w-full max-w-xs">
-            <button onClick={() => cameraRef.current?.click()}
-              className="flex-1 flex flex-col items-center gap-2 py-4 rounded-xl bg-black text-white font-semibold text-sm hover:bg-gray-900 transition-colors">
+            <button disabled
+              className="flex-1 flex flex-col items-center gap-2 py-4 rounded-xl bg-gray-100 text-gray-400 font-semibold text-sm cursor-not-allowed opacity-50 relative">
               <Camera className="h-5 w-5" />
               Filmer
+              <span className="absolute -top-1.5 -right-1.5 text-2xs bg-gray-200 text-gray-400 px-1.5 py-0.5 rounded-full font-medium">Bientôt</span>
             </button>
             <button onClick={() => fileRef.current?.click()}
               className="flex-1 flex flex-col items-center gap-2 py-4 rounded-xl bg-gray-100 text-black font-semibold text-sm hover:bg-gray-200 transition-colors">

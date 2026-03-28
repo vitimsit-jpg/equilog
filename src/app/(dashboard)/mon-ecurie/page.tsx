@@ -149,7 +149,7 @@ export default async function MonEcuriePage() {
           <h1 className="text-2xl font-black text-black">Mon Écurie</h1>
           <p className="text-sm text-gray-400 mt-0.5">
             {ecurieName ? ecurieName : "Tableau de bord gérant"}
-            {" · "}{myHorses.length} cheval{myHorses.length > 1 ? "x" : ""}
+            {" · "}{myHorses.length} cheval{myHorses.length > 1 ? "aux" : ""}
             {(ecurieHorses || []).length > 0 && ` + ${(ecurieHorses || []).length} pensionnaire${(ecurieHorses || []).length > 1 ? "s" : ""}`}
           </p>
         </div>

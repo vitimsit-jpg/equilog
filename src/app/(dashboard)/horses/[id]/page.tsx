@@ -247,6 +247,14 @@ export default async function HorsePage({ params }: Props) {
               </div>
             )}
           </>
+        ) : horseMode === "IS" ? (
+          <div className="text-center py-6 space-y-2">
+            <div className="text-4xl mb-1">🌿</div>
+            <p className="text-sm font-bold text-gray-600">Mode retraite</p>
+            <p className="text-2xs text-gray-400 max-w-[180px] mx-auto leading-relaxed">
+              Le Horse Index n&apos;est pas calculé pour les chevaux en retraite.
+            </p>
+          </div>
         ) : (
           <div className="text-center py-6 space-y-2">
             <div className="text-5xl font-black text-gray-300 mb-1">—</div>

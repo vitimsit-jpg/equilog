@@ -6,7 +6,7 @@ import { fr } from "date-fns/locale";
 import { Flame, Target, Users, Calendar, CheckCircle2 } from "lucide-react";
 
 const TYPE_CONFIG: Record<string, { label: string; emoji: string; color: string }> = {
-  volume:     { label: "Volume",     emoji: "💪", color: "bg-blue-50 text-blue-700" },
+  volume:     { label: "Volume",     emoji: "💪", color: "bg-orange-light text-orange" },
   regularite: { label: "Régularité", emoji: "🔥", color: "bg-orange-50 text-orange-700" },
   discipline: { label: "Discipline", emoji: "🎯", color: "bg-purple-50 text-purple-700" },
   collectif:  { label: "Collectif",  emoji: "👥", color: "bg-green-50 text-green-700" },

@@ -237,7 +237,7 @@ export async function sendWeeklySummary(p: WeeklySummaryParams) {
       </div>
       <div style="flex:1;background:#f5fff8;border-radius:10px;padding:16px;text-align:center;">
         <p style="margin:0;font-size:28px;font-weight:700;color:#22c55e;">${p.horses.length}</p>
-        <p style="margin:4px 0 0;font-size:12px;color:#999;text-transform:uppercase;letter-spacing:0.5px;">cheval${p.horses.length > 1 ? "x" : ""}</p>
+        <p style="margin:4px 0 0;font-size:12px;color:#999;text-transform:uppercase;letter-spacing:0.5px;">cheval${p.horses.length > 1 ? "aux" : ""}</p>
       </div>
     </div>
 

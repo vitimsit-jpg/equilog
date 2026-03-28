@@ -187,10 +187,11 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
     const d = parseISO(p.date);
     return d >= weekStart && d <= weekEnd && p.status === "planned";
   });
-  const weekMinutes = weekSessionsList.reduce((acc, s) => acc + s.duration_min, 0);
-  const completionDenom = weekSessionsList.length + weekPlannedList.length;
+  const weekMainSessionsList = weekSessionsList.filter((s) => !s.est_complement && s.type !== "marcheur" && s.type !== "paddock");
+  const weekMinutes = weekMainSessionsList.reduce((acc, s) => acc + s.duration_min, 0);
+  const completionDenom = weekMainSessionsList.length + weekPlannedList.length;
   const completion = completionDenom > 0
-    ? Math.round((weekSessionsList.length / completionDenom) * 100)
+    ? Math.round((weekMainSessionsList.length / completionDenom) * 100)
     : null;
 
   const prevWeekStart = subWeeks(weekStart, 1);
@@ -205,6 +206,8 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
   });
   const canCopyPrev = isWeekFutureOrCurrent && !currentWeekHasPlanned && prevWeekPlanned.length > 0;
   const hasEverPlanned = plannedSessions.length > 0;
+  // Considérer aussi les sessions loggées (incluant paddock) pour masquer l'état first-use
+  const hasEverAnyActivity = hasEverPlanned || sessions.length > 0;
 
   // ── Presence circle helper ────────────────────────────────────────
   const getPresence = (dateKey: string) => {
@@ -589,10 +592,10 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
       </div>
 
       {/* ── Bande résumé semaine (~32px) ──────────────────────────── */}
-      {(weekSessionsList.length > 0 || weekPlannedList.length > 0) && (
+      {(weekMainSessionsList.length > 0 || weekPlannedList.length > 0) && (
         <div className="flex items-center gap-3 px-3 py-2 rounded-xl bg-beige border border-gray-100 text-xs">
           <span className="font-semibold text-black">
-            {weekSessionsList.filter(s => !s.est_complement && s.type !== "marcheur" && s.type !== "paddock").length} séance{weekSessionsList.filter(s => !s.est_complement && s.type !== "marcheur" && s.type !== "paddock").length !== 1 ? "s" : ""}
+            {weekMainSessionsList.length} séance{weekMainSessionsList.length !== 1 ? "s" : ""}
           </span>
           {weekMinutes > 0 && (
             <span className="text-gray-500">
@@ -678,7 +681,7 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
         </div>
 
         {/* First-use empty state */}
-        {!hasEverPlanned && isWeekFutureOrCurrent && (
+        {!hasEverAnyActivity && isWeekFutureOrCurrent && (
           <div className="text-center py-8">
             <div className="text-3xl mb-3">📅</div>
             <p className="text-sm font-bold text-black mb-1">Planifiez votre programme</p>
@@ -705,8 +708,8 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
           </div>
         )}
 
-        {/* Day content — REPOS empty */}
-        {hasEverPlanned && !hasAnything && selectedDayMainSessions.length === 0 && (
+        {/* Day content — REPOS empty (seulement si aucun complément non plus) */}
+        {hasEverAnyActivity && !hasAnything && selectedDayMainSessions.length === 0 && selectedDayComplements.length === 0 && (
           <div className="text-center py-6">
             <p className="text-sm text-gray-300 mb-3">Repos — rien de prévu</p>
             <button

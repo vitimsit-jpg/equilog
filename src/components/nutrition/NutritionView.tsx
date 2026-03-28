@@ -172,9 +172,11 @@ export default function NutritionView({ horseId, horseName, nutrition, history, 
           </div>
           {expanded.herbe ? <ChevronDown className="h-4 w-4 text-gray-300" /> : <ChevronRight className="h-4 w-4 text-gray-300" />}
         </button>
-        {expanded.herbe && nutrition.herbe.actif && nutrition.herbe.heures_par_jour && (
+        {expanded.herbe && nutrition.herbe.actif && nutrition.herbe.heures && (
           <div className="px-4 pb-3 border-t border-gray-50">
-            <p className="text-sm text-gray-500 py-2">{nutrition.herbe.heures_par_jour}h par jour</p>
+            <p className="text-sm text-gray-500 py-2">
+              {nutrition.herbe.heures === "journee" ? "Toute la journée" : `${nutrition.herbe.heures}h par jour`}
+            </p>
           </div>
         )}
       </div>

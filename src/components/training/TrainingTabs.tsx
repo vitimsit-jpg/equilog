@@ -17,6 +17,7 @@ import RecoveryJournalTab from "./RecoveryJournalTab";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
+import { TRAINING_TYPE_LABELS } from "@/lib/utils";
 import { useRidesHorse } from "@/hooks/useRidesHorse";
 import {
   format, differenceInDays, parseISO, startOfDay,

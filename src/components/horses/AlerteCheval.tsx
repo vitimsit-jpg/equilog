@@ -56,7 +56,8 @@ export default function AlerteCheval({ horseId, horseName, initialAlerts }: Prop
   };
 
   const resolve = async (id: string) => {
-    await supabase.from("horse_alerts").update({ resolved: true }).eq("id", id);
+    const { error } = await supabase.from("horse_alerts").update({ resolved: true }).eq("id", id);
+    if (error) { toast.error("Erreur"); return; }
     setAlerts((prev) => prev.map((a) => a.id === id ? { ...a, resolved: true } : a));
     toast.success("Signalement résolu");
   };

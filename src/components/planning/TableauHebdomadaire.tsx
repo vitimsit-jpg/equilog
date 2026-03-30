@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import {
   startOfWeek,
   eachDayOfInterval,
@@ -10,9 +10,21 @@ import {
   isBefore,
   startOfDay,
   addDays,
+  addMonths,
+  startOfMonth,
+  isSameMonth,
 } from "date-fns";
 import { fr } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Plus, Check, Trash2, X } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  Check,
+  Trash2,
+  X,
+  CalendarDays,
+  LayoutGrid,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
@@ -51,6 +63,8 @@ interface Props {
   profileType: ProfileType | null;
 }
 
+type ViewMode = "semaine" | "mois";
+
 type CellSheet =
   | { kind: "empty"; horse: HorseRow; date: Date }
   | { kind: "planned"; horse: HorseRow; date: Date; planned: TrainingPlannedSession }
@@ -62,6 +76,26 @@ function getWeekDays(weekOffset: number): Date[] {
   const base = addWeeks(new Date(), weekOffset);
   const start = startOfWeek(base, { weekStartsOn: 1 });
   return eachDayOfInterval({ start, end: addDays(start, 6) });
+}
+
+function getMonthGrid(monthOffset: number): Date[][] {
+  const baseDate = addMonths(new Date(), monthOffset);
+  const monthStart = startOfMonth(baseDate);
+  const gridStart = startOfWeek(monthStart, { weekStartsOn: 1 });
+  const weeks: Date[][] = [];
+  let current = gridStart;
+  for (let w = 0; w < 6; w++) {
+    const week: Date[] = [];
+    for (let d = 0; d < 7; d++) {
+      week.push(current);
+      current = addDays(current, 1);
+    }
+    // Skip last row if it's entirely outside the current month
+    const monthRef = addMonths(new Date(), monthOffset);
+    if (w >= 4 && !week.some((day) => isSameMonth(day, monthRef))) break;
+    weeks.push(week);
+  }
+  return weeks;
 }
 
 function weekLabel(days: Date[]): string {
@@ -77,229 +111,349 @@ const RESTRICTED_MODES: HorseIndexMode[] = ["IR", "IS"];
 
 function isRestricted(mode: HorseIndexMode | null, date: Date): boolean {
   if (!RESTRICTED_MODES.includes(mode as HorseIndexMode)) return false;
-  return !isBefore(startOfDay(date), startOfDay(new Date())); // today or future
+  return !isBefore(startOfDay(date), startOfDay(new Date()));
 }
 
-function getInitials(name: string): string {
-  return name
-    .split(" ")
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
-}
+// ─── Type colors ──────────────────────────────────────────────────────────────
 
-// ─── Badges de mode de vie ────────────────────────────────────────────────────
+type TypeColor = { bg: string; text: string; border: string };
 
-const MODE_BADGE: Record<
-  HorseIndexMode,
-  { bg: string; text: string; label: string }
-> = {
-  IC:  { bg: "bg-orange",       text: "text-white",       label: "IC" },
-  IE:  { bg: "bg-blue-100",     text: "text-blue-700",    label: "IE" },
-  IP:  { bg: "bg-gray-100",     text: "text-gray-500",    label: "IP" },
-  IR:  { bg: "bg-gray-200",     text: "text-gray-500",    label: "IR" },
-  IS:  { bg: "bg-red-100",      text: "text-red-500",     label: "IS" },
-  ICr: { bg: "bg-purple-100",   text: "text-purple-600",  label: "ICr" },
+const TYPE_COLORS: Partial<Record<TrainingType, TypeColor>> = {
+  dressage:               { bg: "bg-blue-100",   text: "text-blue-800",   border: "border-blue-300" },
+  plat:                   { bg: "bg-sky-100",    text: "text-sky-800",    border: "border-sky-300" },
+  cross_entrainement:     { bg: "bg-amber-100",  text: "text-amber-800",  border: "border-amber-300" },
+  balade:                 { bg: "bg-teal-100",   text: "text-teal-800",   border: "border-teal-300" },
+  marcheur:               { bg: "bg-gray-100",   text: "text-gray-500",   border: "border-gray-300" },
+  paddock:                { bg: "bg-lime-100",   text: "text-lime-800",   border: "border-lime-300" },
+  stretching:             { bg: "bg-purple-100", text: "text-purple-800", border: "border-purple-300" },
+  longe:                  { bg: "bg-pink-100",   text: "text-pink-800",   border: "border-pink-300" },
+  longues_renes:          { bg: "bg-indigo-100", text: "text-indigo-800", border: "border-indigo-300" },
+  travail_a_pied:         { bg: "bg-violet-100", text: "text-violet-800", border: "border-violet-300" },
+  trotting:               { bg: "bg-red-100",    text: "text-red-800",    border: "border-red-300" },
+  galop:                  { bg: "bg-red-100",    text: "text-red-800",    border: "border-red-300" },
+  barres_sol:             { bg: "bg-yellow-100", text: "text-yellow-800", border: "border-yellow-300" },
+  cavalettis:             { bg: "bg-yellow-100", text: "text-yellow-800", border: "border-yellow-300" },
+  meca_obstacles:         { bg: "bg-orange-100", text: "text-orange-800", border: "border-orange-300" },
+  obstacles_enchainement: { bg: "bg-orange-100", text: "text-orange-800", border: "border-orange-300" },
+  concours:               { bg: "bg-rose-100",   text: "text-rose-800",   border: "border-rose-300" },
+  autre:                  { bg: "bg-gray-100",   text: "text-gray-500",   border: "border-gray-200" },
 };
 
-// ─── Pastille ─────────────────────────────────────────────────────────────────
+const DEFAULT_TYPE_COLOR: TypeColor = { bg: "bg-gray-100", text: "text-gray-500", border: "border-gray-200" };
 
-interface PastilleConfig {
-  bg: string;
-  text: string;
-  border: string;
-  initials: string;
-  isPhantom: boolean;
-  coachBadge: boolean;
+function getTypeColor(type: TrainingType): TypeColor {
+  return TYPE_COLORS[type] ?? DEFAULT_TYPE_COLOR;
 }
 
-function getPastilleConfig(
-  rider: TrainingRider | null,
-  type: TrainingType,
-  userName: string,
-  isPhantom: boolean
-): PastilleConfig {
-  const initials = getInitials(userName);
+// ─── Horse dot colors (month view) ────────────────────────────────────────────
 
-  if (type === "marcheur" || type === "paddock") {
-    const letter = type === "marcheur" ? "M" : "P";
-    return {
-      bg: isPhantom ? "bg-transparent" : "bg-green-200",
-      text: "text-green-800",
-      border: "border-green-400",
-      initials: letter,
-      isPhantom,
-      coachBadge: false,
-    };
-  }
+const HORSE_DOT_CLASSES = [
+  "bg-orange", "bg-blue-500", "bg-emerald-500",
+  "bg-violet-500", "bg-rose-500", "bg-teal-500", "bg-amber-500",
+];
 
-  if (rider === "owner_with_coach") {
-    return {
-      bg: isPhantom ? "bg-transparent" : "bg-blue-700",
-      text: isPhantom ? "text-blue-700" : "text-white",
-      border: "border-blue-700",
-      initials,
-      isPhantom,
-      coachBadge: true,
-    };
-  }
+// ─── Discipline lookup ────────────────────────────────────────────────────────
 
-  if (rider === "coach") {
-    return {
-      bg: isPhantom ? "bg-transparent" : "bg-orange/30",
-      text: "text-orange-800",
-      border: "border-orange-400",
-      initials: "É",
-      isPhantom,
-      coachBadge: false,
-    };
-  }
+const DISCIPLINE_MAP = new Map(DISCIPLINE_ITEMS.map((d) => [d.type, d]));
 
-  if (rider === "longe") {
-    return {
-      bg: isPhantom ? "bg-transparent" : "bg-orange/30",
-      text: "text-orange-800",
-      border: "border-orange-400",
-      initials: "L",
-      isPhantom,
-      coachBadge: false,
-    };
-  }
-
-  if (rider === "travail_a_pied") {
-    return {
-      bg: isPhantom ? "bg-transparent" : "bg-orange/30",
-      text: "text-orange-800",
-      border: "border-orange-400",
-      initials: "P",
-      isPhantom,
-      coachBadge: false,
-    };
-  }
-
-  // owner ou null → bleu clair
-  return {
-    bg: isPhantom ? "bg-transparent" : "bg-blue-200",
-    text: "text-blue-800",
-    border: "border-blue-400",
-    initials,
-    isPhantom,
-    coachBadge: false,
-  };
+function getTypeEmoji(type: TrainingType): string {
+  return DISCIPLINE_MAP.get(type)?.emoji ?? "✳️";
 }
 
-function Pastille({
-  config,
-}: {
-  config: PastilleConfig;
-}) {
-  const borderClass = config.isPhantom
-    ? `border-2 border-dashed ${config.border}`
-    : "border-0";
+function getTypeLabel(type: TrainingType): string {
+  return DISCIPLINE_MAP.get(type)?.label ?? type.replace(/_/g, " ");
+}
+
+// ─── Mode badge ───────────────────────────────────────────────────────────────
+
+const MODE_BADGE: Record<HorseIndexMode, { bg: string; text: string; label: string }> = {
+  IC:  { bg: "bg-orange",     text: "text-white",      label: "IC" },
+  IE:  { bg: "bg-blue-100",   text: "text-blue-700",   label: "IE" },
+  IP:  { bg: "bg-gray-100",   text: "text-gray-500",   label: "IP" },
+  IR:  { bg: "bg-gray-200",   text: "text-gray-500",   label: "IR" },
+  IS:  { bg: "bg-red-100",    text: "text-red-500",    label: "IS" },
+  ICr: { bg: "bg-purple-100", text: "text-purple-600", label: "ICr" },
+};
+
+// ─── EventCard ────────────────────────────────────────────────────────────────
+
+interface EventCardProps {
+  type: TrainingType;
+  durationMin?: number | null;
+  isPhantom?: boolean;
+  draggable?: boolean;
+  onDragStart?: (e: React.DragEvent) => void;
+}
+
+function EventCard({ type, durationMin, isPhantom, draggable: isDraggable, onDragStart }: EventCardProps) {
+  const color = getTypeColor(type);
+  const emoji = getTypeEmoji(type);
+  const label = getTypeLabel(type);
+  const shortLabel = label.length > 9 ? label.slice(0, 8) + "…" : label;
+
+  const cls = isPhantom
+    ? `flex items-center gap-1 px-1.5 py-[3px] rounded-lg border-2 border-dashed ${color.border} bg-white ${color.text} text-[10px] font-semibold opacity-75 select-none`
+    : `flex items-center gap-1 px-1.5 py-[3px] rounded-lg border ${color.border} ${color.bg} ${color.text} text-[10px] font-semibold select-none`;
 
   return (
-    <div className="relative inline-flex flex-shrink-0">
-      <div
-        className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${config.bg} ${config.text} ${borderClass}`}
-      >
-        {config.initials}
-      </div>
-      {config.coachBadge && (
-        <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-orange text-white text-[8px] font-bold flex items-center justify-center">
-          C
+    <div
+      className={cls}
+      draggable={isDraggable}
+      onDragStart={onDragStart}
+      style={isDraggable ? { cursor: "grab" } : undefined}
+    >
+      <span className="leading-none">{emoji}</span>
+      <span className="truncate leading-none">{shortLabel}</span>
+      {!!durationMin && durationMin > 0 && (
+        <span className="ml-auto text-[9px] font-bold opacity-50 pl-0.5 flex-shrink-0">
+          {durationMin}&apos;
         </span>
       )}
     </div>
   );
 }
 
-// ─── Composant cellule ────────────────────────────────────────────────────────
+// ─── Load bar ─────────────────────────────────────────────────────────────────
+
+function LoadBar({ totalMin }: { totalMin: number }) {
+  if (totalMin === 0) return null;
+  const pct = Math.min(100, (totalMin / 120) * 100);
+  const barClass =
+    totalMin < 45  ? "bg-green-400"  :
+    totalMin < 90  ? "bg-orange"     :
+                     "bg-red-400";
+  return (
+    <div className="w-full h-[3px] mt-1 bg-gray-100 rounded-full overflow-hidden">
+      <div
+        className={`h-full rounded-full transition-all duration-300 ${barClass}`}
+        style={{ width: `${pct}%` }}
+      />
+    </div>
+  );
+}
+
+// ─── Week view cell ───────────────────────────────────────────────────────────
 
 interface CellProps {
   horse: HorseRow;
   date: Date;
   daySessions: TrainingSession[];
   dayPlanned: TrainingPlannedSession[];
-  userName: string;
   onTap: (sheet: CellSheet) => void;
   isTodayCol: boolean;
+  draggedInfo: React.MutableRefObject<{ id: string; horseId: string } | null>;
+  onDropPlanned: (info: { id: string; horseId: string }, targetHorse: HorseRow, targetDate: Date) => void;
 }
 
-function Cell({ horse, date, daySessions, dayPlanned, userName, onTap, isTodayCol }: CellProps) {
+function Cell({
+  horse, date, daySessions, dayPlanned, onTap, isTodayCol,
+  draggedInfo, onDropPlanned,
+}: CellProps) {
+  const [dragOver, setDragOver] = useState(false);
   const isPast = isBefore(startOfDay(date), startOfDay(new Date()));
   const isCurrent = isToday(date);
   const restricted = isRestricted(horse.horse_index_mode, date);
-
-  // Pastilles depuis séances réalisées
-  const donePastilles: PastilleConfig[] = daySessions.map((s) =>
-    getPastilleConfig(s.rider, s.type, userName, false)
-  );
-
-  // Pastilles fantômes = séances planifiées sans linked_session_id
-  const phantomPastilles: PastilleConfig[] = dayPlanned
-    .filter((p) => p.status === "planned" && !p.linked_session_id)
-    .map((p) => getPastilleConfig(p.qui_sen_occupe, p.type, userName, true));
-
-  const allPastilles = [...donePastilles, ...phantomPastilles];
-  const visible = allPastilles.slice(0, 3);
-  const overflow = allPastilles.length - 3;
-
-  const isEmpty = daySessions.length === 0 && dayPlanned.filter((p) => !p.linked_session_id).length === 0;
   const canAct = isCurrent || !isPast;
 
+  const unlinkedPlanned = dayPlanned.filter(
+    (p) => p.status === "planned" && !p.linked_session_id
+  );
+
+  const totalMin =
+    daySessions.reduce((s, x) => s + (x.duration_min ?? 0), 0) +
+    unlinkedPlanned.reduce((s, p) => s + (p.duration_min_target ?? 0), 0);
+
+  const isEmpty = daySessions.length === 0 && unlinkedPlanned.length === 0;
+
   const handleClick = () => {
-    if (isPast && isEmpty) return; // cellule passée vide → pas d'action
-
-    // Cherche d'abord une planned sans linked
-    const unlinkedPlanned = dayPlanned.find(
-      (p) => p.status === "planned" && !p.linked_session_id
-    );
-
-    if (unlinkedPlanned) {
-      onTap({ kind: "planned", horse, date, planned: unlinkedPlanned });
+    if (isPast && isEmpty) return;
+    if (unlinkedPlanned.length > 0) {
+      onTap({ kind: "planned", horse, date, planned: unlinkedPlanned[0] });
       return;
     }
-
-    if (daySessions.length > 0) {
-      // Affichage seulement pour MVP — tap sur pastille done
-      return;
-    }
-
-    if (canAct) {
-      onTap({ kind: "empty", horse, date });
-    }
+    if (daySessions.length > 0) return;
+    if (canAct) onTap({ kind: "empty", horse, date });
   };
 
-  const bgClass = isTodayCol ? "bg-orange/5" : "";
-  const restrictedClass = restricted ? "opacity-50" : "";
+  const handleDragOver = (e: React.DragEvent) => {
+    const info = draggedInfo.current;
+    if (!info || info.horseId !== horse.id) return;
+    if (isPast) return;
+    e.preventDefault();
+    setDragOver(true);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const info = draggedInfo.current;
+    if (!info || info.horseId !== horse.id) return;
+    onDropPlanned(info, horse, date);
+  };
+
+  const bgClass = dragOver
+    ? "bg-blue-50"
+    : isTodayCol
+    ? "bg-orange/5"
+    : "";
 
   return (
     <td
-      className={`px-1 py-2 text-center align-middle ${bgClass} ${restrictedClass}`}
-      style={{ minWidth: "52px" }}
+      className={`px-1 py-1.5 align-top transition-colors ${bgClass} ${restricted ? "opacity-40" : ""}`}
+      style={{ minWidth: "80px" }}
+      onDragOver={handleDragOver}
+      onDragLeave={() => setDragOver(false)}
+      onDrop={handleDrop}
     >
       <div
-        className={`flex flex-wrap gap-1 justify-center items-center min-h-[36px] ${canAct || !isEmpty ? "cursor-pointer" : ""}`}
+        className={`flex flex-col gap-0.5 min-h-[44px] ${(canAct || !isEmpty) ? "cursor-pointer" : ""}`}
         onClick={handleClick}
       >
-        {visible.map((cfg, i) => (
-          <Pastille key={i} config={cfg} />
+        {/* Done sessions */}
+        {daySessions.map((s) => (
+          <EventCard
+            key={s.id}
+            type={s.type}
+            durationMin={s.duration_min}
+          />
         ))}
 
-        {overflow > 0 && (
-          <span className="text-[10px] font-bold text-gray-400 ml-0.5">+{overflow}</span>
-        )}
+        {/* Planned phantom sessions */}
+        {unlinkedPlanned.map((p) => (
+          <EventCard
+            key={p.id}
+            type={p.type}
+            durationMin={p.duration_min_target}
+            isPhantom
+            draggable={!isPast}
+            onDragStart={(e) => {
+              e.stopPropagation();
+              draggedInfo.current = { id: p.id, horseId: horse.id };
+            }}
+          />
+        ))}
 
+        {/* + button when empty */}
         {isEmpty && canAct && !restricted && (
-          <Plus className="h-4 w-4 text-gray-300 hover:text-gray-500 transition-colors" />
+          <div className="flex justify-center items-center h-7">
+            <Plus className="h-3.5 w-3.5 text-gray-300 hover:text-gray-400 transition-colors" />
+          </div>
         )}
 
-        {isEmpty && canAct && restricted && (
-          <span className="text-[10px] text-gray-300">—</span>
-        )}
+        {/* Load bar */}
+        <LoadBar totalMin={totalMin} />
       </div>
     </td>
+  );
+}
+
+// ─── Month view cell ──────────────────────────────────────────────────────────
+
+interface MonthCellProps {
+  date: Date;
+  inMonth: boolean;
+  horses: HorseRow[];
+  filteredHorseId: string | null;
+  sessionsByKey: Map<string, TrainingSession[]>;
+  plannedByKey: Map<string, TrainingPlannedSession[]>;
+  horseColorIdx: Map<string, number>;
+  onTap: (sheet: CellSheet) => void;
+}
+
+function MonthCell({
+  date, inMonth, horses, filteredHorseId,
+  sessionsByKey, plannedByKey, horseColorIdx, onTap,
+}: MonthCellProps) {
+  const dateStr = format(date, "yyyy-MM-dd");
+  const todayDay = isToday(date);
+  const isPast = isBefore(startOfDay(date), startOfDay(new Date()));
+  const isCurrent = isToday(date);
+
+  const displayHorses = filteredHorseId
+    ? horses.filter((h) => h.id === filteredHorseId)
+    : horses;
+
+  type DotInfo = { horseId: string; isPhantom: boolean; horseIdx: number };
+  const dots: DotInfo[] = [];
+  for (const horse of displayHorses) {
+    const key = `${horse.id}|${dateStr}`;
+    const s = sessionsByKey.get(key) ?? [];
+    const p = (plannedByKey.get(key) ?? []).filter(
+      (x) => x.status === "planned" && !x.linked_session_id
+    );
+    const idx = horseColorIdx.get(horse.id) ?? 0;
+    if (s.length > 0) dots.push({ horseId: horse.id, isPhantom: false, horseIdx: idx });
+    else if (p.length > 0) dots.push({ horseId: horse.id, isPhantom: true, horseIdx: idx });
+  }
+
+  const handleClick = () => {
+    if (!inMonth) return;
+    const targetHorse = filteredHorseId
+      ? horses.find((h) => h.id === filteredHorseId) ?? horses[0]
+      : (() => {
+          // prefer horse with activity on this day
+          for (const horse of horses) {
+            const key = `${horse.id}|${dateStr}`;
+            const p = (plannedByKey.get(key) ?? []).filter(
+              (x) => x.status === "planned" && !x.linked_session_id
+            );
+            if (p.length > 0) {
+              onTap({ kind: "planned", horse, date, planned: p[0] });
+              return null;
+            }
+          }
+          return horses[0];
+        })();
+
+    if (!targetHorse) return;
+    if (isCurrent || !isPast) {
+      onTap({ kind: "empty", horse: targetHorse, date });
+    }
+  };
+
+  return (
+    <div
+      onClick={handleClick}
+      className={`flex flex-col p-1.5 rounded-xl min-h-[60px] transition-colors ${
+        !inMonth
+          ? "opacity-25 cursor-default"
+          : todayDay
+          ? "bg-orange/10 cursor-pointer"
+          : "hover:bg-gray-50 cursor-pointer"
+      }`}
+    >
+      <span
+        className={`text-xs font-bold leading-none self-start mb-1 ${
+          todayDay
+            ? "w-5 h-5 rounded-full bg-orange text-white flex items-center justify-center text-[10px]"
+            : inMonth
+            ? "text-gray-700"
+            : "text-gray-300"
+        }`}
+      >
+        {format(date, "d")}
+      </span>
+
+      {dots.length > 0 && (
+        <div className="flex flex-wrap gap-[3px]">
+          {dots.slice(0, 5).map(({ horseId, isPhantom, horseIdx }) => (
+            <span
+              key={horseId}
+              className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                isPhantom
+                  ? "bg-gray-300 opacity-50"
+                  : HORSE_DOT_CLASSES[horseIdx % HORSE_DOT_CLASSES.length]
+              }`}
+            />
+          ))}
+          {dots.length > 5 && (
+            <span className="text-[8px] text-gray-400 font-bold leading-none self-center">
+              +{dots.length - 5}
+            </span>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -315,19 +469,14 @@ interface EmptySheetProps {
   isRestricted: boolean;
 }
 
-function EmptySheet({ horse, date, onClose, onLogNow, onPlan, onQuickMarcheur, isRestricted }: EmptySheetProps) {
+function EmptySheet({ horse, date, onClose, onLogNow, onPlan, onQuickMarcheur, isRestricted: restricted }: EmptySheetProps) {
   const isPast = isBefore(startOfDay(date), startOfDay(new Date()));
   const isCurrent = isToday(date);
   const dateLabel = format(date, "EEEE d MMMM", { locale: fr });
 
   return (
     <>
-      {/* Overlay */}
-      <div
-        className="fixed inset-0 z-[300] bg-black/40 animate-fade-in"
-        onClick={onClose}
-      />
-      {/* Sheet */}
+      <div className="fixed inset-0 z-[300] bg-black/40 animate-fade-in" onClick={onClose} />
       <div className="fixed bottom-0 left-0 right-0 z-[301] bg-white rounded-t-2xl px-5 pt-4 pb-8 animate-slide-up shadow-xl">
         <div className="flex items-center justify-between mb-4">
           <div>
@@ -340,35 +489,23 @@ function EmptySheet({ horse, date, onClose, onLogNow, onPlan, onQuickMarcheur, i
         </div>
 
         <div className="space-y-2">
-          {!isRestricted && (isPast || isCurrent) && (
-            <button
-              onClick={onLogNow}
-              className="btn-primary w-full justify-center"
-            >
+          {!restricted && (isPast || isCurrent) && (
+            <button onClick={onLogNow} className="btn-primary w-full justify-center">
               Enregistrer maintenant
             </button>
           )}
 
-          {!isRestricted && !isPast && !isCurrent && (
-            <button
-              onClick={onPlan}
-              className="btn-primary w-full justify-center"
-            >
+          {!restricted && !isPast && !isCurrent && (
+            <button onClick={onPlan} className="btn-primary w-full justify-center">
               Planifier une séance
             </button>
           )}
 
-          <button
-            onClick={onQuickMarcheur}
-            className="btn-secondary w-full justify-center"
-          >
+          <button onClick={onQuickMarcheur} className="btn-secondary w-full justify-center">
             ⚙️ Marcheur / Liberté
           </button>
 
-          <button
-            onClick={onClose}
-            className="btn-ghost w-full justify-center text-gray-500"
-          >
+          <button onClick={onClose} className="btn-ghost w-full justify-center text-gray-500">
             Annuler
           </button>
         </div>
@@ -390,19 +527,15 @@ interface PlannedSheetProps {
 }
 
 function PlannedSheet({
-  horse,
-  date,
-  planned,
-  onClose,
-  onCheckDone,
-  onCompleteSession,
-  onDeletePlanned,
+  horse, date, planned, onClose, onCheckDone, onCompleteSession, onDeletePlanned,
 }: PlannedSheetProps) {
   const [loading, setLoading] = useState(false);
   const dateLabel = format(date, "EEEE d MMMM", { locale: fr });
   const typeLabel =
     DISCIPLINE_ITEMS.find((d) => d.type === planned.type)?.label ??
     planned.type.replace(/_/g, " ");
+  const typeEmoji = DISCIPLINE_ITEMS.find((d) => d.type === planned.type)?.emoji ?? "✳️";
+  const color = getTypeColor(planned.type);
 
   const handleCheck = async () => {
     setLoading(true);
@@ -418,14 +551,22 @@ function PlannedSheet({
 
   return (
     <>
-      <div
-        className="fixed inset-0 z-[300] bg-black/40 animate-fade-in"
-        onClick={onClose}
-      />
+      <div className="fixed inset-0 z-[300] bg-black/40 animate-fade-in" onClick={onClose} />
       <div className="fixed bottom-0 left-0 right-0 z-[301] bg-white rounded-t-2xl px-5 pt-4 pb-8 animate-slide-up shadow-xl">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="font-bold text-black text-base capitalize">{typeLabel} planifié</h3>
+            <div className="flex items-center gap-2 mb-0.5">
+              <span
+                className={`px-2 py-0.5 rounded-lg text-xs font-semibold border ${color.border} ${color.bg} ${color.text}`}
+              >
+                {typeEmoji} {typeLabel}
+              </span>
+              {planned.duration_min_target && (
+                <span className="text-xs text-gray-400 font-medium">
+                  {planned.duration_min_target} min
+                </span>
+              )}
+            </div>
             <p className="text-sm text-gray-500 capitalize">
               {horse.name} — {dateLabel}
             </p>
@@ -435,10 +576,9 @@ function PlannedSheet({
           </button>
         </div>
 
-        {planned.duration_min_target && (
-          <p className="text-xs text-gray-400 mb-3">
-            Durée cible : {planned.duration_min_target} min
-            {planned.notes && ` · ${planned.notes}`}
+        {planned.notes && (
+          <p className="text-xs text-gray-400 bg-gray-50 rounded-xl px-3 py-2 mb-3 italic">
+            {planned.notes}
           </p>
         )}
 
@@ -452,10 +592,7 @@ function PlannedSheet({
             Cocher Fait
           </button>
 
-          <button
-            onClick={onCompleteSession}
-            className="btn-secondary w-full justify-center"
-          >
+          <button onClick={onCompleteSession} className="btn-secondary w-full justify-center">
             📝 Compléter la séance
           </button>
 
@@ -524,39 +661,37 @@ function PlanModal({ horse, date, onClose, onSaved }: PlanModalProps) {
   };
 
   return (
-    <Modal
-      open
-      onClose={onClose}
-      title={`Planifier — ${horse.name}`}
-    >
+    <Modal open onClose={onClose} title={`Planifier — ${horse.name}`}>
       <div className="space-y-5">
         <p className="text-sm text-gray-500 capitalize">
           {format(date, "EEEE d MMMM yyyy", { locale: fr })}
         </p>
 
-        {/* Type */}
         <div>
           <p className="text-2xs font-bold uppercase tracking-widest text-gray-400 mb-2">Type de travail</p>
           <div className="grid grid-cols-3 gap-2">
-            {DISCIPLINE_ITEMS.map((item) => (
-              <button
-                key={item.type}
-                type="button"
-                onClick={() => setType(type === item.type ? null : item.type)}
-                className={`flex flex-col items-center gap-1 py-3 rounded-xl border-2 text-xs font-semibold min-h-[64px] transition-all ${
-                  type === item.type
-                    ? "border-orange bg-orange-light text-orange"
-                    : "border-gray-100 bg-gray-50 text-gray-600 hover:border-gray-200"
-                }`}
-              >
-                <span className="text-lg">{item.emoji}</span>
-                <span className="leading-tight text-center">{item.label}</span>
-              </button>
-            ))}
+            {DISCIPLINE_ITEMS.map((item) => {
+              const color = getTypeColor(item.type);
+              const isSelected = type === item.type;
+              return (
+                <button
+                  key={item.type}
+                  type="button"
+                  onClick={() => setType(type === item.type ? null : item.type)}
+                  className={`flex flex-col items-center gap-1 py-3 rounded-xl border-2 text-xs font-semibold min-h-[64px] transition-all ${
+                    isSelected
+                      ? `${color.border} ${color.bg} ${color.text}`
+                      : "border-gray-100 bg-gray-50 text-gray-600 hover:border-gray-200"
+                  }`}
+                >
+                  <span className="text-lg">{item.emoji}</span>
+                  <span className="leading-tight text-center">{item.label}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        {/* Durée cible */}
         <div>
           <p className="text-2xs font-bold uppercase tracking-widest text-gray-400 mb-2">Durée cible</p>
           <div className="flex flex-wrap gap-2">
@@ -577,7 +712,6 @@ function PlanModal({ horse, date, onClose, onSaved }: PlanModalProps) {
           </div>
         </div>
 
-        {/* Qui monte */}
         <div>
           <p className="text-2xs font-bold uppercase tracking-widest text-gray-400 mb-2">Qui monte</p>
           <div className="grid grid-cols-3 gap-2">
@@ -599,7 +733,6 @@ function PlanModal({ horse, date, onClose, onSaved }: PlanModalProps) {
           </div>
         </div>
 
-        {/* Notes */}
         <div>
           <p className="text-2xs font-bold uppercase tracking-widest text-gray-400 mb-1">
             Notes <span className="font-normal normal-case text-gray-300">(optionnel)</span>
@@ -638,7 +771,7 @@ export default function TableauHebdomadaire({
   sessions,
   plannedSessions,
   userId,
-  userName,
+  userName: _userName,
   moduleGerant: _moduleGerant,
   moduleCoach: _moduleCoach,
   profileType: _profileType,
@@ -646,7 +779,11 @@ export default function TableauHebdomadaire({
   const router = useRouter();
   const supabase = createClient();
 
+  const [viewMode, setViewMode] = useState<ViewMode>("semaine");
   const [weekOffset, setWeekOffset] = useState(0);
+  const [monthOffset, setMonthOffset] = useState(0);
+  const [filteredHorseIds, setFilteredHorseIds] = useState<Set<string>>(new Set());
+  const [monthFilterHorse, setMonthFilterHorse] = useState<string | null>(null);
   const [cellSheet, setCellSheet] = useState<CellSheet | null>(null);
   const [quickModalOpen, setQuickModalOpen] = useState(false);
   const [quickModalHorse, setQuickModalHorse] = useState<HorseRow | null>(null);
@@ -657,27 +794,86 @@ export default function TableauHebdomadaire({
   } | null>(null);
   const [planModalData, setPlanModalData] = useState<{ horse: HorseRow; date: Date } | null>(null);
 
-  const days = getWeekDays(weekOffset);
+  // Drag-and-drop ref
+  const draggedInfo = useRef<{ id: string; horseId: string } | null>(null);
 
-  // ── Lookup helpers ──────────────────────────────────────────────────────────
+  const days = getWeekDays(weekOffset);
+  const monthGrid = getMonthGrid(monthOffset);
+
+  // ── useMemo lookups ──────────────────────────────────────────────────────
+
+  const sessionsByKey = useMemo(() => {
+    const map = new Map<string, TrainingSession[]>();
+    for (const s of sessions) {
+      const key = `${s.horse_id}|${s.date.slice(0, 10)}`;
+      const existing = map.get(key) ?? [];
+      existing.push(s);
+      map.set(key, existing);
+    }
+    return map;
+  }, [sessions]);
+
+  const plannedByKey = useMemo(() => {
+    const map = new Map<string, TrainingPlannedSession[]>();
+    for (const p of plannedSessions) {
+      const key = `${p.horse_id}|${p.date.slice(0, 10)}`;
+      const existing = map.get(key) ?? [];
+      existing.push(p);
+      map.set(key, existing);
+    }
+    return map;
+  }, [plannedSessions]);
+
+  // Horse color index (stable per horse)
+  const horseColorIdx = useMemo(() => {
+    const map = new Map<string, number>();
+    horses.forEach((h, i) => map.set(h.id, i));
+    return map;
+  }, [horses]);
+
+  // Filtered horses for week view
+  const visibleHorses = useMemo(() => {
+    if (filteredHorseIds.size === 0) return horses;
+    return horses.filter((h) => filteredHorseIds.has(h.id));
+  }, [horses, filteredHorseIds]);
 
   const getSessionsForCell = useCallback(
-    (horseId: string, date: Date): TrainingSession[] => {
-      const dateStr = format(date, "yyyy-MM-dd");
-      return sessions.filter((s) => s.horse_id === horseId && s.date.slice(0, 10) === dateStr);
-    },
-    [sessions]
+    (horseId: string, date: Date): TrainingSession[] =>
+      sessionsByKey.get(`${horseId}|${format(date, "yyyy-MM-dd")}`) ?? [],
+    [sessionsByKey]
   );
 
   const getPlannedForCell = useCallback(
-    (horseId: string, date: Date): TrainingPlannedSession[] => {
-      const dateStr = format(date, "yyyy-MM-dd");
-      return plannedSessions.filter((p) => p.horse_id === horseId && p.date.slice(0, 10) === dateStr);
-    },
-    [plannedSessions]
+    (horseId: string, date: Date): TrainingPlannedSession[] =>
+      plannedByKey.get(`${horseId}|${format(date, "yyyy-MM-dd")}`) ?? [],
+    [plannedByKey]
   );
 
-  // ── Actions cellule vide ────────────────────────────────────────────────────
+  // ── Drag-and-drop handler ────────────────────────────────────────────────
+
+  const handleDropPlanned = useCallback(
+    async (
+      info: { id: string; horseId: string },
+      _targetHorse: HorseRow,
+      targetDate: Date
+    ) => {
+      draggedInfo.current = null;
+      const { error } = await supabase
+        .from("training_planned_sessions")
+        .update({ date: format(targetDate, "yyyy-MM-dd") })
+        .eq("id", info.id);
+
+      if (error) {
+        toast.error("Erreur lors du déplacement");
+        return;
+      }
+      toast.success("Séance déplacée");
+      router.refresh();
+    },
+    [supabase, router]
+  );
+
+  // ── Actions cellule vide ─────────────────────────────────────────────────
 
   const handleLogNow = () => {
     if (cellSheet?.kind !== "empty") return;
@@ -700,7 +896,6 @@ export default function TableauHebdomadaire({
     const isPast = isBefore(startOfDay(date), startOfDay(new Date()));
     const isCurrent = isToday(date);
     const dateStr = format(date, "yyyy-MM-dd");
-
     setCellSheet(null);
 
     if (isPast || isCurrent) {
@@ -733,7 +928,7 @@ export default function TableauHebdomadaire({
     router.refresh();
   };
 
-  // ── Actions validation planned ──────────────────────────────────────────────
+  // ── Actions validation planned ───────────────────────────────────────────
 
   const handleCheckDone = async () => {
     if (cellSheet?.kind !== "planned") return;
@@ -789,12 +984,10 @@ export default function TableauHebdomadaire({
 
   const handleDeletePlanned = async () => {
     if (cellSheet?.kind !== "planned") return;
-    const { planned } = cellSheet;
-
     const { error } = await supabase
       .from("training_planned_sessions")
       .delete()
-      .eq("id", planned.id);
+      .eq("id", cellSheet.planned.id);
 
     if (error) {
       toast.error("Erreur lors de la suppression");
@@ -806,7 +999,7 @@ export default function TableauHebdomadaire({
     router.refresh();
   };
 
-  // ── Badge "À vérifier" — séances planifiées passées non validées ───────────
+  // ── Badge "À vérifier" ───────────────────────────────────────────────────
 
   const todayStr = format(new Date(), "yyyy-MM-dd");
   const unvalidatedByHorse: Record<string, number> = {};
@@ -816,7 +1009,7 @@ export default function TableauHebdomadaire({
     }
   }
 
-  // ── Semaine badge ───────────────────────────────────────────────────────────
+  // ── Week badge ───────────────────────────────────────────────────────────
 
   const weekBadge =
     weekOffset === 0
@@ -825,196 +1018,363 @@ export default function TableauHebdomadaire({
       ? { label: "Historique", cls: "bg-gray-100 text-gray-500" }
       : { label: "Planifié", cls: "bg-blue-100 text-blue-600" };
 
-  // ── Render ──────────────────────────────────────────────────────────────────
+  // ── Month label ──────────────────────────────────────────────────────────
+
+  const monthLabel = format(addMonths(new Date(), monthOffset), "MMMM yyyy", { locale: fr });
+  const monthLabelCap = monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1);
+
+  // ── Toggle horse filter ──────────────────────────────────────────────────
+
+  const toggleHorseFilter = (horseId: string) => {
+    setFilteredHorseIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(horseId)) next.delete(horseId);
+      else next.add(horseId);
+      return next;
+    });
+  };
+
+  // ── Render ───────────────────────────────────────────────────────────────
 
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-black text-black">Tableau de la semaine</h1>
-          <p className="text-sm text-gray-500">Vue multi-chevaux</p>
+      {/* ── Header ────────────────────────────────────────────────────────── */}
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h1 className="text-xl font-black text-black">Planning</h1>
+            <p className="text-sm text-gray-500">Vue multi-chevaux</p>
+          </div>
+
+          {/* View toggle */}
+          <div className="flex items-center bg-gray-100 rounded-xl p-1 gap-1">
+            <button
+              onClick={() => setViewMode("semaine")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                viewMode === "semaine"
+                  ? "bg-white text-black shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              <LayoutGrid className="h-3.5 w-3.5" />
+              Semaine
+            </button>
+            <button
+              onClick={() => setViewMode("mois")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                viewMode === "mois"
+                  ? "bg-white text-black shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              <CalendarDays className="h-3.5 w-3.5" />
+              Mois
+            </button>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${weekBadge.cls}`}>
-            {weekBadge.label}
-          </span>
+        {/* Horse filter chips — week view only, when > 1 horse */}
+        {viewMode === "semaine" && horses.length > 1 && (
+          <div className="flex flex-wrap gap-1.5">
+            <button
+              onClick={() => setFilteredHorseIds(new Set())}
+              className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all ${
+                filteredHorseIds.size === 0
+                  ? "bg-black text-white border-black"
+                  : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
+              }`}
+            >
+              Tous
+            </button>
+            {horses.map((h, i) => {
+              const dotClass = HORSE_DOT_CLASSES[i % HORSE_DOT_CLASSES.length];
+              const active = filteredHorseIds.has(h.id);
+              return (
+                <button
+                  key={h.id}
+                  onClick={() => toggleHorseFilter(h.id)}
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border transition-all ${
+                    active
+                      ? "bg-black text-white border-black"
+                      : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
+                  }`}
+                >
+                  <span className={`w-2 h-2 rounded-full flex-shrink-0 ${active ? "bg-white" : dotClass}`} />
+                  {h.name}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
+        {/* Month horse filter */}
+        {viewMode === "mois" && horses.length > 1 && (
+          <div className="flex flex-wrap gap-1.5">
+            <button
+              onClick={() => setMonthFilterHorse(null)}
+              className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all ${
+                monthFilterHorse === null
+                  ? "bg-black text-white border-black"
+                  : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
+              }`}
+            >
+              Tous
+            </button>
+            {horses.map((h, i) => {
+              const dotClass = HORSE_DOT_CLASSES[i % HORSE_DOT_CLASSES.length];
+              const active = monthFilterHorse === h.id;
+              return (
+                <button
+                  key={h.id}
+                  onClick={() => setMonthFilterHorse(active ? null : h.id)}
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border transition-all ${
+                    active
+                      ? "bg-black text-white border-black"
+                      : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
+                  }`}
+                >
+                  <span className={`w-2 h-2 rounded-full flex-shrink-0 ${active ? "bg-white" : dotClass}`} />
+                  {h.name}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Navigation */}
+        <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1">
             <button
-              onClick={() => setWeekOffset((o) => o - 1)}
+              onClick={() =>
+                viewMode === "semaine"
+                  ? setWeekOffset((o) => o - 1)
+                  : setMonthOffset((o) => o - 1)
+              }
               className="p-1.5 rounded-xl hover:bg-gray-100 text-gray-500 transition-colors"
-              aria-label="Semaine précédente"
+              aria-label="Précédent"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
 
             <span className="text-sm font-semibold text-gray-700 min-w-[160px] text-center">
-              {weekLabel(days)}
+              {viewMode === "semaine" ? weekLabel(days) : monthLabelCap}
             </span>
 
             <button
-              onClick={() => setWeekOffset((o) => o + 1)}
+              onClick={() =>
+                viewMode === "semaine"
+                  ? setWeekOffset((o) => o + 1)
+                  : setMonthOffset((o) => o + 1)
+              }
               className="p-1.5 rounded-xl hover:bg-gray-100 text-gray-500 transition-colors"
-              aria-label="Semaine suivante"
+              aria-label="Suivant"
             >
               <ChevronRight className="h-4 w-4" />
             </button>
           </div>
 
-          {weekOffset !== 0 && (
-            <button
-              onClick={() => setWeekOffset(0)}
-              className="text-xs font-semibold text-orange hover:underline"
-            >
-              Aujourd&apos;hui
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {viewMode === "semaine" && (
+              <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${weekBadge.cls}`}>
+                {weekBadge.label}
+              </span>
+            )}
+            {((viewMode === "semaine" && weekOffset !== 0) ||
+              (viewMode === "mois" && monthOffset !== 0)) && (
+              <button
+                onClick={() =>
+                  viewMode === "semaine" ? setWeekOffset(0) : setMonthOffset(0)
+                }
+                className="text-xs font-semibold text-orange hover:underline"
+              >
+                Aujourd&apos;hui
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Tableau */}
-      <div className="card overflow-hidden p-0">
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse" style={{ minWidth: "500px" }}>
-            <thead>
-              <tr className="border-b border-gray-100">
-                {/* Colonne cheval */}
-                <th
-                  className="sticky left-0 z-10 bg-white px-3 py-2.5 text-left text-2xs font-bold uppercase tracking-widest text-gray-400"
-                  style={{ minWidth: "140px" }}
-                >
-                  Cheval
-                </th>
+      {/* ── Week view ─────────────────────────────────────────────────────── */}
 
-                {days.map((day) => {
-                  const todayCol = isToday(day);
-                  return (
-                    <th
-                      key={day.toISOString()}
-                      className={`px-1 py-2 text-center text-2xs font-bold text-gray-500 ${
-                        todayCol ? "bg-orange/5" : ""
-                      }`}
-                      style={{ minWidth: "52px" }}
-                    >
-                      <div className={`${todayCol ? "text-orange font-black" : ""}`}>
-                        {format(day, "EEE", { locale: fr }).slice(0, 3)}
-                      </div>
-                      <div
-                        className={`text-xs mt-0.5 ${
-                          todayCol
-                            ? "w-6 h-6 rounded-full bg-orange text-white flex items-center justify-center mx-auto font-black"
-                            : "text-gray-400"
-                        }`}
-                      >
-                        {format(day, "d")}
-                      </div>
-                    </th>
-                  );
-                })}
-              </tr>
-            </thead>
-
-            <tbody>
-              {horses.map((horse, rowIdx) => {
-                const mode = horse.horse_index_mode;
-                const modeBadge = mode ? MODE_BADGE[mode] : null;
-
-                return (
-                  <tr
-                    key={horse.id}
-                    className={rowIdx % 2 === 0 ? "bg-white" : "bg-gray-50/50"}
+      {viewMode === "semaine" && (
+        <div className="card overflow-hidden p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse" style={{ minWidth: "520px" }}>
+              <thead>
+                <tr className="border-b border-gray-100">
+                  <th
+                    className="sticky left-0 z-10 bg-white px-3 py-2.5 text-left text-2xs font-bold uppercase tracking-widest text-gray-400"
+                    style={{ minWidth: "140px" }}
                   >
-                    {/* Colonne cheval sticky */}
-                    <td
-                      className="sticky left-0 z-10 px-3 py-2 align-middle"
-                      style={{
-                        minWidth: "140px",
-                        backgroundColor: rowIdx % 2 === 0 ? "white" : "rgb(249 250 251 / 0.5)",
-                      }}
+                    Cheval
+                  </th>
+
+                  {days.map((day) => {
+                    const todayCol = isToday(day);
+                    return (
+                      <th
+                        key={day.toISOString()}
+                        className={`px-1 py-2 text-center text-2xs font-bold text-gray-500 ${
+                          todayCol ? "bg-orange/5" : ""
+                        }`}
+                        style={{ minWidth: "80px" }}
+                      >
+                        <div className={`${todayCol ? "text-orange font-black" : ""}`}>
+                          {format(day, "EEE", { locale: fr }).slice(0, 3)}
+                        </div>
+                        <div
+                          className={`text-xs mt-0.5 ${
+                            todayCol
+                              ? "w-6 h-6 rounded-full bg-orange text-white flex items-center justify-center mx-auto font-black"
+                              : "text-gray-400"
+                          }`}
+                        >
+                          {format(day, "d")}
+                        </div>
+                      </th>
+                    );
+                  })}
+                </tr>
+              </thead>
+
+              <tbody>
+                {visibleHorses.map((horse, rowIdx) => {
+                  const mode = horse.horse_index_mode;
+                  const modeBadge = mode ? MODE_BADGE[mode] : null;
+
+                  return (
+                    <tr
+                      key={horse.id}
+                      className={rowIdx % 2 === 0 ? "bg-white" : "bg-gray-50/50"}
                     >
-                      <div className="flex flex-col gap-0.5">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-semibold text-black truncate max-w-[90px]">
-                            {horse.name}
-                          </span>
-                          {modeBadge && (
+                      {/* Sticky horse column */}
+                      <td
+                        className="sticky left-0 z-10 px-3 py-2 align-middle border-b border-gray-50"
+                        style={{
+                          minWidth: "140px",
+                          backgroundColor:
+                            rowIdx % 2 === 0 ? "white" : "rgb(249 250 251 / 0.5)",
+                        }}
+                      >
+                        <div className="flex flex-col gap-0.5">
+                          <div className="flex items-center gap-1.5">
                             <span
-                              className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${modeBadge.bg} ${modeBadge.text} flex-shrink-0`}
-                            >
-                              {modeBadge.label}
+                              className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
+                                HORSE_DOT_CLASSES[
+                                  (horseColorIdx.get(horse.id) ?? 0) % HORSE_DOT_CLASSES.length
+                                ]
+                              }`}
+                            />
+                            <span className="text-sm font-semibold text-black truncate max-w-[85px]">
+                              {horse.name}
+                            </span>
+                            {modeBadge && (
+                              <span
+                                className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${modeBadge.bg} ${modeBadge.text} flex-shrink-0`}
+                              >
+                                {modeBadge.label}
+                              </span>
+                            )}
+                          </div>
+                          {(mode === "IR" || mode === "IS") && (
+                            <span className="text-[10px] text-gray-400 pl-4">
+                              {mode === "IR" ? "Convalescence" : "Stop travail"}
+                            </span>
+                          )}
+                          {unvalidatedByHorse[horse.id] > 0 && (
+                            <span className="text-[10px] text-amber-600 font-semibold pl-4">
+                              ⚠ {unvalidatedByHorse[horse.id]} à vérifier
                             </span>
                           )}
                         </div>
-                        {mode === "IC" && (
-                          <span className="text-[10px] text-orange font-medium">Saison active</span>
-                        )}
-                        {(mode === "IR" || mode === "IS") && (
-                          <span className="text-[10px] text-gray-400">
-                            {mode === "IR" ? "Restrictions" : "Stop travail"}
-                          </span>
-                        )}
-                        {unvalidatedByHorse[horse.id] > 0 && (
-                          <span className="text-[10px] text-amber-600 font-semibold">
-                            ⚠ {unvalidatedByHorse[horse.id]} à vérifier
-                          </span>
-                        )}
-                      </div>
-                    </td>
+                      </td>
 
-                    {/* Cellules jours */}
-                    {days.map((day) => {
-                      const daySessions = getSessionsForCell(horse.id, day);
-                      const dayPlanned = getPlannedForCell(horse.id, day);
-                      const todayCol = isToday(day);
-
-                      return (
+                      {/* Day cells */}
+                      {days.map((day) => (
                         <Cell
                           key={day.toISOString()}
                           horse={horse}
                           date={day}
-                          daySessions={daySessions}
-                          dayPlanned={dayPlanned}
-                          userName={userName}
+                          daySessions={getSessionsForCell(horse.id, day)}
+                          dayPlanned={getPlannedForCell(horse.id, day)}
                           onTap={setCellSheet}
-                          isTodayCol={todayCol}
+                          isTodayCol={isToday(day)}
+                          draggedInfo={draggedInfo}
+                          onDropPlanned={handleDropPlanned}
                         />
-                      );
-                    })}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                      ))}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Légende */}
-      <div className="flex flex-wrap gap-3 text-xs text-gray-500">
-        <div className="flex items-center gap-1.5">
-          <div className="w-4 h-4 rounded-full bg-blue-200" />
-          <span>Propriétaire</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-4 h-4 rounded-full bg-blue-700" />
-          <span>Cours coach</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-4 h-4 rounded-full bg-orange/30" />
-          <span>Coach / Longe / À pied</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-4 h-4 rounded-full bg-green-200" />
-          <span>Marcheur / Paddock</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-4 h-4 rounded-full border-2 border-dashed border-blue-400" />
-          <span>Planifié</span>
-        </div>
-      </div>
+      {/* ── Month view ────────────────────────────────────────────────────── */}
 
-      {/* ── Bottom Sheets ─────────────────────────────────────────────────── */}
+      {viewMode === "mois" && (
+        <div className="card overflow-hidden p-0">
+          {/* Day headers */}
+          <div className="grid grid-cols-7 border-b border-gray-100">
+            {["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"].map((d) => (
+              <div
+                key={d}
+                className="py-2 text-center text-2xs font-bold uppercase tracking-widest text-gray-400"
+              >
+                {d}
+              </div>
+            ))}
+          </div>
+
+          {/* Weeks */}
+          <div className="p-2 space-y-1">
+            {monthGrid.map((week, wi) => (
+              <div key={wi} className="grid grid-cols-7 gap-1">
+                {week.map((day) => {
+                  const inMonth = isSameMonth(day, addMonths(new Date(), monthOffset));
+                  return (
+                    <MonthCell
+                      key={day.toISOString()}
+                      date={day}
+                      inMonth={inMonth}
+                      horses={horses}
+                      filteredHorseId={monthFilterHorse}
+                      sessionsByKey={sessionsByKey}
+                      plannedByKey={plannedByKey}
+                      horseColorIdx={horseColorIdx}
+                      onTap={setCellSheet}
+                    />
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+
+          {/* Month legend (horse color dots) */}
+          {horses.length > 1 && !monthFilterHorse && (
+            <div className="px-3 pb-3 flex flex-wrap gap-3">
+              {horses.map((h, i) => (
+                <div key={h.id} className="flex items-center gap-1.5">
+                  <span
+                    className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
+                      HORSE_DOT_CLASSES[i % HORSE_DOT_CLASSES.length]
+                    }`}
+                  />
+                  <span className="text-xs text-gray-500">{h.name}</span>
+                </div>
+              ))}
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-gray-300 opacity-50 flex-shrink-0" />
+                <span className="text-xs text-gray-400">Planifié</span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Bottom Sheets ──────────────────────────────────────────────────── */}
 
       {cellSheet?.kind === "empty" && (
         <EmptySheet
@@ -1076,7 +1436,6 @@ export default function TableauHebdomadaire({
         />
       )}
 
-      {/* Attribut pour satisfaire userId (évite unused warning) */}
       <span data-userid={userId} className="hidden" />
     </div>
   );

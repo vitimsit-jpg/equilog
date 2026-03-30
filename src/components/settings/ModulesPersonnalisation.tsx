@@ -36,8 +36,9 @@ export default function ModulesPersonnalisation({ userId, userModules }: Props) 
   const handleReset = async () => {
     setModules({ ...DEFAULT_MODULES });
     setSaving(true);
-    await supabase.from("users").update({ user_modules: DEFAULT_MODULES }).eq("id", userId);
+    const { error } = await supabase.from("users").update({ user_modules: DEFAULT_MODULES }).eq("id", userId);
     setSaving(false);
+    if (error) { toast.error("Erreur lors de la réinitialisation"); return; }
     toast.success("Préférences réinitialisées");
     router.refresh();
   };

@@ -105,8 +105,8 @@ export default function HealthCategoryCard({ config, records, horseId, marechalP
   const isFerrageCard = config.type === "ferrage";
 
   const handleRemoveNextDate = async (recordId: string) => {
-    await supabase.from("health_records").update({ next_date: null }).eq("id", recordId);
-    router.refresh();
+    const { error } = await supabase.from("health_records").update({ next_date: null }).eq("id", recordId);
+    if (!error) router.refresh();
   };
 
   const sorted = [...records].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());

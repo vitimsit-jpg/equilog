@@ -51,9 +51,11 @@ export default function FamilleWidget({ horseId, mereHorseId, poulainHorseId }: 
 
   const unlink = async (field: "mere_horse_id" | "poulain_horse_id", role: "mere" | "poulain") => {
     setUnlinking(role);
-    await supabase.from("horses").update({ [field]: null }).eq("id", horseId);
-    if (role === "mere") setMere(null);
-    else setPoulain(null);
+    const { error } = await supabase.from("horses").update({ [field]: null }).eq("id", horseId);
+    if (!error) {
+      if (role === "mere") setMere(null);
+      else setPoulain(null);
+    }
     setUnlinking(null);
   };
 

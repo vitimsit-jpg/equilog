@@ -126,13 +126,7 @@ export default async function HorsePage({ params }: Props) {
     if (latestInsight?.content) parsedInsight = JSON.parse(latestInsight.content);
   } catch {}
 
-  if (plan === "starter") {
-    return (
-      <div className="max-w-4xl mx-auto animate-fade-in">
-        <UpgradeBanner feature="Horse Index & IA" />
-      </div>
-    );
-  }
+  const isStarter = plan === "starter";
 
   const currentYear = new Date().getFullYear();
   const age = horse.birth_year ? currentYear - horse.birth_year : null;
@@ -181,6 +175,87 @@ export default async function HorsePage({ params }: Props) {
 
   return (
     <div className="max-w-2xl mx-auto space-y-5 animate-fade-in">
+
+      {/* 4. Carte Profil du cheval — toujours visible */}
+      <div className="card">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-bold text-black text-sm">Profil du cheval</h2>
+          <HorseEditModal horse={horse as any} compact />
+        </div>
+
+        <div className="flex items-start gap-4">
+          {/* Photo */}
+          <div className="flex-shrink-0">
+            <AvatarUpload
+              horseId={horse.id}
+              horseName={horse.name}
+              currentAvatarUrl={(horse as any).avatar_url ?? null}
+            />
+          </div>
+
+          {/* Données profil */}
+          <div className="flex-1 min-w-0 space-y-2">
+            <p className="font-bold text-black text-base leading-tight">{horse.name}</p>
+
+            {/* Race · Sexe · Âge */}
+            {(horse.breed || horseSexe || age) && (
+              <p className="text-sm text-gray-600">
+                {[
+                  horse.breed,
+                  horseSexe ? SEXE_LABELS[horseSexe] : null,
+                  age ? `${age} ans` : null,
+                ].filter(Boolean).join(" · ")}
+              </p>
+            )}
+
+            {/* Mode de vie */}
+            {horseMode && (
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-mono font-bold text-orange bg-orange-light px-1.5 py-0.5 rounded">
+                  {horseMode}
+                </span>
+                <span className="text-xs text-gray-600">{MODE_LABELS[horseMode]}</span>
+              </div>
+            )}
+
+            {/* Conditions de vie */}
+            {conditionsVie && (
+              <p className="text-xs text-gray-500">
+                🏠 {CONDITIONS_VIE_LABELS[conditionsVie] ?? conditionsVie}
+              </p>
+            )}
+
+            {/* Écurie */}
+            {horse.ecurie && (
+              <p className="text-xs text-gray-500">
+                📍 {horse.ecurie}{horse.region ? ` · ${horse.region}` : ""}
+              </p>
+            )}
+
+            {/* Assurance */}
+            <p className="text-xs text-gray-500">
+              🛡 {assurance ? assurance : "Non assurée"}
+            </p>
+
+            {/* Maladies chroniques */}
+            {maladiesChroniques && (
+              <p className="text-xs text-gray-500">
+                ⚕️ {maladiesChroniques}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* P2 — Bouton "Je commence à monter" pour les ICr */}
+      {horseMode === "ICr" && (
+        <FirstRideButton horseId={horse.id} horseName={horse.name} />
+      )}
+
+      {isStarter ? (
+        <UpgradeBanner feature="Horse Index & IA" />
+      ) : (
+      <>
       <div className="flex justify-end">
         <ExportPDFButton horseId={horse.id} horseName={horse.name} />
       </div>
@@ -266,82 +341,6 @@ export default async function HorsePage({ params }: Props) {
           </div>
         )}
       </div>
-
-      {/* 4. Carte Profil du cheval — APCU-01 */}
-      <div className="card">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-bold text-black text-sm">Profil du cheval</h2>
-          <HorseEditModal horse={horse as any} compact />
-        </div>
-
-        <div className="flex items-start gap-4">
-          {/* Photo */}
-          <div className="flex-shrink-0">
-            <AvatarUpload
-              horseId={horse.id}
-              horseName={horse.name}
-              currentAvatarUrl={(horse as any).avatar_url ?? null}
-            />
-          </div>
-
-          {/* Données profil */}
-          <div className="flex-1 min-w-0 space-y-2">
-            <p className="font-bold text-black text-base leading-tight">{horse.name}</p>
-
-            {/* Race · Sexe · Âge */}
-            {(horse.breed || horseSexe || age) && (
-              <p className="text-sm text-gray-600">
-                {[
-                  horse.breed,
-                  horseSexe ? SEXE_LABELS[horseSexe] : null,
-                  age ? `${age} ans` : null,
-                ].filter(Boolean).join(" · ")}
-              </p>
-            )}
-
-            {/* Mode de vie */}
-            {horseMode && (
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs font-mono font-bold text-orange bg-orange-light px-1.5 py-0.5 rounded">
-                  {horseMode}
-                </span>
-                <span className="text-xs text-gray-600">{MODE_LABELS[horseMode]}</span>
-              </div>
-            )}
-
-            {/* Conditions de vie */}
-            {conditionsVie && (
-              <p className="text-xs text-gray-500">
-                🏠 {CONDITIONS_VIE_LABELS[conditionsVie] ?? conditionsVie}
-              </p>
-            )}
-
-            {/* Écurie */}
-            {horse.ecurie && (
-              <p className="text-xs text-gray-500">
-                📍 {horse.ecurie}{horse.region ? ` · ${horse.region}` : ""}
-              </p>
-            )}
-
-            {/* Assurance */}
-            <p className="text-xs text-gray-500">
-              🛡 {assurance ? assurance : "Non assurée"}
-            </p>
-
-            {/* Maladies chroniques */}
-            {maladiesChroniques && (
-              <p className="text-xs text-gray-500">
-                ⚕️ {maladiesChroniques}
-              </p>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* P2 — Bouton "Je commence à monter" pour les ICr */}
-      {horseMode === "ICr" && (
-        <FirstRideButton horseId={horse.id} horseName={horse.name} />
-      )}
 
       {/* 5. Streak */}
       {(streak.current > 0 || streak.best > 0) && (
@@ -452,6 +451,8 @@ export default async function HorsePage({ params }: Props) {
             </div>
           </div>
         </div>
+      )}
+      </>
       )}
     </div>
   );

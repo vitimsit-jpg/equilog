@@ -26,13 +26,14 @@ export default function CoursAujourdhui({ todaySessions: initial, students, toda
   const supabase = createClient();
 
   const complete = async (id: string) => {
-    await supabase.from("coach_planned_sessions").update({ completed: true }).eq("id", id);
-    setSessions((prev) => prev.map((s) => s.id === id ? { ...s, completed: true } : s));
+    const { error } = await supabase.from("coach_planned_sessions").update({ completed: true }).eq("id", id);
+    if (!error) setSessions((prev) => prev.map((s) => s.id === id ? { ...s, completed: true } : s));
   };
 
   const remove = async (id: string) => {
-    await supabase.from("coach_planned_sessions").delete().eq("id", id);
-    setSessions((prev) => prev.filter((s) => s.id !== id));
+    if (!confirm("Supprimer ce cours ?")) return;
+    const { error } = await supabase.from("coach_planned_sessions").delete().eq("id", id);
+    if (!error) setSessions((prev) => prev.filter((s) => s.id !== id));
   };
 
   const addSession = async () => {

@@ -83,13 +83,16 @@ export default function MedicationsSection({ horseId }: Props) {
   }
 
   async function toggleActive(id: string, current: boolean) {
-    await supabase.from("horse_medications").update({ actif: !current }).eq("id", id);
-    load();
+    const { error } = await supabase.from("horse_medications").update({ actif: !current }).eq("id", id);
+    if (error) toast.error("Erreur");
+    else load();
   }
 
   async function deleteMed(id: string) {
-    await supabase.from("horse_medications").delete().eq("id", id);
-    load();
+    if (!confirm("Supprimer ce médicament ?")) return;
+    const { error } = await supabase.from("horse_medications").delete().eq("id", id);
+    if (error) toast.error("Erreur lors de la suppression");
+    else load();
   }
 
   const activeMeds = meds.filter((m) => m.actif);

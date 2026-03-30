@@ -297,8 +297,10 @@ export default function MovementTab({ horseId, horseName }: Props) {
                     </div>
                     <button
                       onClick={async () => {
-                        await supabase.from("horse_movement_logs").delete().eq("id", m.id);
-                        load();
+                        if (!confirm("Supprimer cette entrée ?")) return;
+                        const { error } = await supabase.from("horse_movement_logs").delete().eq("id", m.id);
+                        if (error) toast.error("Erreur");
+                        else load();
                       }}
                       className="text-gray-300 hover:text-red-400 transition-colors"
                     >
@@ -347,8 +349,10 @@ export default function MovementTab({ horseId, horseName }: Props) {
                   </div>
                   <button
                     onClick={async () => {
-                      await supabase.from("horse_bcs_logs").delete().eq("id", b.id);
-                      load();
+                      if (!confirm("Supprimer cette entrée ?")) return;
+                      const { error } = await supabase.from("horse_bcs_logs").delete().eq("id", b.id);
+                      if (error) toast.error("Erreur");
+                      else load();
                     }}
                     className="text-gray-300 hover:text-red-400 transition-colors"
                   >
@@ -417,7 +421,12 @@ export default function MovementTab({ horseId, horseName }: Props) {
                           {m.date_fin && <p className="text-2xs text-gray-400">Fin : {new Date(m.date_fin).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}</p>}
                         </div>
                         <button
-                          onClick={async () => { await supabase.from("horse_medications").delete().eq("id", m.id); load(); }}
+                          onClick={async () => {
+                            if (!confirm("Supprimer ce médicament ?")) return;
+                            const { error } = await supabase.from("horse_medications").delete().eq("id", m.id);
+                            if (error) toast.error("Erreur");
+                            else load();
+                          }}
                           className="text-gray-300 hover:text-red-400 transition-colors"
                         >
                           <Trash2 className="h-3.5 w-3.5" />

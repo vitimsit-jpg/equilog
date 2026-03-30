@@ -143,13 +143,17 @@ export default function EducationTab({ horseId, horseName, birthYear }: Props) {
   }
 
   async function deleteMilestone(id: string) {
-    await supabase.from("horse_growth_milestones").delete().eq("id", id);
-    load();
+    if (!confirm("Supprimer cet étape ?")) return;
+    const { error } = await supabase.from("horse_growth_milestones").delete().eq("id", id);
+    if (error) toast.error("Erreur lors de la suppression");
+    else load();
   }
 
   async function deleteMeasure(id: string) {
-    await supabase.from("horse_growth_measures").delete().eq("id", id);
-    load();
+    if (!confirm("Supprimer cette mesure ?")) return;
+    const { error } = await supabase.from("horse_growth_measures").delete().eq("id", id);
+    if (error) toast.error("Erreur lors de la suppression");
+    else load();
   }
 
   async function initializeMilestones() {

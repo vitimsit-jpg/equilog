@@ -28,7 +28,8 @@ export default function CompetitionCard({ competition: c, horseId }: Props) {
 
   const handleDelete = async () => {
     if (!confirm("Supprimer ce concours ?")) return;
-    await supabase.from("competitions").delete().eq("id", c.id);
+    const { error } = await supabase.from("competitions").delete().eq("id", c.id);
+    if (error) { toast.error("Erreur lors de la suppression"); return; }
     toast.success("Concours supprimé");
     router.refresh();
   };

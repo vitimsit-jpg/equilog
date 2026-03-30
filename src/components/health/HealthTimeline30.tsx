@@ -48,9 +48,9 @@ export default function HealthTimeline30({ records }: Props) {
                 {dayRecords.length > 0 && (
                   <>
                     <div className="flex flex-col gap-0.5">
-                      {dayRecords.map((r, j) => (
+                      {dayRecords.map((r) => (
                         <div
-                          key={j}
+                          key={r.id}
                           className={`w-full h-2 rounded-full ${TYPE_COLORS[r.type] || "bg-gray-400"}`}
                           title={`${HEALTH_TYPE_LABELS[r.type]} — ${format(parseISO(r.date), "d MMM", { locale: fr })}`}
                         />

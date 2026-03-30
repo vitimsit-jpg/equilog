@@ -46,8 +46,8 @@ export default function TodoEcurie({ initialTodos }: Props) {
   };
 
   const deleteTodo = async (id: string) => {
-    await supabase.from("ecurie_todos").delete().eq("id", id);
-    setTodos((prev) => prev.filter((t) => t.id !== id));
+    const { error } = await supabase.from("ecurie_todos").delete().eq("id", id);
+    if (!error) setTodos((prev) => prev.filter((t) => t.id !== id));
   };
 
   const addTodo = async () => {

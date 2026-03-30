@@ -39,9 +39,9 @@ export default function TrainingDashboard({ sessions, horseId, horseName, latest
 
   // Chart data: group by week or by day
   const chartData = filtered
-    .reduce((acc: Record<string, { date: string; intensity: number; feeling: number; count: number }>, s) => {
+    .reduce((acc: Record<string, { date: string; rawDate: string; intensity: number; feeling: number; count: number }>, s) => {
       const key = format(parseISO(s.date), "dd/MM");
-      if (!acc[key]) acc[key] = { date: key, intensity: 0, feeling: 0, count: 0 };
+      if (!acc[key]) acc[key] = { date: key, rawDate: s.date, intensity: 0, feeling: 0, count: 0 };
       acc[key].intensity += s.intensity;
       acc[key].feeling += s.feeling;
       acc[key].count++;
@@ -49,12 +49,7 @@ export default function TrainingDashboard({ sessions, horseId, horseName, latest
     }, {});
 
   const chartPoints = Object.entries(chartData)
-    .sort(([a], [b]) => {
-      // keys are "dd/MM", recover sort order from original filtered sessions
-      const dateA = filtered.find((s) => format(parseISO(s.date), "dd/MM") === a)?.date ?? "";
-      const dateB = filtered.find((s) => format(parseISO(s.date), "dd/MM") === b)?.date ?? "";
-      return new Date(dateA).getTime() - new Date(dateB).getTime();
-    })
+    .sort(([, a], [, b]) => new Date(a.rawDate).getTime() - new Date(b.rawDate).getTime())
     .map(([, d]) => ({
       date: d.date,
       intensity: parseFloat((d.intensity / d.count).toFixed(1)),

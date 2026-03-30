@@ -36,7 +36,8 @@ export default function GestionEleves({ initialStudents }: Props) {
 
   const remove = async (id: string) => {
     if (!confirm("Supprimer cet élève ?")) return;
-    await supabase.from("coach_students").delete().eq("id", id);
+    const { error } = await supabase.from("coach_students").delete().eq("id", id);
+    if (error) { toast.error("Erreur lors de la suppression"); return; }
     setStudents((prev) => prev.filter((s) => s.id !== id));
     toast.success("Élève supprimé");
   };

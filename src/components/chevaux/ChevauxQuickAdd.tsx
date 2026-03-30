@@ -4,12 +4,13 @@ import { useState } from "react";
 import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import QuickTrainingModal from "@/components/training/QuickTrainingModal";
+import type { HorseIndexMode } from "@/lib/supabase/types";
 
 interface Horse {
   id: string;
   name: string;
   avatar_url?: string | null;
-  horse_index_mode?: string | null;
+  horse_index_mode?: HorseIndexMode | null;
 }
 
 interface Props {
@@ -36,7 +37,7 @@ export default function ChevauxQuickAdd({ horse }: Props) {
           onClose={() => setOpen(false)}
           horseId={horse.id}
           horseName={horse.name}
-          horseMode={(horse as any).horse_index_mode}
+          horseMode={horse.horse_index_mode ?? null}
           onSaved={() => { setOpen(false); router.refresh(); }}
         />
       )}

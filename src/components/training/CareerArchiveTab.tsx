@@ -47,12 +47,12 @@ export default function CareerArchiveTab({ horseId, horseName }: Props) {
         .single(),
     ]);
     setCompetitions((comps as Competition[]) ?? []);
-    const dr = (horse as any)?.date_retraite ?? null;
-    const ca = (horse as any)?.carriere_archive ?? null;
+    const dr = horse?.date_retraite ?? null;
+    const ca = horse?.carriere_archive ?? null;
     setDateRetraite(dr);
     setCarriereArchive(ca);
     setDateInput(dr ?? "");
-    setNoteInput((ca as any)?.note ?? "");
+    setNoteInput((ca as Record<string, unknown>)?.note as string ?? "");
     setLoading(false);
   }
 
@@ -211,8 +211,8 @@ export default function CareerArchiveTab({ horseId, horseName }: Props) {
           </div>
         ) : (
           <p className="text-sm text-gray-600 leading-relaxed">
-            {(carriereArchive as any)?.note
-              ? (carriereArchive as any).note
+            {(carriereArchive as Record<string, unknown>)?.note
+              ? String((carriereArchive as Record<string, unknown>).note)
               : <span className="text-gray-400 italic">Aucune note. Cliquez sur le crayon pour en ajouter une.</span>
             }
           </p>

@@ -500,9 +500,9 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
       {/* ── ZONE A: Strip horizontal ────────────────────────────────── */}
       <div
         className="bg-[#F5F5F5] rounded-2xl p-2 select-none"
-        onTouchStart={(e) => { stripSwipeRef.current = e.touches[0].clientX; }}
+        onTouchStart={(e) => { if (e.touches[0]) stripSwipeRef.current = e.touches[0].clientX; }}
         onTouchEnd={(e) => {
-          if (stripSwipeRef.current === null) return;
+          if (stripSwipeRef.current === null || !e.changedTouches[0]) return;
           const delta = e.changedTouches[0].clientX - stripSwipeRef.current;
           stripSwipeRef.current = null;
           if (Math.abs(delta) > 50) navigateWeek(delta > 0 ? -1 : 1);
@@ -618,9 +618,9 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
       {/* ── ZONE B: Vue du jour ────────────────────────────────────── */}
       <div
         className="card space-y-0 p-4"
-        onTouchStart={(e) => { zoneSwipeRef.current = e.touches[0].clientX; }}
+        onTouchStart={(e) => { if (e.touches[0]) zoneSwipeRef.current = e.touches[0].clientX; }}
         onTouchEnd={(e) => {
-          if (zoneSwipeRef.current === null) return;
+          if (zoneSwipeRef.current === null || !e.changedTouches[0]) return;
           const delta = e.changedTouches[0].clientX - zoneSwipeRef.current;
           zoneSwipeRef.current = null;
           if (Math.abs(delta) > 50) navigateDay(delta > 0 ? -1 : 1);

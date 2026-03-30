@@ -73,7 +73,7 @@ export interface Horse {
   region: string | null;
   ecurie: string | null;
   sexe: "hongre" | "jument" | "etalon" | null;
-  conditions_vie: "box" | "paddock" | "pre" | "box_paddock" | null;
+  conditions_vie: "boxe_paddock_individuel" | "boxe_pre_collectif" | "paddock_individuel" | "pre_collectif" | null;
   objectif_saison: string | null;
   niveau: string | null;
   maladies_chroniques: string | null;

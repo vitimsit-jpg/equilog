@@ -31,6 +31,7 @@ export default function MedicalExamsSection({ horseId }: Props) {
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   // Form
   const [examType, setExamType] = useState<MedicalExamType>("radio");
@@ -119,8 +120,17 @@ export default function MedicalExamsSection({ horseId }: Props) {
                   <div className="flex items-center gap-2">
                     {e.results && <FileText className="h-3.5 w-3.5 text-blue-400" />}
                     <button
-                      onClick={(ev) => { ev.stopPropagation(); supabase.from("horse_medical_exams").delete().eq("id", e.id).then(() => load()); }}
-                      className="text-gray-300 hover:text-red-400 transition-colors"
+                      onClick={async (ev) => {
+                        ev.stopPropagation();
+                        if (!confirm("Supprimer cet examen ?")) return;
+                        setDeleting(e.id);
+                        const { error } = await supabase.from("horse_medical_exams").delete().eq("id", e.id);
+                        if (error) { toast.error("Erreur lors de la suppression"); }
+                        else { load(); }
+                        setDeleting(null);
+                      }}
+                      disabled={deleting === e.id}
+                      className="text-gray-300 hover:text-red-400 transition-colors disabled:opacity-50"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>

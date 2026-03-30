@@ -23,14 +23,16 @@ export default function BudgetList({ entries, horseId }: Props) {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Supprimer cette dépense ?")) return;
-    await supabase.from("budget_entries").delete().eq("id", id);
+    const { error } = await supabase.from("budget_entries").delete().eq("id", id);
+    if (error) { toast.error("Erreur lors de la suppression"); return; }
     toast.success("Dépense supprimée");
     router.refresh();
   };
 
   const handleStopRecurring = async (id: string) => {
     if (!confirm("Arrêter la récurrence ? Les dépenses déjà générées sont conservées.")) return;
-    await supabase.from("budget_entries").update({ is_recurring: false, recurrence_frequency: null }).eq("id", id);
+    const { error } = await supabase.from("budget_entries").update({ is_recurring: false, recurrence_frequency: null }).eq("id", id);
+    if (error) { toast.error("Erreur"); return; }
     toast.success("Récurrence arrêtée");
     router.refresh();
   };

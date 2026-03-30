@@ -121,8 +121,10 @@ export default function RecoveryJournalTab({ horseId, horseName }: Props) {
   }
 
   async function deleteEntry(id: string) {
-    await supabase.from("horse_recovery_journal").delete().eq("id", id);
-    load();
+    if (!confirm("Supprimer cette entrée ?")) return;
+    const { error } = await supabase.from("horse_recovery_journal").delete().eq("id", id);
+    if (error) toast.error("Erreur lors de la suppression");
+    else load();
   }
 
   // Quick stats

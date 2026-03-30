@@ -233,7 +233,7 @@ export default function MobileBottomNav({ horses, overdueByHorse = {}, userId }:
           onClose={handleClose}
           horseId={selectedHorse.id}
           horseName={selectedHorse.name}
-          horseMode={(selectedHorse as any).horse_index_mode}
+          horseMode={selectedHorse.horse_index_mode}
           onSaved={() => { handleClose(); router.refresh(); }}
         />
       )}

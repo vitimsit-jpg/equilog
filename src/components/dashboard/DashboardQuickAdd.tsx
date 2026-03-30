@@ -7,12 +7,13 @@ import QuickTrainingModal from "@/components/training/QuickTrainingModal";
 import QuickHealthModal from "@/components/health/QuickHealthModal";
 import RiderLogModal from "@/components/rider/RiderLogModal";
 import { useRouter } from "next/navigation";
+import type { HorseIndexMode } from "@/lib/supabase/types";
 
 interface Horse {
   id: string;
   name: string;
   avatar_url?: string | null;
-  horse_index_mode?: string | null;
+  horse_index_mode?: HorseIndexMode | null;
 }
 
 interface Props {
@@ -155,7 +156,7 @@ export default function DashboardQuickAdd({ horses, userId, riderLog }: Props) {
           onClose={handleClose}
           horseId={selectedHorse.id}
           horseName={selectedHorse.name}
-          horseMode={selectedHorse.horse_index_mode as any}
+          horseMode={selectedHorse.horse_index_mode ?? null}
           onSaved={() => { handleClose(); router.refresh(); }}
           riderLog={riderLog ?? null}
         />

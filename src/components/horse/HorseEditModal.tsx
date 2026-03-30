@@ -85,27 +85,27 @@ export default function HorseEditModal({ horse, compact = false }: Props) {
     name: horse.name,
     breed: horse.breed || "",
     birth_year: horse.birth_year ? String(horse.birth_year) : "",
-    sexe: (horse as any).sexe || "",
+    sexe: horse.sexe || "",
     // discipline supprimée — APCU-13
     region: horse.region || "",
     ecurie: horse.ecurie || "",
-    conditions_vie: (horse as any).conditions_vie || "",
+    conditions_vie: horse.conditions_vie || "",
     // objectif_saison supprimée — APCU-07
-    maladies_chroniques: (horse as any).maladies_chroniques || "",
-    assurance: (horse as any).assurance || "",
+    maladies_chroniques: horse.maladies_chroniques || "",
+    assurance: horse.assurance || "",
     // sire_number, fei_number supprimés — APCU-08
-    tonte: (horse as any).tonte || "",
-    horse_index_mode: (horse as any).horse_index_mode || "IE",
-    visibility: (horse as any).visibility || "national",
+    tonte: horse.tonte || "",
+    horse_index_mode: horse.horse_index_mode || "IE",
+    visibility: horse.visibility || "national",
   });
-  const [assure, setAssure] = useState<boolean>(!!(horse as any).assurance);
-  const [moduleNutrition, setModuleNutrition] = useState<boolean>(!!(horse as any).module_nutrition);
+  const [assure, setAssure] = useState<boolean>(!!horse.assurance);
+  const [moduleNutrition, setModuleNutrition] = useState<boolean>(!!horse.module_nutrition);
 
   const COUV_OPTIONS = ["Légère", "Moyenne", "Chaude"] as const;
   type CouvertureLabel = typeof COUV_OPTIONS[number];
   const initTrousseau = (): Set<CouvertureLabel> => {
     const existing = new Set<CouvertureLabel>();
-    ((horse as any).trousseau || []).forEach((c: { label?: string }) => {
+    (horse.trousseau || []).forEach((c) => {
       const match = COUV_OPTIONS.find((o) => o.toLowerCase() === c.label?.toLowerCase());
       if (match) existing.add(match);
     });
@@ -143,7 +143,7 @@ export default function HorseEditModal({ horse, compact = false }: Props) {
         // sire_number, fei_number supprimés — APCU-08
         tonte: (form.tonte as Horse["tonte"]) || null,
         horse_index_mode: form.horse_index_mode || "IE",
-        ...(form.horse_index_mode !== (horse as any).horse_index_mode && {
+        ...(form.horse_index_mode !== horse.horse_index_mode && {
           horse_index_mode_changed_at: new Date().toISOString(),
         }),
         trousseau: Array.from(trousseauSet).map((label) => ({ label, grammage: 0, impermeable: false })),
@@ -159,7 +159,7 @@ export default function HorseEditModal({ horse, compact = false }: Props) {
       return;
     }
 
-    if (form.horse_index_mode !== (horse as any).horse_index_mode) {
+    if (form.horse_index_mode !== horse.horse_index_mode) {
       await fetch("/api/horse-index", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

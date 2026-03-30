@@ -9,7 +9,7 @@ import Select from "@/components/ui/Select";
 import Textarea from "@/components/ui/Textarea";
 import Button from "@/components/ui/Button";
 import { TRAINING_TYPE_LABELS, INTENSITY_LABELS, FEELING_LABELS } from "@/lib/utils";
-import type { TrainingSession } from "@/lib/supabase/types";
+import type { TrainingSession, TrainingType } from "@/lib/supabase/types";
 import VoiceButton from "./VoiceButton";
 import { trackEvent } from "@/lib/trackEvent";
 import { AlertTriangle } from "lucide-react";
@@ -60,10 +60,10 @@ export default function TrainingForm({ horseId, onSaved, onCancel, defaultValues
     const payload = {
       horse_id: horseId,
       date: form.date,
-      type: form.type as any,
-      duration_min: parseInt(form.duration_min),
-      intensity: parseInt(form.intensity) as any,
-      feeling: parseInt(form.feeling) as any,
+      type: form.type as TrainingType,
+      duration_min: parseInt(form.duration_min) || 45,
+      intensity: (parseInt(form.intensity) || 3) as 1 | 2 | 3 | 4 | 5,
+      feeling: (parseInt(form.feeling) || 3) as 1 | 2 | 3 | 4 | 5,
       objectif: form.objectif || null,
       lieu: form.lieu || null,
       coach_present: form.coach_present,

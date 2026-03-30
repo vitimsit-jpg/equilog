@@ -110,7 +110,7 @@ export default function HistoriqueEventModal({ open, horseId, event, onClose, on
     };
 
     const mediaUrls = await uploadFiles();
-    if (mediaUrls.length > 0) (payload as any).media_urls = mediaUrls;
+    if (mediaUrls.length > 0) payload.media_urls = mediaUrls;
 
     let error;
     if (event) {

@@ -87,6 +87,7 @@ export default function HealthEventForm({ horseId, onSaved, onCancel, defaultVal
     cost: defaultValues?.cost ? String(defaultValues.cost) : "",
     notes: defaultValues?.notes || "",
   });
+  const [addToBudget, setAddToBudget] = useState(true);
 
   // Hydrate practitioner from localStorage on mount (client only)
   useEffect(() => {
@@ -147,8 +148,7 @@ export default function HealthEventForm({ horseId, onSaved, onCancel, defaultVal
     if (error) toast.error("Erreur lors de l'enregistrement");
     else {
       savePractitioner(form.type, form.vet_name, form.practitioner_phone);
-      // #38 — Sync coût soin → budget (création uniquement, pas modification)
-      if (!defaultValues?.id && payload.cost && payload.cost > 0) {
+      if (!defaultValues?.id && addToBudget && payload.cost && payload.cost > 0) {
         const desc = [HEALTH_TYPE_LABELS[form.type], form.vet_name].filter(Boolean).join(" — ");
         await supabase.from("budget_entries").insert({
           horse_id: horseId,
@@ -249,6 +249,20 @@ export default function HealthEventForm({ horseId, onSaved, onCancel, defaultVal
           min="0"
         />
       </div>
+
+      {isNew && form.cost && parseFloat(form.cost) > 0 && (
+        <label className="flex items-center gap-2.5 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={addToBudget}
+            onChange={(e) => setAddToBudget(e.target.checked)}
+            className="w-4 h-4 rounded accent-orange"
+          />
+          <span className="text-sm text-gray-700">
+            Ajouter <strong>{form.cost} €</strong> au budget (Soins vét.)
+          </span>
+        </label>
+      )}
 
       <Textarea
         label="Notes"

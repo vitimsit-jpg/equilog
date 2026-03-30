@@ -5,6 +5,7 @@ import ScoreBreakdownComponent from "@/components/horse-index/ScoreBreakdown";
 import ScoreHistory from "@/components/horse-index/ScoreHistory";
 import CalibrationBadge from "@/components/horse-index/CalibrationBadge";
 import { formatDate } from "@/lib/utils";
+import { differenceInDays, startOfDay, parseISO } from "date-fns";
 import PremiumNudge from "@/components/ui/PremiumNudge";
 import AvatarUpload from "@/components/horse/AvatarUpload";
 import HorseEditModal from "@/components/horse/HorseEditModal";
@@ -112,7 +113,7 @@ export default async function HorsePage({ params }: Props) {
   const hiStatus = (horse as any).horse_index_status ?? "incomplet";
   const modeChangedAt = (horse as any).horse_index_mode_changed_at;
   const calibrageDaysIn = modeChangedAt
-    ? Math.floor((Date.now() - new Date(modeChangedAt).getTime()) / (1000 * 60 * 60 * 24))
+    ? differenceInDays(startOfDay(new Date()), startOfDay(parseISO(modeChangedAt)))
     : null;
 
   let parsedInsight: {

@@ -100,15 +100,15 @@ export default function RiderProfileBlock({ user }: Props) {
   const [disciplines, setDisciplines] = useState<string[]>(user.rider_disciplines ?? []);
   const [frequence, setFrequence] = useState<number | null>(user.rider_frequence ?? null);
   const [objectif, setObjectif] = useState<string | null>(user.rider_objectif ?? null);
-  const [zones, setZones] = useState<string[]>((user as any).rider_zones_douloureuses ?? []);
-  const [asymetrie, setAsymetrie] = useState<string | null>((user as any).rider_asymetrie ?? null);
-  const [pathologies, setPathologies] = useState<string>((user as any).rider_pathologies ?? "");
+  const [zones, setZones] = useState<string[]>(user.rider_zones_douloureuses ?? []);
+  const [asymetrie, setAsymetrie] = useState<string | null>(user.rider_asymetrie ?? null);
+  const [pathologies, setPathologies] = useState<string>(user.rider_pathologies ?? "");
   const [suiviCorps, setSuiviCorps] = useState<Record<string, { actif: boolean; frequence?: string }>>(
-    (user as any).rider_suivi_corps ?? {}
+    user.rider_suivi_corps ?? {}
   );
-  const [activiteTypes, setActiviteTypes] = useState<string[]>((user as any).rider_activite_types ?? []);
-  const [activiteFrequence, setActiviteFrequence] = useState<string | null>((user as any).rider_activite_frequence ?? null);
-  const [objectifsCavalier, setObjectifsCavalier] = useState<string[]>((user as any).rider_objectifs_cavalier ?? []);
+  const [activiteTypes, setActiviteTypes] = useState<string[]>(user.rider_activite_types ?? []);
+  const [activiteFrequence, setActiviteFrequence] = useState<string | null>(user.rider_activite_frequence ?? null);
+  const [objectifsCavalier, setObjectifsCavalier] = useState<string[]>(user.rider_objectifs_cavalier ?? []);
 
   const toggleActivite = (a: string) => {
     setActiviteTypes((prev) =>

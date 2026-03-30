@@ -126,6 +126,7 @@ export default function MarechalLogModal({
   const supabase = createClient();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [addToBudget, setAddToBudget] = useState(true);
   const [view, setView] = useState<ModalView>("full_form");
   const [showOptions, setShowOptions] = useState(false);
   const [recurrenceCustom, setRecurrenceCustom] = useState("");
@@ -292,8 +293,16 @@ export default function MarechalLogModal({
   // ── Quick confirm save ─────────────────────────────────────────────────────
   const handleQuickSave = async () => {
     setLoading(true);
-    const { error } = await supabase.from("health_records").insert(buildPayload(true));
+    const payload = buildPayload(true);
+    const { error } = await supabase.from("health_records").insert(payload);
     if (error) { toast.error("Erreur lors de l'enregistrement"); setLoading(false); return; }
+    if (addToBudget && payload.cost && payload.cost > 0) {
+      const desc = ["Parage / Maréchal", payload.vet_name].filter(Boolean).join(" — ");
+      await supabase.from("budget_entries").insert({
+        horse_id: horseId, date: payload.date, category: "maréchalerie",
+        amount: payload.cost, description: desc || null,
+      });
+    }
     toast.success("Passage enregistré !");
     onSaved(); router.refresh();
     handleClose();
@@ -316,6 +325,13 @@ export default function MarechalLogModal({
     }
 
     if (err) { toast.error("Erreur lors de l'enregistrement"); setLoading(false); return; }
+    if (!defaultValues?.id && addToBudget && payload.cost && payload.cost > 0) {
+      const desc = ["Parage / Maréchal", payload.vet_name].filter(Boolean).join(" — ");
+      await supabase.from("budget_entries").insert({
+        horse_id: horseId, date: payload.date, category: "maréchalerie",
+        amount: payload.cost, description: desc || null,
+      });
+    }
     toast.success(defaultValues?.id ? "Soin mis à jour" : "Passage enregistré !");
     onSaved(); router.refresh();
     setLoading(false);
@@ -415,6 +431,19 @@ export default function MarechalLogModal({
             />
             <span>Date du passage</span>
           </div>
+          {profile.cout_habituel && profile.cout_habituel > 0 && (
+            <label className="flex items-center gap-2.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={addToBudget}
+                onChange={(e) => setAddToBudget(e.target.checked)}
+                className="w-4 h-4 rounded accent-orange"
+              />
+              <span className="text-sm text-gray-700">
+                Ajouter <strong>{profile.cout_habituel} €</strong> au budget (Maréchalerie)
+              </span>
+            </label>
+          )}
           <div className="flex gap-3">
             <button
               onClick={() => { prefillFromProfile(profile); setView("full_form"); }}
@@ -642,6 +671,19 @@ export default function MarechalLogModal({
             </div>
           </div>
           <p className="text-2xs text-gray-400">📵 Le numéro est mémorisé uniquement pour vous, jamais partagé.</p>
+          {!defaultValues?.id && cout && parseFloat(cout) > 0 && (
+            <label className="flex items-center gap-2.5 cursor-pointer select-none mt-1">
+              <input
+                type="checkbox"
+                checked={addToBudget}
+                onChange={(e) => setAddToBudget(e.target.checked)}
+                className="w-4 h-4 rounded accent-orange"
+              />
+              <span className="text-sm text-gray-700">
+                Ajouter <strong>{cout} €</strong> au budget (Maréchalerie)
+              </span>
+            </label>
+          )}
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}

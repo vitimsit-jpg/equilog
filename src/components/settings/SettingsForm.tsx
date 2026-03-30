@@ -187,6 +187,22 @@ export default function SettingsForm({ user }: Props) {
       </div>
 
       <div className="card">
+        <h2 className="font-bold text-black mb-4">IA & Coaching</h2>
+        <div className="flex items-center justify-between py-2">
+          <div>
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-semibold text-black">Insights IA hebdomadaires</p>
+              <span className="text-2xs font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-400">Bientôt disponible</span>
+            </div>
+            <p className="text-xs text-gray-400 mt-0.5">Analyse automatique de l'activité, fatigue et progression chaque semaine</p>
+          </div>
+          <div className="relative w-10 h-6 rounded-full bg-gray-100 flex-shrink-0 cursor-not-allowed opacity-50">
+            <div className="absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow-sm" />
+          </div>
+        </div>
+      </div>
+
+      <div className="card">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-bold text-black">Mon abonnement</h2>
           <Badge variant={user?.plan === "pro" ? "orange" : "gray"}>

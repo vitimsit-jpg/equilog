@@ -10,6 +10,7 @@ import Modal from "@/components/ui/Modal";
 import HealthEventForm from "./HealthEventForm";
 import Button from "@/components/ui/Button";
 import { Paperclip, X } from "lucide-react";
+import { HEALTH_TYPE_LABELS } from "@/lib/utils";
 
 const HEALTH_ITEMS: { type: HealthType; emoji: string; label: string }[] = [
   { type: "vermifuge",   emoji: "📅", label: "Vermifuge" },
@@ -64,6 +65,7 @@ export default function QuickHealthModal({ open, onClose, horseId, onSaved, defa
   const [customDate, setCustomDate] = useState(todayStr);
   const [vetName, setVetName] = useState("");
   const [cost, setCost] = useState("");
+  const [addToBudget, setAddToBudget] = useState(true);
   const [notes, setNotes] = useState("");
   const [files, setFiles] = useState<File[]>([]);
 
@@ -111,6 +113,16 @@ export default function QuickHealthModal({ open, onClose, horseId, onSaved, defa
     if (error) { toast.error("Erreur lors de l'enregistrement"); }
     else {
       if (vetName) savePractitioner(selectedType, vetName);
+      if (addToBudget && cost && parseFloat(cost) > 0) {
+        const desc = [HEALTH_TYPE_LABELS[selectedType], vetName].filter(Boolean).join(" — ");
+        await supabase.from("budget_entries").insert({
+          horse_id: horseId,
+          date: effectiveDate,
+          category: "soins",
+          amount: parseFloat(cost),
+          description: desc || null,
+        });
+      }
       toast.success("Soin enregistré !");
       trackEvent({ event_name: "health_record_created", event_category: "health", properties: { type: selectedType, mode: "quick" } });
       reset(); onSaved();
@@ -121,7 +133,7 @@ export default function QuickHealthModal({ open, onClose, horseId, onSaved, defa
   const reset = () => {
     setSelectedType(defaultType || null);
     setDateOption("today"); setCustomDate(todayStr);
-    setVetName(""); setCost(""); setNotes(""); setFiles([]);
+    setVetName(""); setCost(""); setAddToBudget(true); setNotes(""); setFiles([]);
   };
 
   const handleClose = () => { setMode("quick"); reset(); onClose(); };
@@ -220,6 +232,21 @@ export default function QuickHealthModal({ open, onClose, horseId, onSaved, defa
               />
             </div>
           </div>
+
+          {/* Budget sync */}
+          {cost && parseFloat(cost) > 0 && (
+            <label className="flex items-center gap-2.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={addToBudget}
+                onChange={(e) => setAddToBudget(e.target.checked)}
+                className="w-4 h-4 rounded accent-orange"
+              />
+              <span className="text-sm text-gray-700">
+                Ajouter <strong>{cost} €</strong> au budget (Soins vét.)
+              </span>
+            </label>
+          )}
 
           {/* Fichiers */}
           <div>

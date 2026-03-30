@@ -15,6 +15,26 @@ interface Props {
   searchParams: SearchParams;
 }
 
+type ScoreWithHorse = {
+  id: string;
+  score: number;
+  computed_at: string;
+  percentile_region: number | null;
+  percentile_category: number | null;
+  score_breakdown: { mode?: string } | null;
+  horses: {
+    id: string;
+    name: string;
+    breed: string | null;
+    discipline: string | null;
+    ecurie: string | null;
+    region: string | null;
+    share_horse_index: boolean;
+    avatar_url: string | null;
+    horse_index_mode: string | null;
+  };
+};
+
 export default async function ClassementsPage({ searchParams }: Props) {
   const supabase = createClient();
 
@@ -27,8 +47,8 @@ export default async function ClassementsPage({ searchParams }: Props) {
 
   // Dédupliquer : garder le score le plus récent par cheval
   const seenHorses = new Set<string>();
-  const scores = (rawScores || []).filter((s) => {
-    const horseId = (s as any).horses?.id;
+  const scores = ((rawScores as ScoreWithHorse[] | null) || []).filter((s) => {
+    const horseId = s.horses?.id;
     if (!horseId || seenHorses.has(horseId)) return false;
     seenHorses.add(horseId);
     return true;
@@ -40,7 +60,7 @@ export default async function ClassementsPage({ searchParams }: Props) {
   const mode = searchParams.mode || "competitive"; // défaut : IC/IE uniquement
 
   const filtered = scores.filter((s) => {
-    const horse = (s as any).horses;
+    const horse = s.horses;
     const horseMode = horse.horse_index_mode || "IE";
     if (discipline && horse.discipline !== discipline) return false;
     if (region && !horse.region?.toLowerCase().includes(region.toLowerCase())) return false;
@@ -96,7 +116,7 @@ export default async function ClassementsPage({ searchParams }: Props) {
         {filtered.length >= 3 && !discipline && !region && (
           <div className="grid grid-cols-3 gap-3">
             {[filtered[1], filtered[0], filtered[2]].map((s, podiumIdx) => {
-              const horse = (s as any).horses;
+              const horse = s.horses;
               const heights = ["h-24", "h-32", "h-20"];
               const medals = ["🥈", "🥇", "🥉"];
               return (
@@ -110,8 +130,8 @@ export default async function ClassementsPage({ searchParams }: Props) {
                   <p className="text-xs font-bold text-black truncate px-2 text-center">{horse.name}</p>
                   <div className="flex items-center gap-1">
                     <p className="text-lg font-black" style={{ color: getScoreColor(s.score) }}>{s.score}</p>
-                    {(s as any).score_breakdown?.mode && (
-                      <span className="text-xs font-mono font-bold text-orange">{(s as any).score_breakdown.mode}</span>
+                    {s.score_breakdown?.mode && (
+                      <span className="text-xs font-mono font-bold text-orange">{s.score_breakdown.mode}</span>
                     )}
                   </div>
                 </Link>
@@ -128,7 +148,7 @@ export default async function ClassementsPage({ searchParams }: Props) {
         ) : (
           <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
             {filtered.map((s, idx) => {
-              const horse = (s as any).horses;
+              const horse = s.horses;
               const rank = idx + 1;
               return (
                 <Link
@@ -153,7 +173,7 @@ export default async function ClassementsPage({ searchParams }: Props) {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold text-black truncate">{horse.name}</p>
                     <p className="text-xs text-gray-400 truncate">
-                      {[DISCIPLINE_LABELS[horse.discipline] || horse.discipline, horse.ecurie, horse.region]
+                      {[(horse.discipline ? DISCIPLINE_LABELS[horse.discipline] : null) || horse.discipline, horse.ecurie, horse.region]
                         .filter(Boolean).join(" · ")}
                     </p>
                   </div>
@@ -162,10 +182,10 @@ export default async function ClassementsPage({ searchParams }: Props) {
                   <div className="text-right flex-shrink-0">
                     <div className="flex items-center justify-end gap-1.5">
                       <p className="text-xl font-black" style={{ color: getScoreColor(s.score) }}>{s.score}</p>
-                      {(s as any).score_breakdown?.mode && (
+                      {s.score_breakdown?.mode && (
                         <>
                           <span className="text-gray-300 font-light">·</span>
-                          <span className="text-sm font-mono font-bold text-orange">{(s as any).score_breakdown.mode}</span>
+                          <span className="text-sm font-mono font-bold text-orange">{s.score_breakdown.mode}</span>
                         </>
                       )}
                     </div>

@@ -46,19 +46,22 @@ export async function POST(request: NextRequest) {
   if (existing) {
     if (existing.reaction_type === type) {
       // Same emoji → toggle off
-      await supabase.from("feed_reactions").delete().eq("id", existing.id);
+      const { error } = await supabase.from("feed_reactions").delete().eq("id", existing.id);
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     } else {
       // Different emoji → change type
-      await supabase.from("feed_reactions").update({ reaction_type: type }).eq("id", existing.id);
+      const { error } = await supabase.from("feed_reactions").update({ reaction_type: type }).eq("id", existing.id);
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     }
   } else {
     // No reaction yet → insert
-    await supabase.from("feed_reactions").insert({
+    const { error } = await supabase.from("feed_reactions").insert({
       user_id: user.id,
       item_type,
       item_id,
       reaction_type: type,
     });
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
   // Fetch updated counts per type

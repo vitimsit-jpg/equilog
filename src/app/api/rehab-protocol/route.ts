@@ -191,7 +191,8 @@ Règles :
   const sessions = generateSessionsForPhase(horseId, phases[0], startMonday);
 
   if (sessions.length > 0) {
-    await supabase.from("training_planned_sessions").insert(sessions);
+    const { error: sessionsError } = await supabase.from("training_planned_sessions").insert(sessions);
+    if (sessionsError) return NextResponse.json({ error: sessionsError.message }, { status: 500 });
   }
 
   return NextResponse.json({ protocol, insertedCount: sessions.length });
@@ -241,7 +242,8 @@ export async function PATCH(request: NextRequest) {
     const startMonday = getNextMonday(new Date());
     const sessions = generateSessionsForPhase(protocol.horse_id, protocol.phases[newIndex], startMonday);
     if (sessions.length > 0) {
-      await supabase.from("training_planned_sessions").insert(sessions);
+      const { error: sessionsError } = await supabase.from("training_planned_sessions").insert(sessions);
+      if (sessionsError) return NextResponse.json({ error: sessionsError.message }, { status: 500 });
     }
     insertedCount = sessions.length;
 

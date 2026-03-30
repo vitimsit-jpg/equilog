@@ -5,7 +5,7 @@ import GestionEleves from "@/components/settings/GestionEleves";
 import RiderProfileBlock from "@/components/rider/RiderProfileBlock";
 import ModulesPersonnalisation from "@/components/settings/ModulesPersonnalisation";
 import GDPRBlock from "@/components/settings/GDPRBlock";
-import type { CoachStudent } from "@/lib/supabase/types";
+import type { CoachStudent, User } from "@/lib/supabase/types";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 
@@ -33,8 +33,8 @@ export default async function ProfilPage() {
         <p className="text-sm text-gray-400 mt-0.5">Gérez votre compte et vos préférences</p>
       </div>
       <SettingsForm user={userProfile} />
-      <RiderProfileBlock user={userProfile as any} />
-      <ModulesPersonnalisation userId={authUser.id} userModules={(userProfile as any)?.user_modules ?? null} />
+      <RiderProfileBlock user={userProfile as User} />
+      <ModulesPersonnalisation userId={authUser.id} userModules={(userProfile as User)?.user_modules ?? null} />
       {userProfile?.module_coach && (
         <GestionEleves initialStudents={coachStudents} />
       )}

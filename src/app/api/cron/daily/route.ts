@@ -204,7 +204,7 @@ export async function GET(request: NextRequest) {
         if (dateStr > todayStr) break; // pas encore dû
         if (existingDates.has(dateStr)) continue; // déjà généré
 
-        await supabase.from("budget_entries").insert({
+        const { error: insertError } = await supabase.from("budget_entries").insert({
           horse_id: template.horse_id,
           date: dateStr,
           category: template.category,
@@ -216,6 +216,7 @@ export async function GET(request: NextRequest) {
           media_urls: null,
         });
 
+        if (insertError) { results.errors++; break; }
         existingDates.add(dateStr);
         results.recurringBudget++;
       }

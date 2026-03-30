@@ -102,10 +102,10 @@ export default async function PublicHorseProfilePage({ params }: Props) {
               <div className="flex-1 space-y-1">
                 <div className="flex items-center gap-1.5">
                   <p className="text-3xl font-black text-black">{currentScore.score}</p>
-                  {(currentScore as any).score_breakdown?.mode && (
+                  {currentScore.score_breakdown?.mode && (
                     <>
                       <span className="text-gray-300 font-light text-xl">·</span>
-                      <span className="text-base font-mono font-bold text-orange">{(currentScore as any).score_breakdown.mode}</span>
+                      <span className="text-base font-mono font-bold text-orange">{currentScore.score_breakdown.mode}</span>
                     </>
                   )}
                 </div>

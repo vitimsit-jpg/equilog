@@ -133,7 +133,7 @@ export default function OnboardingPage() {
         .select("onboarding_completed, profile_type, user_type, name")
         .eq("id", user.id)
         .single();
-      if ((data as any)?.onboarding_completed) {
+      if (data?.onboarding_completed) {
         router.replace("/dashboard");
       }
       if (data?.name) setDisplayName(data.name);
@@ -169,7 +169,7 @@ export default function OnboardingPage() {
     const legacyUserType = selectedProfile === "gerant" ? "gerant_ecurie" : selectedProfile;
     const effectiveModuleGerant = selectedProfile === "gerant" ? true : moduleGerant;
 
-    await supabase.from("users").update({
+    const { error } = await supabase.from("users").update({
       profile_type: selectedProfile,
       user_type: legacyUserType,
       module_gerant: effectiveModuleGerant,
@@ -177,6 +177,7 @@ export default function OnboardingPage() {
       onboarding_step: 1,
     }).eq("id", user.id);
 
+    if (error) { toast.error("Erreur lors de la sauvegarde du profil"); setLoading(false); return; }
     nextStep();
     setLoading(false);
   };
@@ -281,12 +282,13 @@ export default function OnboardingPage() {
   const handleFinish = async () => {
     if (!userId) { router.push("/dashboard"); return; }
     setLoading(true);
-    await supabase.from("users").update({
+    const { error } = await supabase.from("users").update({
       notify_health_reminders: notifHealth,
       notify_weekly_summary: notifWeekly,
       onboarding_step: 7,
       onboarding_completed: true,
     }).eq("id", userId);
+    if (error) { toast.error("Erreur lors de la finalisation"); setLoading(false); return; }
     nextStep();
     setLoading(false);
   };

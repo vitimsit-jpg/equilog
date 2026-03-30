@@ -418,11 +418,12 @@ export default function QuickTrainingModal({
   const handleMilestoneValidate = async () => {
     if (selectedMilestoneId) {
       setMilestoneLoading(true);
-      await supabase
+      const { error } = await supabase
         .from("horse_growth_milestones")
         .update({ date: effectiveDate, notes: `Validé depuis séance du ${new Date(effectiveDate).toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}` })
         .eq("id", selectedMilestoneId);
       setMilestoneLoading(false);
+      if (error) { toast.error("Erreur lors de la validation du jalon"); return; }
       toast.success("Jalon validé !");
     }
     reset();

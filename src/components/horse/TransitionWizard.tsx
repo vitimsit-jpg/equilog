@@ -45,11 +45,12 @@ interface Props {
   horseId: string;
   horseName: string;
   currentMode: HorseIndexMode | null;
+  onModeChanged?: (mode: HorseIndexMode) => void;
 }
 
 type WizardStep = "mode" | "meds" | "checklist" | "confirm";
 
-export default function TransitionWizard({ open, onClose, horseId, horseName, currentMode }: Props) {
+export default function TransitionWizard({ open, onClose, horseId, horseName, currentMode, onModeChanged }: Props) {
   const router = useRouter();
   const supabase = createClient();
   const [step, setStep] = useState<WizardStep>("mode");
@@ -131,6 +132,13 @@ export default function TransitionWizard({ open, onClose, horseId, horseName, cu
       return;
     }
     toast.success(`Mode de vie mis à jour : ${HORSE_MODE_LABELS[selectedMode]}`);
+    onModeChanged?.(selectedMode);
+    // Recalculer le Horse Index avec le nouveau mode
+    fetch("/api/horse-index", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ horseId }),
+    }).catch(() => {});
     onClose();
     router.refresh();
   };

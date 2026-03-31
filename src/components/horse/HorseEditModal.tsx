@@ -142,10 +142,7 @@ export default function HorseEditModal({ horse, compact = false }: Props) {
         assurance: form.assurance || null,
         // sire_number, fei_number supprimés — APCU-08
         tonte: (form.tonte as Horse["tonte"]) || null,
-        horse_index_mode: form.horse_index_mode || "IE",
-        ...(form.horse_index_mode !== horse.horse_index_mode && {
-          horse_index_mode_changed_at: new Date().toISOString(),
-        }),
+        // horse_index_mode géré exclusivement par TransitionWizard — ne pas écraser ici
         trousseau: Array.from(trousseauSet).map((label) => ({ label, grammage: 0, impermeable: false })),
         module_nutrition: moduleNutrition,
         visibility: form.visibility as Horse["visibility"],
@@ -157,14 +154,6 @@ export default function HorseEditModal({ horse, compact = false }: Props) {
       toast.error("Erreur lors de la sauvegarde");
       setLoading(false);
       return;
-    }
-
-    if (form.horse_index_mode !== horse.horse_index_mode) {
-      await fetch("/api/horse-index", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ horseId: horse.id }),
-      }).catch(() => {});
     }
 
     toast.success("Profil mis à jour");
@@ -508,6 +497,7 @@ export default function HorseEditModal({ horse, compact = false }: Props) {
           horseId={horse.id}
           horseName={form.name || horse.name}
           currentMode={(form.horse_index_mode as HorseIndexMode) || null}
+          onModeChanged={(mode) => setForm((prev) => ({ ...prev, horse_index_mode: mode }))}
         />
       )}
 

@@ -7,8 +7,8 @@ export const PLAN_LIMITS: Record<Plan, {
   hasCommunity: boolean;
   hasEcurie: boolean;
 }> = {
-  starter: { maxHorses: 1, hasAI: false, hasHorseIndex: false, hasCommunity: false, hasEcurie: false },
-  pro:     { maxHorses: Infinity, hasAI: true,  hasHorseIndex: true,  hasCommunity: true,  hasEcurie: false },
+  starter: { maxHorses: Infinity, hasAI: true,  hasHorseIndex: true,  hasCommunity: true,  hasEcurie: true  },
+  pro:     { maxHorses: Infinity, hasAI: true,  hasHorseIndex: true,  hasCommunity: true,  hasEcurie: true  },
   ecurie:  { maxHorses: Infinity, hasAI: true,  hasHorseIndex: true,  hasCommunity: true,  hasEcurie: true  },
 };
 

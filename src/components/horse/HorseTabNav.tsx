@@ -13,7 +13,7 @@ const BASE_TABS: {
 }[] = [
   { suffix: "", label: "Aperçu" },
   { suffix: "/health", label: "Santé" },
-  { suffix: "/training", label: "Travail", hideForModes: ["IS", "ICr"], labelForMode: { IR: "Rééducation" } },
+  { suffix: "/training", label: "Travail", labelForMode: { IR: "Rééducation", ICr: "Éducation", IS: "Activité" } },
   { suffix: "/competitions", label: "Concours", hideForModes: ["IP", "IR", "IS", "ICr"] },
   { suffix: "/budget", label: "Budget" },
   { suffix: "/historique", label: "Historique" },

@@ -12,10 +12,20 @@ import Link from "next/link";
 import { DISCIPLINE_LABELS } from "@/lib/utils";
 import { trackEvent } from "@/lib/trackEvent";
 import { canAddHorse } from "@/lib/plans";
+import type { HorseIndexMode } from "@/lib/supabase/types";
 
 type RoleChoice = "owner_rider" | "guardian";
 
 const disciplineOptions = Object.entries(DISCIPLINE_LABELS).map(([value, label]) => ({ value, label }));
+
+const MODE_VIE_OPTIONS: { mode: HorseIndexMode; emoji: string; label: string; desc: string }[] = [
+  { mode: "IE",  emoji: "🌿", label: "Équilibre",    desc: "Pratique régulière, loisir ou club" },
+  { mode: "IC",  emoji: "🏆", label: "Compétition",  desc: "Préparation et sorties en concours" },
+  { mode: "ICr", emoji: "🌱", label: "Croissance",   desc: "Poulain ou jeune cheval en développement" },
+  { mode: "IR",  emoji: "💊", label: "Convalescence",desc: "Blessure, arrêt ou repos médical" },
+  { mode: "IS",  emoji: "🌸", label: "Retraite",     desc: "Cheval retraité ou à très faible activité" },
+  { mode: "IP",  emoji: "🔄", label: "Rééducation",  desc: "Reprise progressive après blessure ou pause" },
+];
 
 const currentYear = new Date().getFullYear();
 const yearOptions = Array.from({ length: 35 }, (_, i) => {
@@ -38,11 +48,16 @@ export default function NewHorsePage() {
     region: "",
     ecurie: "",
   });
+  const [modeVie, setModeVie] = useState<HorseIndexMode | "">("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim()) {
       toast.error("Le nom est requis");
+      return;
+    }
+    if (!modeVie) {
+      toast.error("Le mode de vie est requis pour activer le Horse Index");
       return;
     }
     setLoading(true);
@@ -70,6 +85,7 @@ export default function NewHorsePage() {
         discipline: (form.discipline as any) || null,
         region: form.region || null,
         ecurie: form.ecurie || null,
+        horse_index_mode: modeVie || null,
         share_horse_index: true,
       })
       .select()
@@ -127,7 +143,7 @@ export default function NewHorsePage() {
               onClick={() => handleRoleChoice("owner_rider")}
               className="flex flex-col items-start gap-2 p-4 rounded-2xl border-2 border-gray-100 hover:border-orange hover:bg-orange-light transition-all"
             >
-              <span className="text-2xl">🧑‍🦯</span>
+              <span className="text-2xl">🏇</span>
               <span className="text-sm font-bold text-black">Je monte</span>
               <span className="text-xs text-gray-400 leading-snug">Je pratique activement avec ce cheval</span>
             </button>
@@ -168,6 +184,31 @@ export default function NewHorsePage() {
             placeholder="Jackson"
             required
           />
+
+          <div>
+            <label className="label mb-1 block">Mode de vie <span className="text-orange">*</span></label>
+            <p className="text-xs text-gray-400 mb-2">Détermine l&apos;indice Horse Index adapté à votre cheval.</p>
+            <div className="grid grid-cols-2 gap-2">
+              {MODE_VIE_OPTIONS.map((m) => (
+                <button
+                  key={m.mode}
+                  type="button"
+                  onClick={() => setModeVie(m.mode)}
+                  className={`flex flex-col items-start gap-1 p-2.5 rounded-xl border-2 text-left transition-all ${
+                    modeVie === m.mode
+                      ? "border-orange bg-orange-light"
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">{m.emoji}</span>
+                    <span className={`text-xs font-semibold ${modeVie === m.mode ? "text-orange" : "text-gray-700"}`}>{m.label}</span>
+                  </div>
+                  <span className={`text-2xs leading-tight ${modeVie === m.mode ? "text-orange/70" : "text-gray-400"}`}>{m.desc}</span>
+                </button>
+              ))}
+            </div>
+          </div>
 
           <div className="grid grid-cols-2 gap-4">
             <Input

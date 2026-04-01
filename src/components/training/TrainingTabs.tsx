@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { LayoutDashboard, CalendarDaysDays, Clock, Sparkles, Plus, Trophy, X, ChevronDown, FileText, BookOpen, Library } from "lucide-react";
+import { LayoutDashboard, CalendarDays, Clock, Sparkles, Plus, Trophy, X, ChevronDown, FileText, BookOpen, Library } from "lucide-react";
 import type { TrainingSession, TrainingPlannedSession, AIInsight, HorseIndexMode, RehabProtocol } from "@/lib/supabase/types";
 import RehabProtocolCard from "./RehabProtocolCard";
 import TrainingDashboard from "./TrainingDashboard";

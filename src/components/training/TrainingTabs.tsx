@@ -57,9 +57,9 @@ function getTabConfig(mode: HorseIndexMode | null): { overviewLabel: string; sho
     case "IS":
       return { overviewLabel: "Suivi", showPlanTab: false };
     case "IP":
-      return { overviewLabel: "Rééducation", showPlanTab: true };
+      return { overviewLabel: "Réédu.", showPlanTab: true };
     case "IR":
-      return { overviewLabel: "Rééducation", showPlanTab: true };
+      return { overviewLabel: "Réédu.", showPlanTab: true };
     default:
       return { overviewLabel: "Vue d'ensemble", showPlanTab: true };
   }
@@ -585,14 +585,17 @@ export default function TrainingTabs({ horseId, horseName, horseBirthYear, sessi
     ...(isMovementMode ? [{ id: "mouvement" as Tab, label: "Mouvement", icon: <LayoutDashboard className="h-3.5 w-3.5" /> }] : []),
     // IS — onglet Carrière
     ...(isMovementMode ? [{ id: "carriere" as Tab, label: "Carrière", icon: <Trophy className="h-3.5 w-3.5" /> }] : []),
-    // IR — onglet Suivi médical (praticiens + examens)
-    ...(isRehabMode ? [{ id: "convalescence" as Tab, label: "Suivi méd.", icon: <FileText className="h-3.5 w-3.5" /> }] : []),
-    // IR — onglet Journal d'évolution
+    // BUG 33-36 — IR : overview en premier (page d'entrée principale), puis Plan, Médical, Journal
+    // Pour les autres modes, overview reste après Programme
+    ...(!isMovementMode && isRehabMode ? [{ id: "overview" as Tab, label: overviewLabel, icon: <LayoutDashboard className="h-3.5 w-3.5" /> }] : []),
+    ...(showPlanTab ? [{ id: "semaine" as Tab, label: isRehabMode ? "Plan" : "Programme", icon: <CalendarDays className="h-3.5 w-3.5" />, badge: aLoggerCount > 0 ? aLoggerCount : undefined }] : []),
+    // IR — Suivi médical (praticiens + examens)
+    ...(isRehabMode ? [{ id: "convalescence" as Tab, label: "Médical", icon: <FileText className="h-3.5 w-3.5" /> }] : []),
+    // IR — Journal d'évolution
     ...(isRehabMode ? [{ id: "journal" as Tab, label: "Journal", icon: <BookOpen className="h-3.5 w-3.5" /> }] : []),
-    ...(showPlanTab ? [{ id: "semaine" as Tab, label: "Programme", icon: <CalendarDays className="h-3.5 w-3.5" />, badge: aLoggerCount > 0 ? aLoggerCount : undefined }] : []),
-    // Pour IS et ICr, l'onglet overview reste mais devient secondaire
-    ...(!isMovementMode ? [{ id: "overview" as Tab, label: overviewLabel, icon: <LayoutDashboard className="h-3.5 w-3.5" /> }] : []),
-    { id: "historique", label: "Historique", icon: <Clock className="h-3.5 w-3.5" /> },
+    // Pour IS : pas d'overview. Pour autres modes non-IR : overview après Programme
+    ...(!isMovementMode && !isRehabMode ? [{ id: "overview" as Tab, label: overviewLabel, icon: <LayoutDashboard className="h-3.5 w-3.5" /> }] : []),
+    { id: "historique", label: isRehabMode ? "Histo." : "Historique", icon: <Clock className="h-3.5 w-3.5" /> },
   ];
 
   return (

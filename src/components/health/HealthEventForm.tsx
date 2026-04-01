@@ -25,7 +25,7 @@ function getTypeOptions(horseMode?: HorseIndexMode | null) {
 
 // Default intervals in days per type
 const defaultIntervals: Partial<Record<HealthType, number | null>> = {
-  vaccin: 180,
+  vaccin: 365,
   vermifuge: 90,
   ferrage: 35,
   dentiste: 365,
@@ -56,16 +56,16 @@ interface Props {
   horseMode?: HorseIndexMode | null;
 }
 
-function loadPractitioner(type: HealthType): { vet_name: string; practitioner_phone: string } {
+function loadPractitioner(type: HealthType, horseId: string): { vet_name: string; practitioner_phone: string } {
   try {
-    const stored = localStorage.getItem(`equistra_pract_${type}`);
+    const stored = localStorage.getItem(`equistra_pract_${horseId}_${type}`);
     return stored ? JSON.parse(stored) : { vet_name: "", practitioner_phone: "" };
   } catch { return { vet_name: "", practitioner_phone: "" }; }
 }
 
-function savePractitioner(type: HealthType, vet_name: string, practitioner_phone: string) {
+function savePractitioner(type: HealthType, horseId: string, vet_name: string, practitioner_phone: string) {
   if (!vet_name) return;
-  try { localStorage.setItem(`equistra_pract_${type}`, JSON.stringify({ vet_name, practitioner_phone })); } catch {}
+  try { localStorage.setItem(`equistra_pract_${horseId}_${type}`, JSON.stringify({ vet_name, practitioner_phone })); } catch {}
 }
 
 export default function HealthEventForm({ horseId, onSaved, onCancel, defaultValues, horseMode }: Props) {
@@ -74,7 +74,7 @@ export default function HealthEventForm({ horseId, onSaved, onCancel, defaultVal
   const [loading, setLoading] = useState(false);
   const isNew = !defaultValues?.id;
 
-  const initialPract = isNew ? loadPractitioner(defaultValues?.type || "vaccin") : { vet_name: "", practitioner_phone: "" };
+  const initialPract = isNew ? loadPractitioner(defaultValues?.type || "vaccin", horseId) : { vet_name: "", practitioner_phone: "" };
 
   const [form, setForm] = useState({
     type: defaultValues?.type || ("vaccin" as HealthType),
@@ -92,7 +92,7 @@ export default function HealthEventForm({ horseId, onSaved, onCancel, defaultVal
   // Hydrate practitioner from localStorage on mount (client only)
   useEffect(() => {
     if (!isNew) return;
-    const pract = loadPractitioner(form.type);
+    const pract = loadPractitioner(form.type, horseId);
     if (pract.vet_name && !form.vet_name) {
       setForm((prev) => ({ ...prev, vet_name: pract.vet_name, practitioner_phone: pract.practitioner_phone }));
     }
@@ -104,7 +104,7 @@ export default function HealthEventForm({ horseId, onSaved, onCancel, defaultVal
     const nextDate = interval
       ? format(addDays(new Date(form.date), interval), "yyyy-MM-dd")
       : "";
-    const pract = isNew ? loadPractitioner(type) : { vet_name: form.vet_name, practitioner_phone: form.practitioner_phone };
+    const pract = isNew ? loadPractitioner(type, horseId) : { vet_name: form.vet_name, practitioner_phone: form.practitioner_phone };
     setForm({ ...form, type, next_date: nextDate, vaccin_subtype: vaccinSubtypes[0].value, vet_name: pract.vet_name, practitioner_phone: pract.practitioner_phone });
   };
 
@@ -147,7 +147,7 @@ export default function HealthEventForm({ horseId, onSaved, onCancel, defaultVal
 
     if (error) toast.error("Erreur lors de l'enregistrement");
     else {
-      savePractitioner(form.type, form.vet_name, form.practitioner_phone);
+      savePractitioner(form.type, horseId, form.vet_name, form.practitioner_phone);
       if (!defaultValues?.id && addToBudget && payload.cost && payload.cost > 0) {
         const desc = [HEALTH_TYPE_LABELS[form.type], form.vet_name].filter(Boolean).join(" — ");
         await supabase.from("budget_entries").insert({

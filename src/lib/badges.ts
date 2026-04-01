@@ -62,7 +62,7 @@ export interface BadgeInput {
 export function computeEarnedBadgeKeys(input: BadgeInput): string[] {
   const earned: string[] = [];
   const {
-    totalSessions, totalCompetitions, streak,
+    totalSessions, totalCompetitions, totalHealthRecords, streak,
     hasPodium, hasWinner, hasHorseIndex, sessionTypes,
     hasAmateurLevel, maxSameYearCompetitions,
     horseCreatedAt, isCompleteProfile,
@@ -93,7 +93,7 @@ export function computeEarnedBadgeKeys(input: BadgeInput): string[] {
     if (yearsOld >= 3) earned.push("anniversary_3");
     if (yearsOld >= 5) earned.push("anniversary_5");
   }
-  if (isCompleteProfile) earned.push("duo_complet");
+  if (isCompleteProfile && totalSessions >= 1 && totalHealthRecords >= 1) earned.push("duo_complet");
 
   // Spéciaux
   if (hasHorseIndex) earned.push("horse_index_active");

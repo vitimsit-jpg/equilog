@@ -24,7 +24,7 @@ const MOVEMENT_TYPES: { type: MovementLogType; label: string; emoji: string; col
   { type: "paddock_libre", label: "Paddock libre",  emoji: "🌿", color: "bg-green-50 text-green-700" },
   { type: "pre_libre",     label: "Pré libre",      emoji: "🌾", color: "bg-lime-50 text-lime-700" },
   { type: "balade_main",   label: "Balade à main",  emoji: "👋", color: "bg-blue-50 text-blue-700" },
-  { type: "longe_douce",   label: "Longe douce",    emoji: "⭕", color: "bg-amber-50 text-amber-700" },
+  { type: "longe_douce",   label: "Longe douce",    emoji: "🌀", color: "bg-amber-50 text-amber-700" },
   { type: "monte_douce",   label: "Monte douce",    emoji: "🐴", color: "bg-purple-50 text-purple-700" },
   { type: "autre",         label: "Autre",          emoji: "📋", color: "bg-gray-50 text-gray-600" },
 ];

@@ -73,7 +73,7 @@ export default function EducationTab({ horseId, horseName, birthYear }: Props) {
   const [mNotes, setMNotes] = useState("");
 
   // Add measure form
-  const [mesDate, setMesDate] = useState("");
+  const [mesDate, setMesDate] = useState(new Date().toISOString().split("T")[0]);
   const [mesTaille, setMesTaille] = useState("");
   const [mesPoids, setMesPoids] = useState("");
   const [mesPoitrine, setMesPoitrine] = useState("");
@@ -138,7 +138,7 @@ export default function EducationTab({ horseId, horseName, birthYear }: Props) {
     if (error) { toast.error("Erreur lors de l'ajout"); return; }
     toast.success("Mesure enregistrée !");
     setShowAddMeasure(false);
-    setMesDate(""); setMesTaille(""); setMesPoids(""); setMesPoitrine(""); setMesNotes("");
+    setMesDate(new Date().toISOString().split("T")[0]); setMesTaille(""); setMesPoids(""); setMesPoitrine(""); setMesNotes("");
     load();
   }
 
@@ -388,7 +388,7 @@ export default function EducationTab({ horseId, horseName, birthYear }: Props) {
                   type="number"
                   value={mesTaille}
                   onChange={(e) => setMesTaille(e.target.value)}
-                  placeholder="140"
+                  placeholder="ex: 120"
                   className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange/30"
                 />
               </div>
@@ -398,7 +398,7 @@ export default function EducationTab({ horseId, horseName, birthYear }: Props) {
                   type="number"
                   value={mesPoids}
                   onChange={(e) => setMesPoids(e.target.value)}
-                  placeholder="300"
+                  placeholder="ex: 150"
                   className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange/30"
                 />
               </div>
@@ -408,7 +408,7 @@ export default function EducationTab({ horseId, horseName, birthYear }: Props) {
                   type="number"
                   value={mesPoitrine}
                   onChange={(e) => setMesPoitrine(e.target.value)}
-                  placeholder="160"
+                  placeholder="ex: 110"
                   className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange/30"
                 />
               </div>

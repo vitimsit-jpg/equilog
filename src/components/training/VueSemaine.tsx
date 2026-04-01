@@ -39,6 +39,7 @@ interface Props {
   sessions: TrainingSession[];
   plannedSessions: TrainingPlannedSession[];
   healthRecords?: { id: string; type: string; date: string }[];
+  horseMode?: string | null;
 }
 
 const DURATION_PRESETS = [15, 20, 30, 45, 60, 90, 120, 150];
@@ -81,7 +82,7 @@ function getCompletionColor(pct: number | null, weekOffset: number): string {
 
 const DAY_LABELS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 
-export default function VueSemaine({ horseId, sessions, plannedSessions, healthRecords }: Props) {
+export default function VueSemaine({ horseId, sessions, plannedSessions, healthRecords, horseMode }: Props) {
   const supabase = createClient();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -711,7 +712,9 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
         {/* Day content — REPOS empty (seulement si aucun complément non plus) */}
         {hasEverAnyActivity && !hasAnything && selectedDayMainSessions.length === 0 && selectedDayComplements.length === 0 && (
           <div className="text-center py-6">
-            <p className="text-sm text-gray-300 mb-3">Repos — rien de prévu</p>
+            <p className="text-sm text-gray-300 mb-3">
+              {horseMode === "ICr" ? "Journée libre — rien de prévu" : "Repos — rien de prévu"}
+            </p>
             <button
               onClick={() => openPlanModal(selectedDateKey)}
               className="text-xs text-orange hover:underline font-semibold"

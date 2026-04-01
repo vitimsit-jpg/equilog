@@ -189,7 +189,6 @@ export default function HorsePlanningCards({ horses, weekSessions, weekPlannedSe
   return (
     <div className="space-y-3">
       {activeHorses.map((horse) => {
-        const firstName = horse.name.split(" ")[0];
         const todaySessions = sessionsByHorseDay[horse.id]?.[todayKey] || [];
         const todayPlanned = plannedByHorseDay[horse.id]?.[todayKey] || [];
         const todayStatus = getDayStatus(todaySessions, todayPlanned);
@@ -207,15 +206,15 @@ export default function HorsePlanningCards({ horses, weekSessions, weekPlannedSe
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={horse.avatar_url}
-                    alt={firstName}
+                    alt={horse.name}
                     className="w-10 h-10 rounded-full object-cover flex-shrink-0"
                   />
                 ) : (
                   <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center flex-shrink-0">
-                    <span className="text-white text-sm font-bold leading-none">{firstName[0]}</span>
+                    <span className="text-white text-sm font-bold leading-none">{horse.name[0]}</span>
                   </div>
                 )}
-                <span className="text-sm font-bold text-black">{firstName}</span>
+                <span className="text-sm font-bold text-black">{horse.name}</span>
               </div>
               <ChevronRight className="h-4 w-4 text-gray-400 flex-shrink-0" />
             </div>

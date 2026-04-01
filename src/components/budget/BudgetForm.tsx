@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import toast from "react-hot-toast";
-import { format } from "date-fns";
+import { format, addDays, addMonths, addYears } from "date-fns";
 import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import Textarea from "@/components/ui/Textarea";
@@ -82,12 +82,31 @@ export default function BudgetForm({ horseId, onSaved, onCancel, defaultValues }
       media_urls: mediaUrls.length > 0 ? mediaUrls : null,
     };
 
-    const { error } = defaultValues?.id
-      ? await supabase.from("budget_entries").update(payload).eq("id", defaultValues.id)
-      : await supabase.from("budget_entries").insert(payload);
+    const { data: insertedRow, error } = defaultValues?.id
+      ? await supabase.from("budget_entries").update(payload).eq("id", defaultValues.id).select().maybeSingle()
+      : await supabase.from("budget_entries").insert(payload).select().maybeSingle();
 
-    if (error) toast.error("Erreur lors de l'enregistrement");
-    else { toast.success("Dépense enregistrée !"); onSaved(); }
+    if (error) {
+      toast.error("Erreur lors de l'enregistrement");
+    } else {
+      // Générer immédiatement les occurrences passées pour une nouvelle dépense récurrente
+      if (isNew && form.is_recurring && insertedRow?.id && form.recurrence_frequency) {
+        const freq = form.recurrence_frequency;
+        const todayStr = format(new Date(), "yyyy-MM-dd");
+        let cursor = new Date(form.date);
+        let safety = 0;
+        const toInsert: object[] = [];
+        while (safety++ < 500) {
+          cursor = freq === "weekly" ? addDays(cursor, 7) : freq === "monthly" ? addMonths(cursor, 1) : addYears(cursor, 1);
+          const dateStr = format(cursor, "yyyy-MM-dd");
+          if (dateStr > todayStr) break;
+          toInsert.push({ horse_id: horseId, date: dateStr, category: form.category, amount: parseFloat(form.amount), description: form.description || null, is_recurring: false, recurrence_frequency: null, recurring_template_id: insertedRow.id, media_urls: null });
+        }
+        if (toInsert.length > 0) await supabase.from("budget_entries").insert(toInsert);
+      }
+      toast.success("Dépense enregistrée !");
+      onSaved();
+    }
     setLoading(false);
   };
 

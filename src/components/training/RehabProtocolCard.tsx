@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Sparkles, ChevronRight, CheckCircle, AlertTriangle, Lock } from "lucide-react";
+import { Sparkles, ChevronRight, CheckCircle, AlertTriangle, Lock, ClipboardList } from "lucide-react";
 import type { RehabProtocol, RehabPhase } from "@/lib/supabase/types";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
@@ -83,8 +83,8 @@ export default function RehabProtocolCard({ horseId, protocol }: Props) {
     return (
       <>
         <div className="card flex flex-col items-center text-center gap-3 py-6">
-          <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center">
-            <AlertTriangle className="h-6 w-6 text-danger" />
+          <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center">
+            <ClipboardList className="h-6 w-6 text-blue-500" />
           </div>
           <div>
             <p className="text-sm font-bold text-black">Aucun protocole de rééducation</p>

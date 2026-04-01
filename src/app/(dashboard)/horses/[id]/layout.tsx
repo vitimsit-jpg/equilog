@@ -145,7 +145,7 @@ export default async function HorseLayout({ children, params }: Props) {
                   {currentScore.score}
                 </div>
                 <div className="text-2xs text-gray-400 mt-0.5 tracking-wide uppercase">
-                  Index
+                  {(horse as any).horse_index_mode ?? "Index"}
                 </div>
               </div>
             )}

@@ -118,9 +118,12 @@ export async function POST(request: NextRequest) {
     )
     .join("\n") || "Aucune";
 
+  const horseMode = (horse as any).horse_index_mode ?? "IR";
+  const modeLabel = horseMode === "IP" ? "Rééducation progressive (IP)" : "Rééducation / Convalescence (IR)";
+
   const prompt = `Tu es spécialiste en rééducation équine. Génère un protocole de rééducation pour :
 Cheval : ${horse.name}, race : ${horse.breed || "non spécifiée"}, né en ${horse.birth_year || "?"}
-Mode : Rééducation (IR)
+Mode : ${modeLabel}
 Condition/Blessure : ${injuryDescription}
 ${vetNotes ? `Notes vétérinaire : ${vetNotes}` : ""}
 Séances récentes (14j) : ${sessionList}

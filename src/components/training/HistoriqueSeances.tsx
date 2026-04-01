@@ -42,6 +42,7 @@ function getDateCutoff(range: DateRange): Date | null {
 interface Props {
   sessions: TrainingSession[];
   horseId: string;
+  horseMode?: string | null;
 }
 
 function fmtDuration(min: number) {
@@ -49,7 +50,7 @@ function fmtDuration(min: number) {
   return `${min}min`;
 }
 
-export default function HistoriqueSeances({ sessions, horseId }: Props) {
+export default function HistoriqueSeances({ sessions, horseId, horseMode }: Props) {
   const supabase = createClient();
   const router = useRouter();
 
@@ -173,17 +174,39 @@ export default function HistoriqueSeances({ sessions, horseId }: Props) {
   };
 
   if (sessions.length === 0) {
+    const isYoung = horseMode === "ICr";
+    const isRetired = horseMode === "IS";
     return (
       <div className="card">
         <EmptyState
           icon={Dumbbell}
-          title="Aucune séance enregistrée"
-          description="Suivez chaque sortie : type de travail, intensité, ressenti et objectifs."
-          steps={[
-            { label: "Enregistrer une première séance" },
-            { label: "Suivre l'intensité & le ressenti" },
-            { label: "Analyser la progression sur 30 jours" },
-          ]}
+          title={isYoung || isRetired ? "Aucun contact enregistré" : "Aucune séance enregistrée"}
+          description={
+            isYoung
+              ? "Notez chaque sortie : travail à pied, longe, mise en confiance… Construisez l'historique de votre poulain."
+              : isRetired
+              ? "Notez les sorties, balades à main et moments partagés avec votre cheval en retraite."
+              : "Suivez chaque sortie : type de travail, intensité, ressenti et objectifs."
+          }
+          steps={
+            isYoung
+              ? [
+                  { label: "Enregistrer un premier contact" },
+                  { label: "Noter les réactions et progrès" },
+                  { label: "Suivre l'évolution dans le temps" },
+                ]
+              : isRetired
+              ? [
+                  { label: "Enregistrer une première sortie" },
+                  { label: "Suivre la régularité des contacts" },
+                  { label: "Observer l'évolution du bien-être" },
+                ]
+              : [
+                  { label: "Enregistrer une première séance" },
+                  { label: "Suivre l'intensité & le ressenti" },
+                  { label: "Analyser la progression sur 30 jours" },
+                ]
+          }
         />
       </div>
     );
@@ -545,7 +568,12 @@ export default function HistoriqueSeances({ sessions, horseId }: Props) {
           {/* Répartition TRAVAIL */}
           <div className="card">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-bold text-black text-sm">Répartition travail</h3>
+              <h3 className="font-bold text-black text-sm">
+                {horseMode === "IR" ? "Répartition rééducation"
+                  : horseMode === "IS" ? "Répartition activité"
+                  : horseMode === "ICr" ? "Répartition éducation"
+                  : "Répartition travail"}
+              </h3>
               <button
                 onClick={() => { setDrillType(null); setDrillPerson(null); setLevel(2); }}
                 className="text-2xs text-orange hover:underline"

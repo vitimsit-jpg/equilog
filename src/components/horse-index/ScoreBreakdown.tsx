@@ -24,9 +24,15 @@ const VISIBLE_PILLARS = [
   { key: "activite"    as const, label: "Activité",  icon: "🏇", weightKey: "activite" as const },
 ];
 
-const PILLAR_DESC: Record<string, string> = {
-  sante_score: "Soins à jour (vaccin, vermifuge, parage, dentiste) · Absence d'alerte vétérinaire urgente · Régularité du suivi",
-  bienetre:    "Ressenti noté en séance (feeling 1-5) · Équilibre repos / travail (idéal 30-55 % de repos) · Régularité des sorties (au moins 1/sem)",
+const PILLAR_DESC_SANTE = "Soins à jour (vaccin, vermifuge, parage, dentiste) · Absence d'alerte vétérinaire urgente · Régularité du suivi";
+
+const BIENETRE_DESC: Record<HorseIndexMode, string> = {
+  IC:  "Ressenti noté en séance (feeling 1-5) · Équilibre repos / travail (idéal 30-55 % de repos) · Régularité des sorties (au moins 1/sem)",
+  IE:  "Ressenti noté en séance (feeling 1-5) · Équilibre repos / travail (idéal 30-55 % de repos) · Régularité des sorties (au moins 1/sem)",
+  IP:  "Ressenti noté en séance (feeling 1-5) · Équilibre repos / travail adapté à la rééducation · Régularité des contacts",
+  IR:  "Qualité de la récupération · Repos suffisant entre les séances légères · Absence de fatigue excessive",
+  IS:  "Qualité de vie au quotidien · Contacts réguliers (présence, brossage, sortie en paddock) · Aucun travail monté attendu",
+  ICr: "Équilibre repos / sorties adaptées à l'âge · Contacts bienveillants valorisés · Travail monté non attendu",
 };
 
 const ACTIVITE_DESC: Record<HorseIndexMode, string> = {
@@ -123,7 +129,7 @@ export default function ScoreBreakdownComponent({ breakdown, horseId, scores }: 
 
                 {pillar.key === "sante_score" && (
                   <p className="text-2xs text-gray-400 mb-1.5 leading-relaxed">
-                    {PILLAR_DESC.sante_score}
+                    {PILLAR_DESC_SANTE}
                     {horseId && (
                       <>{" · "}<Link href={`/horses/${horseId}/health`} className="underline hover:text-gray-600">Voir le carnet →</Link></>
                     )}
@@ -131,7 +137,7 @@ export default function ScoreBreakdownComponent({ breakdown, horseId, scores }: 
                 )}
                 {pillar.key === "bienetre" && (
                   <p className="text-2xs text-gray-400 mb-1.5 leading-relaxed">
-                    {PILLAR_DESC.bienetre}
+                    {BIENETRE_DESC[mode]}
                   </p>
                 )}
                 {pillar.key === "activite" && (

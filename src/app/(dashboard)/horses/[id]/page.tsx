@@ -286,7 +286,7 @@ export default async function HorsePage({ params }: Props) {
 
         {currentScore && hiStatus !== "incomplet" ? (
           <>
-            <HorseIndexGauge score={currentScore.score} size="lg" />
+            <HorseIndexGauge score={currentScore.score} size="lg" mode={(horse as any).horse_index_mode ?? null} />
 
             {breakdown?.version === 2 && breakdown.mode && (
               <div className="flex flex-col items-center gap-1.5">
@@ -296,7 +296,7 @@ export default async function HorsePage({ params }: Props) {
                   <span className="text-sm font-mono font-bold text-orange">{breakdown.mode}</span>
                 </div>
                 {/* APCU-03 — CalibrationBadge */}
-                {hiStatus === "calibrage" && calibrageDaysIn !== null && (
+                {calibrageDaysIn !== null && calibrageDaysIn < 30 && (hiStatus === "calibrage" || ["IS", "IR"].includes((horse as any).horse_index_mode ?? "")) && (
                   <CalibrationBadge daysIn={calibrageDaysIn} />
                 )}
               </div>
@@ -304,19 +304,19 @@ export default async function HorsePage({ params }: Props) {
 
             {(currentScore.percentile_region || currentScore.percentile_category) && (
               <div className="w-full p-3 rounded-xl bg-beige space-y-1.5">
-                {currentScore.percentile_category && (
+                {currentScore.percentile_category && currentScore.percentile_category < 100 && (
                   <div className="flex justify-between text-xs">
                     <span className="text-gray-500">Discipline</span>
                     <span className="font-bold text-black">
-                      Top {Math.round(100 - currentScore.percentile_category)}%
+                      Top {Math.max(1, Math.round(100 - currentScore.percentile_category))}%
                     </span>
                   </div>
                 )}
-                {currentScore.percentile_region && horse.region && (
+                {currentScore.percentile_region && currentScore.percentile_region < 100 && horse.region && (
                   <div className="flex justify-between text-xs">
                     <span className="text-gray-500">{horse.region}</span>
                     <span className="font-bold text-black">
-                      Top {Math.round(100 - currentScore.percentile_region)}%
+                      Top {Math.max(1, Math.round(100 - currentScore.percentile_region))}%
                     </span>
                   </div>
                 )}

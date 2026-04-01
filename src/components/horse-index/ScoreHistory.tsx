@@ -46,11 +46,17 @@ export default function ScoreHistory({ scores }: ScoreHistoryProps) {
     .sort((a, b) => new Date(a.computed_at).getTime() - new Date(b.computed_at).getTime())
     .slice(-90);
 
-  const data = sorted.map((s) => ({
-    date: s.computed_at,
-    score: s.score,
-    label: format(parseISO(s.computed_at), "d MMM", { locale: fr }),
-  }));
+  // Deduplicate by day — keep latest entry per day
+  const byDay = new Map<string, { date: string; score: number; label: string }>();
+  for (const s of sorted) {
+    const dayKey = format(parseISO(s.computed_at), "yyyy-MM-dd");
+    byDay.set(dayKey, {
+      date: s.computed_at,
+      score: s.score,
+      label: format(parseISO(s.computed_at), "d MMM", { locale: fr }),
+    });
+  }
+  const data = Array.from(byDay.values());
 
   if (data.length < 2) {
     return (

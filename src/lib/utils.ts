@@ -89,9 +89,10 @@ export const TRAINING_TYPE_LABELS: Record<string, string> = {
   longues_renes: "Longues rênes",
   travail_a_pied: "Travail à pied",
   balade: "Balade",
-  trotting: "Trotting",
+  trotting: "Trot",
   galop: "Galop",
   marcheur: "Marcheur",
+  paddock: "Paddock",
   concours: "Concours",
   autre: "Autre",
   // Legacy keys — kept for existing data rows
@@ -105,7 +106,7 @@ export const TRAINING_EMOJIS: Record<string, string> = {
   dressage: "🎯", plat: "🏇", stretching: "🤸", barres_sol: "📏",
   cavalettis: "🔲", meca_obstacles: "🚧", obstacles_enchainement: "🏁",
   cross_entrainement: "🌲", longe: "🌀", longues_renes: "🪢",
-  travail_a_pied: "🦶", balade: "🌿", trotting: "🏃", galop: "💨",
+  travail_a_pied: "🧑", balade: "🌿", trotting: "🏃", galop: "💨",
   marcheur: "⚙️", paddock: "🌾", concours: "🏆", autre: "✳️",
   repos: "😴", saut: "🏇", endurance: "🏅", cso: "🏁", cross: "🌲",
 };

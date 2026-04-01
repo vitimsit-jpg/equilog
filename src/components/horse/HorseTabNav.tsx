@@ -28,12 +28,8 @@ export default function HorseTabNav({ horseId, horseIndexMode, moduleNutrition }
   const base = `/horses/${horseId}`;
   const storageKey = `last_tab_${horseId}`;
 
-  useEffect(() => {
-    if (pathname === base) {
-      const saved = localStorage.getItem(storageKey);
-      if (saved) router.replace(`${base}${saved}`);
-    }
-  }, []);
+  // BUG 11 — ne pas rediriger vers le dernier onglet : atterrir toujours sur Aperçu
+  useEffect(() => {}, []);
 
   const TABS = moduleNutrition
     ? [BASE_TABS[0], BASE_TABS[1], { suffix: "/nutrition", label: "Nutrition" }, ...BASE_TABS.slice(2)]

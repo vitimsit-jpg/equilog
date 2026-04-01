@@ -24,23 +24,23 @@ const HEALTH_ITEMS: { type: HealthType; emoji: string; label: string }[] = [
 ];
 
 const DEFAULT_INTERVALS: Partial<Record<HealthType, number | null>> = {
-  vaccin: 180, vermifuge: 90, ferrage: 35, dentiste: 365,
+  vaccin: 365, vermifuge: 90, ferrage: 35, dentiste: 365,
   osteo: 180, veterinaire: null, masseuse: 90, autre: null,
 };
 
 // Types with meaningful extra fields (subtype, urgency) → show "Mode détaillé"
 const TYPES_WITH_DETAIL: HealthType[] = ["vaccin", "veterinaire"];
 
-function loadPractitioner(type: HealthType): { vet_name: string } {
+function loadPractitioner(type: HealthType, horseId: string): { vet_name: string } {
   try {
-    const stored = localStorage.getItem(`equistra_pract_${type}`);
+    const stored = localStorage.getItem(`equistra_pract_${horseId}_${type}`);
     return stored ? JSON.parse(stored) : { vet_name: "" };
   } catch { return { vet_name: "" }; }
 }
 
-function savePractitioner(type: HealthType, vet_name: string) {
+function savePractitioner(type: HealthType, horseId: string, vet_name: string) {
   if (!vet_name) return;
-  try { localStorage.setItem(`equistra_pract_${type}`, JSON.stringify({ vet_name, practitioner_phone: "" })); } catch {}
+  try { localStorage.setItem(`equistra_pract_${horseId}_${type}`, JSON.stringify({ vet_name, practitioner_phone: "" })); } catch {}
 }
 
 type DateOption = "today" | "yesterday" | "custom";
@@ -73,7 +73,7 @@ export default function QuickHealthModal({ open, onClose, horseId, onSaved, defa
 
   const handleTypeSelect = (type: HealthType) => {
     setSelectedType(type);
-    const pract = loadPractitioner(type);
+    const pract = loadPractitioner(type, horseId);
     if (pract.vet_name) setVetName(pract.vet_name);
   };
 
@@ -112,7 +112,7 @@ export default function QuickHealthModal({ open, onClose, horseId, onSaved, defa
     });
     if (error) { toast.error("Erreur lors de l'enregistrement"); }
     else {
-      if (vetName) savePractitioner(selectedType, vetName);
+      if (vetName) savePractitioner(selectedType, horseId, vetName);
       if (addToBudget && cost && parseFloat(cost) > 0) {
         const desc = [HEALTH_TYPE_LABELS[selectedType], vetName].filter(Boolean).join(" — ");
         await supabase.from("budget_entries").insert({

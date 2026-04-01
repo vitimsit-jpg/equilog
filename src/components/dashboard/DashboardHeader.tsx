@@ -61,7 +61,11 @@ export default function DashboardHeader({
   } else if (nextHealthDays !== null && nextHealthDays <= 7 && nextHealthDays >= 0) {
     contextualPhrase = "Prochain soin à prévoir cette semaine.";
   } else {
-    contextualPhrase = PROFILE_DEFAULT_PHRASE[profileType] ?? PROFILE_DEFAULT_PHRASE.loisir;
+    let phrase = PROFILE_DEFAULT_PHRASE[profileType] ?? PROFILE_DEFAULT_PHRASE.loisir;
+    if (profileType === "loisir" && horsesCount > 1) {
+      phrase = "Voici l'état de vos chevaux aujourd'hui.";
+    }
+    contextualPhrase = phrase;
   }
 
   const profileBadge = PROFILE_BADGE[profileType] ?? PROFILE_BADGE.loisir;

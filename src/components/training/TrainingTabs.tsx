@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { LayoutDashboard, Calendar, Clock, Sparkles, Plus, Trophy, X, ChevronDown, FileText, BookOpen, Library } from "lucide-react";
+import { LayoutDashboard, CalendarDaysDays, Clock, Sparkles, Plus, Trophy, X, ChevronDown, FileText, BookOpen, Library } from "lucide-react";
 import type { TrainingSession, TrainingPlannedSession, AIInsight, HorseIndexMode, RehabProtocol } from "@/lib/supabase/types";
 import RehabProtocolCard from "./RehabProtocolCard";
 import TrainingDashboard from "./TrainingDashboard";
@@ -17,7 +17,7 @@ import RecoveryJournalTab from "./RecoveryJournalTab";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
-import { TRAINING_TYPE_LABELS } from "@/lib/utils";
+import { TRAINING_TYPE_LABELS, formatDate } from "@/lib/utils";
 import { useRidesHorse } from "@/hooks/useRidesHorse";
 import {
   format, differenceInDays, parseISO, startOfDay,
@@ -57,7 +57,7 @@ function getTabConfig(mode: HorseIndexMode | null): { overviewLabel: string; sho
     case "IS":
       return { overviewLabel: "Suivi", showPlanTab: false };
     case "IP":
-      return { overviewLabel: "Contact", showPlanTab: true };
+      return { overviewLabel: "Rééducation", showPlanTab: true };
     case "IR":
       return { overviewLabel: "Rééducation", showPlanTab: true };
     default:
@@ -401,8 +401,8 @@ function IPContactView({ sessions, latestInsight }: { sessions: TrainingSession[
                   <div className="w-2 h-2 rounded-full bg-orange" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-black capitalize">{s.type.replace(/_/g, " ")}</p>
-                  <p className="text-2xs text-gray-400">{s.date} · {s.duration_min}min</p>
+                  <p className="text-xs font-semibold text-black">{TRAINING_TYPE_LABELS[s.type] ?? s.type.replace(/_/g, " ")}</p>
+                  <p className="text-2xs text-gray-400">{formatDate(s.date)} · {s.duration_min}min</p>
                 </div>
                 <div className="flex gap-0.5">
                   {Array.from({ length: 5 }).map((_, idx) => (
@@ -546,6 +546,7 @@ export default function TrainingTabs({ horseId, horseName, horseBirthYear, sessi
   const getDefaultTab = (): Tab => {
     if (horseMode === "ICr") return "education";
     if (horseMode === "IS") return "mouvement";
+    if (horseMode === "IR") return "overview"; // Rehab overview first, not programme
     return _showPlanTab ? "semaine" : "overview";
   };
 
@@ -588,7 +589,7 @@ export default function TrainingTabs({ horseId, horseName, horseBirthYear, sessi
     ...(isRehabMode ? [{ id: "convalescence" as Tab, label: "Suivi méd.", icon: <FileText className="h-3.5 w-3.5" /> }] : []),
     // IR — onglet Journal d'évolution
     ...(isRehabMode ? [{ id: "journal" as Tab, label: "Journal", icon: <BookOpen className="h-3.5 w-3.5" /> }] : []),
-    ...(showPlanTab ? [{ id: "semaine" as Tab, label: "Programme", icon: <Calendar className="h-3.5 w-3.5" />, badge: aLoggerCount > 0 ? aLoggerCount : undefined }] : []),
+    ...(showPlanTab ? [{ id: "semaine" as Tab, label: "Programme", icon: <CalendarDays className="h-3.5 w-3.5" />, badge: aLoggerCount > 0 ? aLoggerCount : undefined }] : []),
     // Pour IS et ICr, l'onglet overview reste mais devient secondaire
     ...(!isMovementMode ? [{ id: "overview" as Tab, label: overviewLabel, icon: <LayoutDashboard className="h-3.5 w-3.5" /> }] : []),
     { id: "historique", label: "Historique", icon: <Clock className="h-3.5 w-3.5" /> },
@@ -621,8 +622,8 @@ export default function TrainingTabs({ horseId, horseName, horseBirthYear, sessi
         </Button>
       </div>
 
-      {/* Bibliothèque d'exercices — visible pour les cavaliers uniquement */}
-      {ridesHorse && (
+      {/* Bibliothèque d'exercices — visible pour les cavaliers en mode actif uniquement */}
+      {ridesHorse && !["IS", "IR", "ICr"].includes(horseMode ?? "") && (
         <Link
           href={`/exercises?horseId=${horseId}`}
           className="flex items-center gap-2.5 px-4 py-3 bg-beige rounded-xl border border-orange/10 active:opacity-80 transition-opacity"
@@ -735,7 +736,7 @@ export default function TrainingTabs({ horseId, horseName, horseBirthYear, sessi
                   className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors"
                 >
                   <div className="flex items-center gap-2">
-                    <Calendar className="h-3.5 w-3.5 text-gray-400" />
+                    <CalendarDays className="h-3.5 w-3.5 text-gray-400" />
                     <span className="text-sm font-bold text-black">Programme de la semaine</span>
                     {plannedThisWeek.length > 0 && (
                       <span className="text-2xs font-semibold px-1.5 py-0.5 rounded-full bg-orange-light text-orange">
@@ -761,12 +762,12 @@ export default function TrainingTabs({ horseId, horseName, horseBirthYear, sessi
                           <div className="flex-1 min-w-0 flex flex-wrap gap-1">
                             {daySessions.map((s) => (
                               <span key={s.id} className="text-2xs font-semibold px-1.5 py-0.5 rounded-full bg-orange text-white">
-                                {s.type.replace(/_/g, " ")} {s.duration_min}min
+                                {TRAINING_TYPE_LABELS[s.type] ?? s.type.replace(/_/g, " ")} {s.duration_min}min
                               </span>
                             ))}
                             {dayPlanned.map((p) => (
                               <span key={p.id} className="text-2xs font-semibold px-1.5 py-0.5 rounded-full border border-dashed border-gray-300 text-gray-500">
-                                {p.type.replace(/_/g, " ")}{p.duration_min_target ? ` ${p.duration_min_target}min` : ""}
+                                {TRAINING_TYPE_LABELS[p.type] ?? p.type.replace(/_/g, " ")}{p.duration_min_target ? ` ${p.duration_min_target}min` : ""}
                               </span>
                             ))}
                             {daySessions.length === 0 && dayPlanned.length === 0 && (
@@ -790,11 +791,12 @@ export default function TrainingTabs({ horseId, horseName, horseBirthYear, sessi
           sessions={sessions}
           plannedSessions={plannedSessions}
           healthRecords={healthRecords}
+          horseMode={horseMode}
         />
       )}
 
       {activeTab === "historique" && (
-        <HistoriqueSeances sessions={sessions} horseId={horseId} />
+        <HistoriqueSeances sessions={sessions} horseId={horseId} horseMode={horseMode} />
       )}
 
       <QuickTrainingModal

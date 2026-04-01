@@ -5,9 +5,10 @@ import { getScoreColor, getScoreLabel } from "@/lib/utils";
 interface HorseIndexGaugeProps {
   score: number;
   size?: "sm" | "md" | "lg";
+  mode?: string | null;
 }
 
-export default function HorseIndexGauge({ score, size = "md" }: HorseIndexGaugeProps) {
+export default function HorseIndexGauge({ score, size = "md", mode }: HorseIndexGaugeProps) {
   const sizes = {
     sm: { svg: 80, r: 30, stroke: 6, textSize: "text-xl" },
     md: { svg: 140, r: 54, stroke: 10, textSize: "text-4xl" },
@@ -21,7 +22,8 @@ export default function HorseIndexGauge({ score, size = "md" }: HorseIndexGaugeP
   const fillLength = (score / 100) * arcLength;
   const dashOffset = arcLength - fillLength;
 
-  const color = getScoreColor(score);
+  // For IS/IR modes, use a neutral color regardless of score to avoid anxiety
+  const color = (mode === "IS" || mode === "IR") ? "#388E3C" : getScoreColor(score);
 
   return (
     <div className="flex flex-col items-center gap-2">
@@ -61,7 +63,7 @@ export default function HorseIndexGauge({ score, size = "md" }: HorseIndexGaugeP
         className="text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
         style={{ color, backgroundColor: color + "15" }}
       >
-        {getScoreLabel(score)}
+        {mode === "IS" ? "Bien-être" : mode === "IR" ? "Récupération" : getScoreLabel(score)}
       </div>
     </div>
   );

@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
     horse_index_status = "incomplet";
   } else if (
     horse.horse_index_mode_changed_at &&
-    differenceInDays(now, new Date(horse.horse_index_mode_changed_at)) < 30
+    differenceInDays(now, new Date(horse.horse_index_mode_changed_at)) < (horse.horse_index_mode === "ICr" ? 180 : 30)
   ) {
     horse_index_status = "calibrage";
   } else {

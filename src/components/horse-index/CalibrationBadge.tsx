@@ -5,15 +5,17 @@ import { HelpCircle, X } from "lucide-react";
 
 interface Props {
   daysIn: number;
+  window?: number; // calibration window in days (default 30, 180 for ICr)
 }
 
-export default function CalibrationBadge({ daysIn }: Props) {
+export default function CalibrationBadge({ daysIn, window = 30 }: Props) {
   const [show, setShow] = useState(false);
+  const remaining = window - daysIn;
 
   return (
     <div className="relative flex items-center gap-1">
       <span className="text-2xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
-        Calibrage en cours · encore {30 - daysIn} jour{30 - daysIn > 1 ? "s" : ""}
+        Calibrage en cours · encore {remaining} jour{remaining > 1 ? "s" : ""}
       </span>
       <button
         type="button"

@@ -122,6 +122,9 @@ export default async function HorsePage({ params }: Props) {
 
   const hiStatus = (horse as any).horse_index_status ?? "incomplet";
   const modeChangedAt = (horse as any).horse_index_mode_changed_at;
+  const horseMode = (horse as any).horse_index_mode as HorseIndexMode | null;
+  // ICr (poulain) nécessite 180j de calibrage vs 30j pour les autres modes
+  const calibrageWindow = horseMode === "ICr" ? 180 : 30;
   const calibrageDaysIn = modeChangedAt
     ? differenceInDays(startOfDay(new Date()), startOfDay(parseISO(modeChangedAt)))
     : null;
@@ -306,8 +309,8 @@ export default async function HorsePage({ params }: Props) {
                   <span className="text-sm font-mono font-bold text-orange">{breakdown.mode}</span>
                 </div>
                 {/* APCU-03 — CalibrationBadge */}
-                {calibrageDaysIn !== null && calibrageDaysIn < 30 && (hiStatus === "calibrage" || ["IS", "IR"].includes((horse as any).horse_index_mode ?? "")) && (
-                  <CalibrationBadge daysIn={calibrageDaysIn} />
+                {calibrageDaysIn !== null && calibrageDaysIn < calibrageWindow && (hiStatus === "calibrage" || ["IS", "IR", "ICr"].includes((horse as any).horse_index_mode ?? "")) && (
+                  <CalibrationBadge daysIn={calibrageDaysIn} window={calibrageWindow} />
                 )}
               </div>
             )}

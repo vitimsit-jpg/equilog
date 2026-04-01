@@ -820,12 +820,16 @@ export default async function DashboardPage({
                         <span className="text-white font-black text-3xl">{horse.name[0]}</span>
                       </div>
                     )}
-                    {score !== undefined && (
-                      <div className="absolute top-2 right-2 bg-black/40 backdrop-blur-sm rounded-lg px-2 py-1 flex items-baseline gap-1">
-                        <span className="font-black text-sm" style={{ color: getScoreColor(score.score) }}>{score.score}</span>
-                        {score.mode && <span className="text-2xs font-bold text-orange">{score.mode}</span>}
-                      </div>
-                    )}
+                    <div className="absolute top-2 right-2 bg-black/40 backdrop-blur-sm rounded-lg px-2 py-1 flex items-baseline gap-1">
+                      {score !== undefined ? (
+                        <>
+                          <span className="font-black text-sm" style={{ color: getScoreColor(score.score) }}>{score.score}</span>
+                          {score.mode && <span className="text-2xs font-bold text-orange">{score.mode}</span>}
+                        </>
+                      ) : (
+                        <span className="text-xs text-white/50">—</span>
+                      )}
+                    </div>
                     {overdue > 0 && (
                       <div className="absolute top-2 left-2 flex items-center gap-1 bg-danger/90 rounded-lg px-2 py-0.5">
                         <Heart className="h-3 w-3 text-white" />
@@ -942,12 +946,16 @@ export default async function DashboardPage({
                         <div className="absolute inset-0 bg-gradient-to-br from-gray-700 to-gray-900" />
                       )}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                      {score !== undefined && (
-                        <div className="absolute top-2 right-2 bg-black/40 backdrop-blur-sm rounded-lg px-2 py-1 flex items-baseline gap-1">
-                          <span className="font-black text-sm" style={{ color: getScoreColor(score.score) }}>{score.score}</span>
-                          {score.mode && <span className="text-2xs font-bold text-orange">{score.mode}</span>}
-                        </div>
-                      )}
+                      <div className="absolute top-2 right-2 bg-black/40 backdrop-blur-sm rounded-lg px-2 py-1 flex items-baseline gap-1">
+                        {score !== undefined ? (
+                          <>
+                            <span className="font-black text-sm" style={{ color: getScoreColor(score.score) }}>{score.score}</span>
+                            {score.mode && <span className="text-2xs font-bold text-orange">{score.mode}</span>}
+                          </>
+                        ) : (
+                          <span className="text-xs text-white/50">—</span>
+                        )}
+                      </div>
                       {overdue > 0 && (
                         <div className="absolute top-2 left-2 bg-danger/90 rounded-full px-2 py-0.5">
                           <span className="text-xs font-bold text-white">{overdue}⚠</span>

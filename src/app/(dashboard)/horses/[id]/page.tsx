@@ -110,6 +110,16 @@ export default async function HorsePage({ params }: Props) {
   const currentScore = scores?.[0] ?? null;
   const breakdown = currentScore?.score_breakdown;
 
+  // BUG 15 — Déduplication côté serveur de l'historique des modes (en cas de doublons en DB)
+  const seenModeKeys = new Set<string>();
+  const dedupedModeHistory = (modeHistory ?? []).filter((entry) => {
+    const day = entry.changed_at ? entry.changed_at.slice(0, 10) : "";
+    const key = `${entry.mode_from}|${entry.mode_to}|${day}`;
+    if (seenModeKeys.has(key)) return false;
+    seenModeKeys.add(key);
+    return true;
+  });
+
   const hiStatus = (horse as any).horse_index_status ?? "incomplet";
   const modeChangedAt = (horse as any).horse_index_mode_changed_at;
   const calibrageDaysIn = modeChangedAt
@@ -366,9 +376,9 @@ export default async function HorsePage({ params }: Props) {
       />
 
       {/* TRAV-23 — Historique des modes */}
-      {modeHistory && modeHistory.length > 0 && (
+      {dedupedModeHistory.length > 0 && (
         <ModeHistoryTimeline
-          history={modeHistory as HorseModeHistory[]}
+          history={dedupedModeHistory as HorseModeHistory[]}
           currentMode={horseMode}
         />
       )}

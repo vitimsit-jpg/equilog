@@ -427,7 +427,7 @@ export default function NutritionSetup({ horseId, existingNutrition, onCancel }:
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={() => setHerbe({ actif: true, heures: herbe.heures })}
+            onClick={() => setHerbe({ actif: true, heures: herbe.heures ?? "journee" })}
             className={`flex-1 py-2.5 rounded-xl border-2 text-sm font-semibold transition-all ${
               herbe.actif ? "border-orange bg-orange-light text-orange" : "border-gray-200 text-gray-500"
             }`}
@@ -444,6 +444,21 @@ export default function NutritionSetup({ horseId, existingNutrition, onCancel }:
             Pas de pâture
           </button>
         </div>
+        {herbe.actif && (
+          <>
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Durée de pâture</p>
+            <BtnGroup
+              options={[
+                { value: "2", label: "2h" },
+                { value: "4", label: "4h" },
+                { value: "6", label: "6h" },
+                { value: "journee", label: "Toute la journée" },
+              ]}
+              value={herbe.heures ?? null}
+              onChange={(v) => setHerbe({ ...herbe, heures: v as NutritionHerbe["heures"] })}
+            />
+          </>
+        )}
       </section>
 
       {/* ── Section Granulés ── */}

@@ -62,66 +62,80 @@ export default function NewHorsePage() {
     }
     setLoading(true);
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { router.push("/login"); return; }
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { router.push("/login"); return; }
 
-    const { count: horseCount } = await supabase.from("horses").select("*", { count: "exact", head: true }).eq("user_id", user.id);
-    const { data: userProfile } = await supabase.from("users").select("plan").eq("id", user.id).single();
-    const plan = (userProfile?.plan || "starter") as "starter" | "pro" | "ecurie";
-    if (!canAddHorse(plan, horseCount || 0)) {
-      toast.error("Vous avez atteint la limite de chevaux pour le plan Starter. Passez au plan Pro pour en ajouter plus.");
-      router.push("/settings");
+      const { count: horseCount } = await supabase.from("horses").select("*", { count: "exact", head: true }).eq("user_id", user.id);
+      const { data: userProfile } = await supabase.from("users").select("plan").eq("id", user.id).maybeSingle();
+      const plan = (userProfile?.plan || "ecurie") as "starter" | "pro" | "ecurie";
+      if (!canAddHorse(plan, horseCount || 0)) {
+        toast.error("Limite de chevaux atteinte pour votre plan.");
+        router.push("/settings");
+        setLoading(false);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("horses")
+        .insert({
+          user_id: user.id,
+          name: form.name.trim(),
+          breed: form.breed || null,
+          birth_year: form.birth_year ? parseInt(form.birth_year) : null,
+          discipline: (form.discipline as any) || null,
+          region: form.region || null,
+          ecurie: form.ecurie || null,
+          horse_index_mode: modeVie || null,
+          share_horse_index: true,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        toast.error(`Erreur : ${error.message}`);
+        setLoading(false);
+        return;
+      }
+
+      trackEvent({ event_name: "horse_created", event_category: "horse", properties: { discipline: form.discipline || null, has_ecurie: !!form.ecurie } });
+      setCreatedHorseId(data.id);
+      setCreatedHorseName(data.name);
       setLoading(false);
-      return;
-    }
-
-    const { data, error } = await supabase
-      .from("horses")
-      .insert({
-        user_id: user.id,
-        name: form.name.trim(),
-        breed: form.breed || null,
-        birth_year: form.birth_year ? parseInt(form.birth_year) : null,
-        discipline: (form.discipline as any) || null,
-        region: form.region || null,
-        ecurie: form.ecurie || null,
-        horse_index_mode: modeVie || null,
-        share_horse_index: true,
-      })
-      .select()
-      .single();
-
-    if (error) {
-      toast.error("Erreur lors de la création");
+      setStep("p0_role");
+    } catch (err) {
+      toast.error("Erreur inattendue — réessayez");
       setLoading(false);
-      return;
     }
-
-    trackEvent({ event_name: "horse_created", event_category: "horse", properties: { discipline: form.discipline || null, has_ecurie: !!form.ecurie } });
-    setCreatedHorseId(data.id);
-    setCreatedHorseName(data.name);
-    setLoading(false);
-    // Étape P0 TRAV-19 : demander le rôle avant de continuer
-    setStep("p0_role");
   };
 
   const handleRoleChoice = async (choice: RoleChoice) => {
     if (!createdHorseId) return;
     setLoading(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { router.push("/login"); return; }
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { router.push("/login"); return; }
 
-    await supabase.from("horse_user_roles").upsert({
-      horse_id: createdHorseId,
-      user_id: user.id,
-      role: "owner",
-      rides_horse: choice === "owner_rider",
-    }, { onConflict: "horse_id,user_id" });
+      const { error } = await supabase.from("horse_user_roles").upsert({
+        horse_id: createdHorseId,
+        user_id: user.id,
+        role: "owner",
+        rides_horse: choice === "owner_rider",
+      }, { onConflict: "horse_id,user_id" });
 
-    toast.success(`${createdHorseName} ajouté !`);
-    setLoading(false);
-    router.push(`/horses/${createdHorseId}`);
-    router.refresh();
+      if (error) {
+        // Non-blocking: log but still redirect — the horse was created
+        console.error("horse_user_roles upsert error:", error.message);
+      }
+
+      toast.success(`${createdHorseName} ajouté !`);
+      router.push(`/horses/${createdHorseId}`);
+      router.refresh();
+    } catch (err) {
+      toast.error("Erreur inattendue — réessayez");
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Étape P0 — Rôle cavalier / gardien (TRAV-19)

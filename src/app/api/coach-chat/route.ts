@@ -5,9 +5,12 @@ import { NextRequest } from "next/server";
 import { formatDate } from "@/lib/utils";
 
 const PROFILE_TONE: Record<string, string> = {
+  // Canonical 4-profile system
   loisir: "Adopte un ton chaleureux et encourageant. Évite le jargon technique.",
   competition: "Adopte un ton analytique orienté performance. Sois précis sur les chiffres.",
   pro: "Adopte un ton expert et synthétique. Utilise le vocabulaire technique.",
+  gerant: "Focus sur la santé, les soins et la gestion de la structure. Sois synthétique.",
+  // Legacy fallbacks
   gerant_cavalier: "Adopte un ton professionnel et structuré. Sois synthétique.",
   coach: "Adopte un ton pédagogique. Analyse dans une logique d'enseignement.",
   gerant_ecurie: "Focus sur la santé, les soins et la gestion.",
@@ -44,7 +47,7 @@ export async function POST(request: NextRequest) {
     { data: userProfile },
   ] = await Promise.all([
     supabase.from("horses").select("*").eq("id", horseId).eq("user_id", user.id).single(),
-    supabase.from("users").select("user_type").eq("id", user.id).single(),
+    supabase.from("users").select("profile_type, user_type, module_coach, rider_niveau, rider_objectif, rider_frequence, rider_disciplines, rider_zones_douloureuses, rider_asymetrie, rider_pathologies, rider_suivi_corps").eq("id", user.id).single(),
   ]);
 
   if (!horse) return new Response("Horse not found", { status: 404 });
@@ -62,8 +65,31 @@ export async function POST(request: NextRequest) {
   ]);
 
   const currentScore = scores?.[0] ?? null;
-  const userType = userProfile?.user_type ?? "loisir";
+  const userType = userProfile?.profile_type ?? userProfile?.user_type ?? "loisir";
   const toneInstruction = PROFILE_TONE[userType] || "";
+
+  const moduleCoach = userProfile?.module_coach ?? false;
+  const riderBasic = [
+    userProfile?.rider_niveau && `Niveau : ${userProfile.rider_niveau}`,
+    userProfile?.rider_objectif && `Objectif : ${userProfile.rider_objectif}`,
+    userProfile?.rider_frequence && `Fréquence : ${userProfile.rider_frequence}×/semaine`,
+    userProfile?.rider_disciplines?.length && `Disciplines : ${(userProfile.rider_disciplines as string[]).join(", ")}`,
+  ].filter(Boolean).join(" | ");
+
+  const riderAdvanced = moduleCoach ? [
+    (userProfile?.rider_zones_douloureuses as string[] | null)?.length &&
+      `Zones douloureuses : ${(userProfile?.rider_zones_douloureuses as string[]).join(", ")}`,
+    userProfile?.rider_asymetrie && `Asymétrie : ${userProfile.rider_asymetrie}`,
+    userProfile?.rider_pathologies && `Pathologies : ${userProfile.rider_pathologies}`,
+    (() => {
+      const sc = userProfile?.rider_suivi_corps as Record<string, { actif: boolean; frequence?: string }> | null;
+      if (!sc || Object.keys(sc).length === 0) return null;
+      const actifs = Object.entries(sc).filter(([, v]) => v.actif).map(([k, v]) => `${k}${v.frequence ? ` (${v.frequence})` : ""}`);
+      return actifs.length ? `Suivi corps : ${actifs.join(", ")}` : null;
+    })(),
+  ].filter(Boolean).join("\n") : null;
+
+  const riderLines = [riderBasic, riderAdvanced].filter(Boolean).join("\n");
 
   const systemPrompt = `Tu es Equistra Coach, un coach équestre IA expert intégré dans l'application Equistra.
 Tu as accès aux données réelles de ce cheval et tu réponds aux questions de son propriétaire.
@@ -75,6 +101,8 @@ Règles :
 - Sois direct et actionnable
 - Réponds toujours en français
 - N'invente pas de données qui ne sont pas dans le contexte
+
+## Profil cavalier${moduleCoach ? " (Coach activé)" : ""}${riderLines ? `\n${riderLines}` : " — non renseigné"}
 
 ## Données du cheval : ${horse.name}
 Race: ${horse.breed || "—"} | Discipline: ${horse.discipline || "—"} | Né en: ${horse.birth_year || "—"}

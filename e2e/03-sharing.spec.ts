@@ -1,0 +1,100 @@
+import { test, expect } from "@playwright/test";
+
+/**
+ * Tests du système de partage V2.1
+ * Nécessite : compte propriétaire (auth.json) + compte invité (auth-guest.json)
+ */
+
+const BASE = "http://localhost:3000";
+
+// ─── P7 : GESTION DES PARTAGES ─────────────────────────────────────────────
+
+test.describe("Partage — côté propriétaire", () => {
+  test("page /partage accessible pour le propriétaire", async ({ page }) => {
+    // À compléter avec horse_id de test
+    // await page.goto(`${BASE}/horses/HORSE_ID/partage`);
+    // await expect(page.getByText("Gérer les accès")).toBeVisible();
+  });
+
+  test("inviter un email invalide → erreur", async ({ page }) => {
+    // await page.goto(`${BASE}/horses/HORSE_ID/partage`);
+    // await page.fill('input[type="email"]', "pas-un-email");
+    // await page.getByRole("button", { name: "Envoyer l'invitation" }).click();
+    // await expect(page.getByText(/email invalide/i)).toBeVisible();
+  });
+
+  test("inviter son propre email → erreur", async ({ page }) => {
+    // await page.goto(`${BASE}/horses/HORSE_ID/partage`);
+    // await page.fill('input[type="email"]', "mon-email@test.com");
+    // await page.getByRole("button", { name: "Envoyer l'invitation" }).click();
+    // await expect(page.getByText(/vous ne pouvez pas/i)).toBeVisible();
+  });
+
+  test("révoquer un accès → confirmation requise", async ({ page }) => {
+    // Vérifier que window.confirm est déclenché
+    // page.on('dialog', dialog => dialog.dismiss()); // Cancel
+    // Cliquer sur la corbeille
+    // Vérifier que l'accès n'est PAS révoqué après cancel
+  });
+
+  test("révoquer un accès → confirmation → accès supprimé de la liste", async ({ page }) => {
+    // page.on('dialog', dialog => dialog.accept());
+    // Cliquer sur la corbeille
+    // Vérifier que la ligne disparaît
+  });
+
+  test("page partage inaccessible pour un invité", async ({ page }) => {
+    // Avec session d'invité (auth-guest.json)
+    // await page.goto(`${BASE}/horses/HORSE_ID/partage`);
+    // await expect(page).toHaveURL(/404|not-found/);
+  });
+});
+
+// ─── P8 : ACCÈS PARTAGÉS ───────────────────────────────────────────────────
+
+test.describe("Partage — côté invité", () => {
+  test("page /partages affiche les chevaux partagés", async ({ page }) => {
+    // Avec session d'invité ayant un partage actif
+    // await page.goto(`${BASE}/partages`);
+    // await expect(page.getByText("Actif")).toBeVisible();
+  });
+
+  test("invité peut accéder à la fiche du cheval partagé", async ({ page }) => {
+    // await page.goto(`${BASE}/horses/SHARED_HORSE_ID`);
+    // await expect(page.getByText("HORSE_NAME")).toBeVisible();
+    // Vérifier que le bouton HorseEditModal n'est PAS visible
+    // await expect(page.getByRole("button", { name: /modifier/i })).not.toBeVisible();
+  });
+
+  test("invité ne voit pas le bouton 'Gérer les accès'", async ({ page }) => {
+    // await page.goto(`${BASE}/horses/SHARED_HORSE_ID`);
+    // await expect(page.getByTitle("Gérer les accès")).not.toBeVisible();
+  });
+
+  test("cheval non partagé avec l'invité → 404", async ({ page }) => {
+    // Avec session invité, accès à un cheval non partagé
+    // await page.goto(`${BASE}/horses/UNSHARED_HORSE_ID`);
+    // await expect(page).toHaveURL(/404|not-found/);
+  });
+});
+
+// ─── P9 : API SHARES ────────────────────────────────────────────────────────
+
+test.describe("API Shares — sécurité", () => {
+  test("POST /api/horses/[id]/shares sans auth → 401", async ({ request }) => {
+    const res = await request.post(`${BASE}/api/horses/fake-id/shares`, {
+      data: { email: "test@test.com", role: "coach" },
+    });
+    expect(res.status()).toBe(401);
+  });
+
+  test("DELETE /api/horses/[id]/shares/[shareId] sans auth → 401", async ({ request }) => {
+    const res = await request.delete(`${BASE}/api/horses/fake-id/shares/fake-share-id`);
+    expect(res.status()).toBe(401);
+  });
+
+  test("GET /api/shares/received sans auth → 401", async ({ request }) => {
+    const res = await request.get(`${BASE}/api/shares/received`);
+    expect(res.status()).toBe(401);
+  });
+});

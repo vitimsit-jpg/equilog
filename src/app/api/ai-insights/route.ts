@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     { data: userProfile },
   ] = await Promise.all([
     supabase.from("horses").select("*").eq("id", horseId).eq("user_id", user.id).single(),
-    supabase.from("users").select("user_type, plan").eq("id", user.id).single(),
+    supabase.from("users").select("profile_type, user_type, plan, module_coach, rider_niveau, rider_objectif, rider_frequence, rider_disciplines, rider_zones_douloureuses, rider_asymetrie, rider_pathologies, rider_suivi_corps").eq("id", user.id).single(),
   ]);
 
   if (!horse) return NextResponse.json({ error: "Horse not found" }, { status: 404 });
@@ -61,7 +61,16 @@ export async function POST(request: NextRequest) {
     healthRecords: healthRecords || [],
     competitions: competitions || [],
     currentScore: scores?.[0] ?? null,
-    userType: userProfile?.user_type ?? null,
+    userType: userProfile?.profile_type ?? userProfile?.user_type ?? null,
+    riderNiveau: userProfile?.rider_niveau ?? null,
+    riderObjectif: userProfile?.rider_objectif ?? null,
+    riderFrequence: userProfile?.rider_frequence ?? null,
+    riderDisciplines: (userProfile?.rider_disciplines as string[] | null) ?? null,
+    moduleCoach: userProfile?.module_coach ?? false,
+    riderZones: (userProfile?.rider_zones_douloureuses as string[] | null) ?? null,
+    riderAsymetrie: (userProfile?.rider_asymetrie as string | null) ?? null,
+    riderPathologies: (userProfile?.rider_pathologies as string | null) ?? null,
+    riderSuiviCorps: (userProfile?.rider_suivi_corps as Record<string, { actif: boolean; frequence?: string }> | null) ?? null,
   });
 
   const { data: savedInsight, error } = await supabase

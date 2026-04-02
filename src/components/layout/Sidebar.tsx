@@ -220,6 +220,10 @@ export default function Sidebar({ horses, currentHorseId, userType, profileType,
             Admin
           </Link>
         )}
+        <Link href="/partages" className={cn(pathname === "/partages" ? darkNavItemActive : darkNavItem)}>
+          <Users className="h-4 w-4" />
+          Accès partagés
+        </Link>
         <Link href="/profil" className={cn(pathname === "/profil" ? darkNavItemActive : darkNavItem)}>
           <Settings className="h-4 w-4" />
           Mon profil

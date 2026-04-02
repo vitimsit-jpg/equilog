@@ -5,7 +5,6 @@ import type {
   HealthRecord,
   Competition,
   HorseScore,
-  UserType,
 } from "@/lib/supabase/types";
 import { formatDate } from "@/lib/utils";
 
@@ -22,7 +21,17 @@ interface InsightData {
   healthRecords: HealthRecord[];
   competitions: Competition[];
   currentScore: HorseScore | null;
-  userType?: UserType | null;
+  userType?: string | null;
+  riderNiveau?: string | null;
+  riderObjectif?: string | null;
+  riderFrequence?: number | null;
+  riderDisciplines?: string[] | null;
+  // Advanced — only injected when module_coach = true
+  moduleCoach?: boolean;
+  riderZones?: string[] | null;
+  riderAsymetrie?: string | null;
+  riderPathologies?: string | null;
+  riderSuiviCorps?: Record<string, { actif: boolean; frequence?: string }> | null;
 }
 
 const PROFILE_INSTRUCTIONS: Record<string, string> = {
@@ -41,6 +50,12 @@ Va droit au but, utilise le vocabulaire technique sans le définir.
 Met en avant les indicateurs de performance avancés et les signaux faibles à surveiller.
 Focus prioritaire : optimisation de la performance, gestion de la charge, prévention des blessures.`,
 
+  gerant: `L'utilisateur gère une structure équestre. Adopte un ton professionnel et efficace.
+Focus sur la santé, les soins et la gestion — pas de recommandations de performance sportive.
+Identifie les risques sanitaires à anticiper et les rappels de soins à planifier.
+Focus prioritaire : alertes santé, soins à programmer, état général du cheval.`,
+
+  // Legacy fallbacks (kept for backward compat with existing user_type values)
   gerant_cavalier: `L'utilisateur est gérant d'écurie et cavalier. Adopte un ton professionnel et structuré.
 Équilibre les recommandations entre gestion (santé, soins programmés) et performance personnelle.
 Sois synthétique car son temps est limité.
@@ -69,7 +84,7 @@ Règles de réponse :
 - Format : JSON avec les champs "summary" (2-3 phrases), "insights" (array de 3-5 points), "alerts" (array d'alertes urgentes), "recommendations" (array d'actions à faire)
 - Réponse en français uniquement`;
 
-function buildSystemPrompt(userType?: UserType | null): string {
+function buildSystemPrompt(userType?: string | null): string {
   const profileInstructions = userType && PROFILE_INSTRUCTIONS[userType]
     ? `\n\n## Adaptation au profil utilisateur\n${PROFILE_INSTRUCTIONS[userType]}`
     : "";
@@ -82,7 +97,29 @@ export async function generateWeeklyInsight(data: InsightData): Promise<{
   alerts: string[];
   recommendations: string[];
 }> {
-  const { horse, trainingSessions, healthRecords, competitions, currentScore, userType } = data;
+  const { horse, trainingSessions, healthRecords, competitions, currentScore, userType, riderNiveau, riderObjectif, riderFrequence, riderDisciplines, moduleCoach, riderZones, riderAsymetrie, riderPathologies, riderSuiviCorps } = data;
+
+  const riderBasicLines = [
+    riderNiveau && `Niveau : ${riderNiveau}`,
+    riderObjectif && `Objectif : ${riderObjectif}`,
+    riderFrequence && `Fréquence : ${riderFrequence}×/semaine`,
+    riderDisciplines?.length && `Disciplines : ${riderDisciplines.join(", ")}`,
+  ].filter(Boolean).join(" | ");
+
+  const riderAdvancedLines = moduleCoach ? [
+    riderZones?.length && `Zones douloureuses : ${riderZones.join(", ")}`,
+    riderAsymetrie && `Asymétrie : ${riderAsymetrie}`,
+    riderPathologies && `Pathologies : ${riderPathologies}`,
+    riderSuiviCorps && Object.keys(riderSuiviCorps).length > 0 &&
+      `Suivi corps : ${Object.entries(riderSuiviCorps)
+        .filter(([, v]) => v.actif)
+        .map(([k, v]) => `${k}${v.frequence ? ` (${v.frequence})` : ""}`)
+        .join(", ")}`,
+  ].filter(Boolean).join("\n") : null;
+
+  const riderContext = (riderBasicLines || riderAdvancedLines)
+    ? `${riderBasicLines}${riderAdvancedLines ? `\n${riderAdvancedLines}` : ""}`
+    : null;
 
   const last30Sessions = trainingSessions
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -98,6 +135,9 @@ export async function generateWeeklyInsight(data: InsightData): Promise<{
 
   const userMessage = `
 Analyse le cheval suivant et génère un rapport hebdomadaire :
+
+## Profil cavalier${moduleCoach ? " (Coach activé)" : ""}
+${riderContext || "Non renseigné"}
 
 ## Informations cheval
 Nom: ${horse.name}

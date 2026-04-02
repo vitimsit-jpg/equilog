@@ -26,7 +26,7 @@ export async function DELETE(request: Request) {
 
   // Supprime toutes les données identifiables (sauf budget_entries — obligation légale 10 ans)
   if (horseIds.length > 0) {
-    await Promise.all([
+    const deleteResults = await Promise.allSettled([
       admin.from("health_records").delete().in("horse_id", horseIds),
       admin.from("training_sessions").delete().in("horse_id", horseIds),
       admin.from("training_planned_sessions").delete().in("horse_id", horseIds),
@@ -37,6 +37,10 @@ export async function DELETE(request: Request) {
       admin.from("horse_scores").delete().in("horse_id", horseIds),
       admin.from("ai_insights").delete().in("horse_id", horseIds),
     ]);
+    const failed = deleteResults.filter((r) => r.status === "rejected");
+    if (failed.length > 0) {
+      console.error("GDPR delete partial failure:", failed);
+    }
 
     // Anonymise budget_entries avant de supprimer les chevaux
     // (obligation légale 10 ans : montant + date + catégorie conservés, identifiants supprimés)

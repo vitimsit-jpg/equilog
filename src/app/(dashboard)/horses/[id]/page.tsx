@@ -55,18 +55,35 @@ export default async function HorsePage({ params }: Props) {
   const { data: { user: authUser } } = await supabase.auth.getUser();
   if (!authUser) return notFound();
 
-  const { data: horse } = await supabase
+  let horse = null;
+  let isOwner = false;
+
+  const { data: ownedHorse } = await supabase
     .from("horses")
     .select("*")
     .eq("id", params.id)
     .eq("user_id", authUser.id)
-    .single();
+    .maybeSingle();
+
+  if (ownedHorse) {
+    horse = ownedHorse;
+    isOwner = true;
+  } else {
+    const { data: shareData } = await supabase
+      .from("horse_shares")
+      .select("*, horse:horses(*)")
+      .eq("horse_id", params.id)
+      .eq("shared_with_user_id", authUser.id)
+      .eq("status", "active")
+      .maybeSingle();
+    if (shareData) horse = shareData.horse;
+  }
 
   if (!horse) return notFound();
 
   const { data: userProfile } = await supabase
     .from("users")
-    .select("plan, user_type")
+    .select("plan, profile_type, user_type")
     .eq("id", authUser.id)
     .single();
 
@@ -137,7 +154,9 @@ export default async function HorsePage({ params }: Props) {
   } = {};
   try {
     if (latestInsight?.content) parsedInsight = JSON.parse(latestInsight.content);
-  } catch {}
+  } catch (e) {
+    console.error("Failed to parse AI insight:", e);
+  }
 
   const isStarter = plan === "starter";
 
@@ -182,7 +201,6 @@ export default async function HorsePage({ params }: Props) {
   });
   const horseSexe = (horse as any).sexe as string | null;
   const conditionsVie = (horse as any).conditions_vie as string | null;
-  const horseMode = (horse as any).horse_index_mode as HorseIndexMode | null;
   const assurance = (horse as any).assurance as string | null;
   const maladiesChroniques = (horse as any).maladies_chroniques as string | null;
 
@@ -193,17 +211,23 @@ export default async function HorsePage({ params }: Props) {
       <div className="card">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-bold text-black text-sm">Profil du cheval</h2>
-          <HorseEditModal horse={horse as any} compact />
+          {isOwner && <HorseEditModal horse={horse as any} compact />}
         </div>
 
         <div className="flex items-start gap-4">
           {/* Photo */}
           <div className="flex-shrink-0">
-            <AvatarUpload
-              horseId={horse.id}
-              horseName={horse.name}
-              currentAvatarUrl={(horse as any).avatar_url ?? null}
-            />
+            {isOwner ? (
+              <AvatarUpload
+                horseId={horse.id}
+                horseName={horse.name}
+                currentAvatarUrl={(horse as any).avatar_url ?? null}
+              />
+            ) : (
+              <div className="w-16 h-16 rounded-2xl bg-beige flex items-center justify-center text-2xl font-bold text-gray-400">
+                {horse.name[0]}
+              </div>
+            )}
           </div>
 
           {/* Données profil */}
@@ -269,16 +293,12 @@ export default async function HorsePage({ params }: Props) {
         <UpgradeBanner feature="Horse Index & IA" />
       ) : (
       <>
-      {!isStarter && (
-        <div className="flex justify-end">
-          <ExportPDFButton horseId={horse.id} horseName={horse.name} />
-        </div>
-      )}
+      <div className="flex justify-end">
+        <ExportPDFButton horseId={horse.id} horseName={horse.name} />
+      </div>
 
       {/* 3. Carte Horse Index */}
-      {isStarter ? (
-        <UpgradeBanner feature="Horse Index" requiredPlan="pro" />
-      ) : <div className="card flex flex-col items-center gap-5">
+      <div className="card flex flex-col items-center gap-5">
         <div className="w-full flex items-center justify-between">
           <div className="flex items-center gap-2">
             <h2 className="font-bold text-black text-sm uppercase tracking-wide">Horse Index</h2>
@@ -357,7 +377,7 @@ export default async function HorsePage({ params }: Props) {
             </p>
           </div>
         )}
-      </div>}
+      </div>
 
       {/* 5. Streak */}
       {(streak.current > 0 || streak.best > 0) && (
@@ -412,7 +432,7 @@ export default async function HorsePage({ params }: Props) {
 
       <PremiumNudge
         userPlan={userProfile?.plan ?? "starter"}
-        userType={userProfile?.user_type ?? null}
+        userType={userProfile?.profile_type ?? userProfile?.user_type ?? null}
         context="ai_insights"
       />
 

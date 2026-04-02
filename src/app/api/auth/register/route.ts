@@ -13,9 +13,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Mot de passe trop court" }, { status: 400 });
   }
 
-  const admin = createAdminClient();
+  let admin;
+  try {
+    admin = createAdminClient();
+  } catch {
+    return NextResponse.json({ error: "Configuration serveur manquante (SUPABASE_SERVICE_ROLE_KEY)" }, { status: 500 });
+  }
 
-  // Create user with email already confirmed — no confirmation email sent
   const { data, error } = await admin.auth.admin.createUser({
     email,
     password,
@@ -30,7 +34,6 @@ export async function POST(request: NextRequest) {
   const userId = data.user.id;
   const now = new Date().toISOString();
 
-  // Create the public.users row with top plan (ecurie = full access)
   const { error: profileError } = await admin.from("users").upsert({
     id: userId,
     email,
@@ -42,7 +45,6 @@ export async function POST(request: NextRequest) {
   });
 
   if (profileError) {
-    // User created in auth but profile failed — not blocking, trigger may have run
     console.error("Profile upsert error:", profileError.message);
   }
 

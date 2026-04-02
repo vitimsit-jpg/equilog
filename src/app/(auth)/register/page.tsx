@@ -40,45 +40,58 @@ function RegisterForm() {
     setLoading(true);
     const supabase = createClient();
 
-    // Create user server-side (auto-confirmed, no email verification needed)
-    const res = await fetch("/api/auth/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password, name }),
-    });
-    const data = await res.json();
-
-    if (!res.ok) {
-      toast.error(data.error || "Erreur lors de la création du compte");
-      setStep(1);
-      setLoading(false);
-      return;
-    }
-
-    // Sign in immediately — no email confirmation required
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-    if (signInError) {
-      toast.error("Compte créé mais connexion échouée. Essayez de vous connecter.");
-      setLoading(false);
-      return;
-    }
-
-    fetch("/api/send-welcome", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, name }) });
-    toast.success("Compte créé ! Bienvenue sur Equistra.");
-
-    if (planParam) {
-      const checkoutRes = await fetch("/api/stripe/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan: planParam }),
+    try {
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { name },
+          emailRedirectTo: `${window.location.origin}/onboarding`,
+        },
       });
-      const { url } = await checkoutRes.json();
-      if (url) { window.location.href = url; return; }
-    }
 
-    router.push("/onboarding");
-    router.refresh();
-    setLoading(false);
+      if (signUpError) {
+        toast.error(signUpError.message);
+        setStep(1);
+        setLoading(false);
+        return;
+      }
+
+      if (!signUpData.session) {
+        toast.error("Vérifiez votre email pour confirmer votre compte.");
+        setLoading(false);
+        return;
+      }
+
+      // Update consent fields on the public.users row (created by DB trigger)
+      if (signUpData.user) {
+        await supabase.from("users").update({
+          name,
+          accepted_terms_at: new Date().toISOString(),
+          accepted_terms_version: "1.0",
+          anonymous_stats_enabled: true,
+        }).eq("id", signUpData.user.id);
+      }
+
+      fetch("/api/send-welcome", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, name }) });
+      toast.success("Compte créé ! Bienvenue sur Equistra.");
+
+      if (planParam) {
+        const checkoutRes = await fetch("/api/stripe/checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ plan: planParam }),
+        });
+        const { url } = await checkoutRes.json();
+        if (url) { window.location.href = url; return; }
+      }
+
+      router.push("/onboarding");
+    } catch {
+      toast.error("Erreur réseau. Vérifiez votre connexion et réessayez.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

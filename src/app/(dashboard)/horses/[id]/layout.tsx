@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Users } from "lucide-react";
 import CoachChat from "@/components/coaching/CoachChat";
 import HorseTabNav from "@/components/horse/HorseTabNav";
 import HorseSwipeNav from "@/components/horse/HorseSwipeNav";
@@ -22,12 +22,31 @@ export default async function HorseLayout({ children, params }: Props) {
   } = await supabase.auth.getUser();
   if (!authUser) return notFound();
 
-  const { data: horse } = await supabase
+  // Essayer en tant que propriétaire
+  let horse = null;
+  let isOwner = false;
+
+  const { data: ownedHorse } = await supabase
     .from("horses")
     .select("*")
     .eq("id", params.id)
     .eq("user_id", authUser.id)
-    .single();
+    .maybeSingle();
+
+  if (ownedHorse) {
+    horse = ownedHorse;
+    isOwner = true;
+  } else {
+    // Essayer en tant qu'invité actif
+    const { data: shareData } = await supabase
+      .from("horse_shares")
+      .select("*, horse:horses(*)")
+      .eq("horse_id", params.id)
+      .eq("shared_with_user_id", authUser.id)
+      .eq("status", "active")
+      .maybeSingle();
+    if (shareData) horse = shareData.horse;
+  }
 
   if (!horse) return notFound();
 
@@ -118,6 +137,15 @@ export default async function HorseLayout({ children, params }: Props) {
               )}
               {plan !== "starter" && horse.share_horse_index && (
                 <ShareButton horseId={horse.id} horseName={horse.name} />
+              )}
+              {isOwner && (
+                <Link
+                  href={`/horses/${horse.id}/partage`}
+                  className="w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/70 transition-colors"
+                  title="Gérer les accès"
+                >
+                  <Users className="h-4 w-4" />
+                </Link>
               )}
               <RecalculateButton horseId={horse.id} />
             </HeroActionsWrapper>

@@ -111,13 +111,6 @@ export default function OnboardingPage() {
   const [riderObjectif, setRiderObjectif] = useState<"" | "competition" | "progression" | "loisir" | "remise_en_forme">("");
   const [riderFrequence, setRiderFrequence] = useState<number | null>(null);
   const [riderDisciplines, setRiderDisciplines] = useState<string[]>([]);
-  const [riderZones, setRiderZones] = useState<string[]>([]);
-  const [riderAsymetrie, setRiderAsymetrie] = useState<"" | "droite" | "gauche" | "symetrique" | "ne_sais_pas">("");
-  const [riderPathologies, setRiderPathologies] = useState("");
-  const [riderSuiviCorps, setRiderSuiviCorps] = useState<Record<string, { actif: boolean; frequence?: string }>>({});
-  const [riderActiviteTypes, setRiderActiviteTypes] = useState<string[]>([]);
-  const [riderActiviteFrequence, setRiderActiviteFrequence] = useState("");
-  const [riderObjectifsCavalier, setRiderObjectifsCavalier] = useState<string[]>([]);
 
   // Step 7 — notifs
   const [notifHealth, setNotifHealth] = useState(true);
@@ -259,20 +252,12 @@ export default function OnboardingPage() {
   };
 
   const handleStep5Next = async () => {
-    const hasSuivi = Object.keys(riderSuiviCorps).length > 0;
-    if (userId && (riderNiveau || riderObjectif || riderFrequence || riderDisciplines.length > 0 || riderZones.length > 0 || riderAsymetrie || riderPathologies.trim() || hasSuivi)) {
+    if (userId && (riderNiveau || riderObjectif || riderFrequence || riderDisciplines.length > 0)) {
       await supabase.from("users").update({
         rider_niveau: riderNiveau || null,
         rider_objectif: riderObjectif || null,
         rider_frequence: riderFrequence,
         rider_disciplines: riderDisciplines.length > 0 ? riderDisciplines : null,
-        rider_zones_douloureuses: riderZones.length > 0 ? riderZones : null,
-        rider_asymetrie: riderAsymetrie || null,
-        rider_pathologies: riderPathologies.trim() || null,
-        rider_suivi_corps: hasSuivi ? riderSuiviCorps : null,
-        rider_activite_types: riderActiviteTypes.length > 0 ? riderActiviteTypes : null,
-        rider_activite_frequence: riderActiviteFrequence || null,
-        rider_objectifs_cavalier: riderObjectifsCavalier.length > 0 ? riderObjectifsCavalier : null,
         onboarding_step: 6,
       }).eq("id", userId);
     }
@@ -950,168 +935,6 @@ export default function OnboardingPage() {
                 </div>
               </div>
 
-              {/* Douleurs & pathologies */}
-              <div className="pt-4 border-t border-gray-100">
-                <p className="text-sm font-bold text-black mb-0.5">Douleurs & pathologies chroniques</p>
-                <p className="text-xs text-gray-400 mb-4">Optionnel — aide l&apos;IA à personnaliser ses conseils.</p>
-
-                <div className="mb-4">
-                  <label className="label mb-2">Zones douloureuses habituelles</label>
-                  <div className="flex flex-wrap gap-2">
-                    {["Lombaires (bas du dos)", "Nuque / cervicales", "Épaules", "Milieu du dos", "Bassin / sacro-iliaque", "Hanches / adducteurs", "Genoux", "Poignets", "Chevilles", "Autre"].map((z) => (
-                      <button key={z} type="button"
-                        onClick={() => setRiderZones((prev) => prev.includes(z) ? prev.filter((x) => x !== z) : [...prev, z])}
-                        className={`px-3 py-1.5 rounded-xl border-2 text-xs font-medium transition-all ${
-                          riderZones.includes(z) ? "border-black bg-black text-white" : "border-gray-200 hover:border-gray-300 text-gray-700"
-                        }`}
-                      >
-                        {z}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="mb-3">
-                  <label className="label mb-2">Asymétrie / raideur</label>
-                  <div className="flex flex-wrap gap-2">
-                    {([
-                      { v: "droite",      l: "Plus raide à droite" },
-                      { v: "gauche",      l: "Plus raide à gauche" },
-                      { v: "symetrique",  l: "Plutôt symétrique" },
-                      { v: "ne_sais_pas", l: "Je ne sais pas" },
-                    ] as const).map(({ v, l }) => (
-                      <button key={v} type="button"
-                        onClick={() => setRiderAsymetrie(riderAsymetrie === v ? "" : v)}
-                        className={`px-3 py-1.5 rounded-xl border-2 text-xs font-medium transition-all ${
-                          riderAsymetrie === v ? "border-black bg-black text-white" : "border-gray-200 hover:border-gray-300 text-gray-700"
-                        }`}
-                      >
-                        {l}
-                      </button>
-                    ))}
-                  </div>
-                  <p className="text-xs text-gray-400 mt-2 leading-relaxed">
-                    La raideur d&apos;un côté se ressent souvent dans les transitions, les cercles ou les appuis en étriers.
-                  </p>
-                </div>
-
-                <div>
-                  <label className="label mb-1">Pathologies connues <span className="font-normal text-gray-400">(optionnel)</span></label>
-                  <textarea
-                    value={riderPathologies}
-                    onChange={(e) => setRiderPathologies(e.target.value)}
-                    placeholder="Ex : scoliose, hernie discale, tendinite chronique…"
-                    rows={2}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-black resize-none mt-1"
-                  />
-                </div>
-              </div>
-
-              {/* Suivi corps */}
-              <div className="pt-4 border-t border-gray-100">
-                <p className="text-sm font-bold text-black mb-0.5">Suivi corps</p>
-                <p className="text-xs text-gray-400 mb-4">Praticiens que vous consultez régulièrement.</p>
-                <div className="space-y-3">
-                  {([
-                    { key: "kine", label: "Kinésithérapeute" },
-                    { key: "osteo", label: "Ostéopathe" },
-                    { key: "podologue", label: "Podologue" },
-                    { key: "coach", label: "Préparateur physique / Coach sportif" },
-                  ] as const).map(({ key, label }) => {
-                    const entry = riderSuiviCorps[key];
-                    const actif = entry?.actif ?? false;
-                    return (
-                      <div key={key}>
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="text-sm font-medium text-black">{label}</span>
-                          <div className="flex gap-1.5 flex-shrink-0">
-                            <button type="button"
-                              onClick={() => setRiderSuiviCorps((prev) => ({ ...prev, [key]: { actif: true, frequence: prev[key]?.frequence } }))}
-                              className={`px-3 py-1.5 rounded-xl border-2 text-xs font-semibold transition-all ${actif ? "border-black bg-black text-white" : "border-gray-200 text-gray-500 hover:border-gray-300"}`}
-                            >Oui</button>
-                            <button type="button"
-                              onClick={() => setRiderSuiviCorps((prev) => { const next = { ...prev }; delete next[key]; return next; })}
-                              className={`px-3 py-1.5 rounded-xl border-2 text-xs font-semibold transition-all ${!actif && key in riderSuiviCorps ? "border-gray-400 bg-gray-100 text-gray-600" : "border-gray-200 text-gray-500 hover:border-gray-300"}`}
-                            >Non</button>
-                          </div>
-                        </div>
-                        {actif && (
-                          <div className="flex flex-wrap gap-1.5 mt-2">
-                            {([
-                              { value: "ponctuel", label: "Ponctuel" },
-                              { value: "2_3_semaines", label: "Toutes les 2-3 semaines" },
-                              { value: "mensuel", label: "Mensuel" },
-                              { value: "hebdomadaire", label: "Hebdomadaire" },
-                            ] as const).map(({ value, label: flabel }) => (
-                              <button key={value} type="button"
-                                onClick={() => setRiderSuiviCorps((prev) => ({ ...prev, [key]: { actif: true, frequence: value } }))}
-                                className={`px-3 py-1.5 rounded-xl border-2 text-xs font-medium transition-all ${
-                                  entry?.frequence === value ? "border-black bg-black text-white" : "border-gray-200 text-gray-600 hover:border-gray-300"
-                                }`}
-                              >{flabel}</button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Forme & activité physique */}
-              <div className="pt-4 border-t border-gray-100">
-                <p className="text-sm font-bold text-black mb-0.5">Forme & activité physique hors équitation</p>
-                <p className="text-xs text-gray-400 mb-4">Pour mieux calibrer vos recommandations de récupération.</p>
-
-                <div className="mb-4">
-                  <label className="label mb-2">Type d&apos;activité</label>
-                  <div className="flex flex-wrap gap-2">
-                    {["Yoga", "Pilates", "Musculation / Renforcement", "Running", "Natation", "Vélo", "Sports collectifs", "Aucune", "Autre"].map((a) => (
-                      <button key={a} type="button"
-                        onClick={() => setRiderActiviteTypes((prev) => prev.includes(a) ? prev.filter((x) => x !== a) : [...prev, a])}
-                        className={`px-3 py-1.5 rounded-xl border-2 text-xs font-medium transition-all ${
-                          riderActiviteTypes.includes(a) ? "border-black bg-black text-white" : "border-gray-200 hover:border-gray-300 text-gray-700"
-                        }`}
-                      >{a}</button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="label mb-2">Fréquence</label>
-                  <div className="flex flex-wrap gap-2">
-                    {([
-                      { value: "jamais",       label: "Jamais" },
-                      { value: "1x_semaine",   label: "1× par semaine" },
-                      { value: "2_3x_semaine", label: "2-3× par semaine" },
-                      { value: "4x_plus",      label: "4× et plus" },
-                    ] as const).map(({ value, label }) => (
-                      <button key={value} type="button"
-                        onClick={() => setRiderActiviteFrequence(riderActiviteFrequence === value ? "" : value)}
-                        className={`px-3 py-1.5 rounded-xl border-2 text-xs font-medium transition-all ${
-                          riderActiviteFrequence === value ? "border-black bg-black text-white" : "border-gray-200 hover:border-gray-300 text-gray-700"
-                        }`}
-                      >{label}</button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Objectifs cavalier */}
-              <div className="pt-4 border-t border-gray-100">
-                <p className="text-sm font-bold text-black mb-0.5">Objectifs cavalier</p>
-                <p className="text-xs text-gray-400 mb-3">Plusieurs choix possibles.</p>
-                <div className="flex flex-wrap gap-2">
-                  {["Progresser techniquement", "Préparer des compétitions", "Retrouver de la confiance", "Améliorer ma condition physique", "Pratiquer en loisir apaisé", "Travailler ma relation avec mon cheval", "Autre"].map((o) => (
-                    <button key={o} type="button"
-                      onClick={() => setRiderObjectifsCavalier((prev) => prev.includes(o) ? prev.filter((x) => x !== o) : [...prev, o])}
-                      className={`px-3 py-1.5 rounded-xl border-2 text-xs font-medium transition-all ${
-                        riderObjectifsCavalier.includes(o) ? "border-black bg-black text-white" : "border-gray-200 hover:border-gray-300 text-gray-700"
-                      }`}
-                    >{o}</button>
-                  ))}
-                </div>
-              </div>
             </div>
 
             <div className="flex gap-3">

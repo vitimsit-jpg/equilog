@@ -367,6 +367,25 @@ export interface WearableData {
   created_at: string;
 }
 
+export type ShareRole = "gerant" | "coach";
+export type ShareStatus = "pending" | "active" | "revoked";
+
+export interface HorseShare {
+  id: string;
+  horse_id: string;
+  shared_with_email: string;
+  shared_with_user_id: string | null;
+  role: ShareRole;
+  can_see_training: boolean;
+  can_see_health: boolean;
+  can_see_competitions: boolean;
+  can_see_planning: boolean;
+  status: ShareStatus;
+  invited_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface HorseScore {
   id: string;
   horse_id: string;

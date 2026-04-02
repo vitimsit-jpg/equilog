@@ -39,12 +39,12 @@ export default async function CommunautePage({ searchParams }: Props) {
 
   const { data: userProfile } = await supabase
     .from("users")
-    .select("user_type")
+    .select("profile_type, user_type")
     .eq("id", authUser.id)
     .single();
 
-  const userType = userProfile?.user_type || "loisir";
-  const isCompetitor = ["competition", "pro", "gerant_cavalier"].includes(userType);
+  const profileType = userProfile?.profile_type ?? userProfile?.user_type ?? "loisir";
+  const isCompetitor = ["competition", "pro"].includes(profileType);
 
   // ─── Classements tab ──────────────────────────────────────────────
   if (activeTab === "classements") {

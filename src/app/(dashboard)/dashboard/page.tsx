@@ -92,8 +92,8 @@ export default async function DashboardPage({
     .eq("id", authUser.id)
     .single();
 
-  // Redirect to onboarding if not yet completed
-  if (!userProfile?.profile_type && !userProfile?.user_type) redirect("/onboarding");
+  // Redirect to onboarding if not yet completed (user_type is null before onboarding)
+  if (!userProfile?.user_type) redirect("/onboarding");
 
   // Resolve effective profile (new system preferred, legacy fallback)
   const profileType = userProfile?.profile_type || "loisir";

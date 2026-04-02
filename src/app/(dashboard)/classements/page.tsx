@@ -40,11 +40,11 @@ export default async function ClassementsPage({ searchParams }: Props) {
   const supabase = createClient();
 
   const { data: { user: authUser } } = await supabase.auth.getUser();
-  if (authUser) {
-    const { data: userProfile } = await supabase.from("users").select("plan").eq("id", authUser.id).single();
-    if ((userProfile?.plan ?? "starter") === "starter") {
-      return <UpgradeBanner feature="Classements Horse Index" requiredPlan="pro" />;
-    }
+  if (!authUser) return <UpgradeBanner feature="Classements Horse Index" requiredPlan="pro" />;
+
+  const { data: userProfile } = await supabase.from("users").select("plan").eq("id", authUser.id).single();
+  if ((userProfile?.plan ?? "starter") === "starter") {
+    return <UpgradeBanner feature="Classements Horse Index" requiredPlan="pro" />;
   }
 
   const { data: rawScores } = await supabase

@@ -12,18 +12,17 @@ export default async function MonEcuriePage() {
 
   const { data: userProfile } = await supabase
     .from("users")
-    .select("user_type, profile_type, module_gerant, plan")
+    .select("profile_type, user_type, module_gerant, plan")
     .eq("id", authUser.id)
     .single();
 
-  const userType = userProfile?.user_type;
   const isManager =
-    (userProfile as any)?.profile_type === "gerant" ||
-    (userProfile as any)?.module_gerant === true ||
-    ["gerant_ecurie", "gerant_cavalier"].includes(userType || "");
+    userProfile?.profile_type === "gerant" ||
+    userProfile?.module_gerant === true ||
+    ["gerant_ecurie", "gerant_cavalier"].includes(userProfile?.user_type || "");
   if (!isManager) redirect("/dashboard");
 
-  const plan = (userProfile as any)?.plan ?? "starter";
+  const plan = userProfile?.plan ?? "starter";
   if (plan !== "ecurie") {
     return <UpgradeBanner feature="Dashboard Gérant d'Écurie" requiredPlan="ecurie" />;
   }

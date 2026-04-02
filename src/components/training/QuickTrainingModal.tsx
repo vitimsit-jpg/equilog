@@ -45,7 +45,7 @@ const MODE_ALLOWED_TYPES: Partial<Record<HorseIndexMode, TrainingType[]>> = {
 // Intensité max par mode (valeur sur 5)
 const MODE_MAX_INTENSITY: Partial<Record<HorseIndexMode, number>> = {
   IR: 3, // Normal max
-  IS: 2, // Léger max
+  IS: 1, // Léger max
 };
 
 const MODE_RESTRICTION_LABEL: Partial<Record<HorseIndexMode, string>> = {
@@ -56,7 +56,7 @@ const MODE_RESTRICTION_LABEL: Partial<Record<HorseIndexMode, string>> = {
 
 
 export const INTENSITY_OPTIONS = [
-  { value: 2, label: "Léger",   inactive: "bg-green-50 text-green-600 border-green-200",  active: "bg-green-500 text-white border-green-500" },
+  { value: 1, label: "Léger",   inactive: "bg-green-50 text-green-600 border-green-200",  active: "bg-green-500 text-white border-green-500" },
   { value: 3, label: "Normal",  inactive: "bg-gray-50 text-gray-600 border-gray-200",     active: "bg-gray-700 text-white border-gray-700" },
   { value: 5, label: "Intense", inactive: "bg-red-50 text-red-600 border-red-200",        active: "bg-red-500 text-white border-red-500" },
 ];

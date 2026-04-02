@@ -15,8 +15,7 @@ import { trackEvent } from "@/lib/trackEvent";
 import { AlertTriangle } from "lucide-react";
 
 const RECOVERY_TAGS = [
-  "Massage", "Eau froide", "Bonnets de glace", "Tapis de massage",
-  "Longe légère", "Marche à pied", "Aquathérapie", "Infrarouge", "Repos complet",
+  "Douche", "Guêtres froid", "Tapis de massage", "Argile", "Bandes de repos", "Rien",
 ];
 
 const ALERT_KEYWORDS = ["boiterie", "boite", "douleur", "blessure", "blessé", "blessée", "chute", "plaie", "enflé", "enfle", "gonflement", "gonflé", "gonflée", "abcès", "abces", "colique", "fièvre", "fievre", "fatigue excessive", "refuse", "refus de sauter", "coup", "coupure", "contusion"];

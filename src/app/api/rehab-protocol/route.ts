@@ -147,10 +147,10 @@ Génère 3 à 4 phases progressives en JSON strict, sans texte autour :
 
 Règles :
 - Phase 0 : repos actif très léger (marcheur, travail_a_pied, max 20-30min, intensité 1)
-- Phase 1 : travail léger (longe, plat, max 30-45min, intensité 1-2)
-- Phase 2 : reprise progressive (intensité 2-3, durée croissante)
+- Phase 1 : travail léger (longe, plat, max 30-45min, intensité 1)
+- Phase 2 : reprise progressive (intensité 3, durée croissante)
 - Phase 3 (optionnelle) : retour au sport (intensité 3)
-- max_intensity : 1, 2 ou 3 uniquement
+- max_intensity : 1 ou 3 uniquement (échelle : 1=léger, 3=normal, 5=intense)
 - allowed_types parmi : dressage, saut, endurance, cso, cross, travail_a_pied, longe, galop, plat, marcheur, autre
 - Sois conservateur pour la sécurité du cheval
 - Retourne UNIQUEMENT le JSON`;

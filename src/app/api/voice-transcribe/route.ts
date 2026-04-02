@@ -50,6 +50,7 @@ Règles :
   promenade/extérieur/balade → balade
   longe/à la longe → longe
   à pied/trav. à pied → travail_a_pied
+- intensity : léger/doux/cool/tranquille → 1, normal/standard/habituel → 3, intense/fort/dur/difficile/poussé → 5
 - feeling : très bien/super/excellent → 5, bien → 4, neutre/ok/moyen → 3, tendu/crispé/difficile → 2, douleur/boite/très mauvais → 1
 - rider : moi seule/seul/j'ai monté → owner, avec coach/moniteur/cours → owner_with_coach, coach seul/moniteur seul → coach`,
       messages: [{ role: "user", content: `Transcription vocale : "${transcript}"` }],

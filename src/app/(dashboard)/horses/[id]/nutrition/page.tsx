@@ -4,6 +4,7 @@ import Link from "next/link";
 import NutritionSetup from "@/components/nutrition/NutritionSetup";
 import NutritionView from "@/components/nutrition/NutritionView";
 import type { HorseNutrition, NutritionHistoryEntry } from "@/lib/supabase/types";
+import UpgradeBanner from "@/components/ui/UpgradeBanner";
 
 interface Props {
   params: { id: string };
@@ -13,6 +14,9 @@ export default async function NutritionPage({ params }: Props) {
   const supabase = createClient();
   const { data: { user: authUser } } = await supabase.auth.getUser();
   if (!authUser) return notFound();
+
+  const { data: userPlan } = await supabase.from("users").select("plan").eq("id", authUser.id).single();
+  if ((userPlan?.plan ?? "starter") === "starter") return <UpgradeBanner feature="Nutrition" requiredPlan="pro" />;
 
   const { data: horse } = await supabase
     .from("horses")

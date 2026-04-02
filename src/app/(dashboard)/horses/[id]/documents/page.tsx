@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
+import UpgradeBanner from "@/components/ui/UpgradeBanner";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { FileText, Image, FileIcon, FolderOpen, ExternalLink } from "lucide-react";
@@ -47,6 +48,9 @@ export default async function DocumentsPage({ params }: Props) {
   const supabase = createClient();
   const { data: { user: authUser } } = await supabase.auth.getUser();
   if (!authUser) return notFound();
+
+  const { data: userPlan } = await supabase.from("users").select("plan").eq("id", authUser.id).single();
+  if ((userPlan?.plan ?? "starter") === "starter") return <UpgradeBanner feature="Documents" requiredPlan="pro" />;
 
   const { data: horse } = await supabase
     .from("horses")

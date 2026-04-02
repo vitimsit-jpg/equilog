@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import UpgradeBanner from "@/components/ui/UpgradeBanner";
 import Link from "next/link";
 import { formatDate, getScoreColor, TRAINING_TYPE_LABELS } from "@/lib/utils";
 import { AlertTriangle, CheckCircle, Clock, Dumbbell, Heart, TrendingUp, Users } from "lucide-react";
@@ -11,7 +12,7 @@ export default async function MonEcuriePage() {
 
   const { data: userProfile } = await supabase
     .from("users")
-    .select("user_type, profile_type, module_gerant")
+    .select("user_type, profile_type, module_gerant, plan")
     .eq("id", authUser.id)
     .single();
 
@@ -21,6 +22,11 @@ export default async function MonEcuriePage() {
     (userProfile as any)?.module_gerant === true ||
     ["gerant_ecurie", "gerant_cavalier"].includes(userType || "");
   if (!isManager) redirect("/dashboard");
+
+  const plan = (userProfile as any)?.plan ?? "starter";
+  if (plan !== "ecurie") {
+    return <UpgradeBanner feature="Dashboard Gérant d'Écurie" requiredPlan="ecurie" />;
+  }
 
   // Own horses
   const { data: myHorses } = await supabase

@@ -34,10 +34,14 @@ export async function POST(request: NextRequest) {
     { data: userProfile },
   ] = await Promise.all([
     supabase.from("horses").select("*").eq("id", horseId).eq("user_id", user.id).single(),
-    supabase.from("users").select("user_type").eq("id", user.id).single(),
+    supabase.from("users").select("user_type, plan").eq("id", user.id).single(),
   ]);
 
   if (!horse) return NextResponse.json({ error: "Horse not found" }, { status: 404 });
+
+  if ((userProfile?.plan ?? "starter") === "starter") {
+    return NextResponse.json({ error: "Plan Pro requis pour les AI Insights" }, { status: 403 });
+  }
 
   const [
     { data: trainingSessions },

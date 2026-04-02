@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import HistoriqueClient from "./HistoriqueClient";
+import UpgradeBanner from "@/components/ui/UpgradeBanner";
 
 export const dynamic = "force-dynamic";
 
@@ -8,6 +9,9 @@ export default async function HistoriquePage({ params }: { params: { id: string 
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return notFound();
+
+  const { data: userPlan } = await supabase.from("users").select("plan").eq("id", user.id).single();
+  if ((userPlan?.plan ?? "starter") === "starter") return <UpgradeBanner feature="Historique de vie" requiredPlan="pro" />;
 
   const [{ data: horse }, { data: events }] = await Promise.all([
     supabase

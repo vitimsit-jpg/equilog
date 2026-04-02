@@ -269,12 +269,16 @@ export default async function HorsePage({ params }: Props) {
         <UpgradeBanner feature="Horse Index & IA" />
       ) : (
       <>
-      <div className="flex justify-end">
-        <ExportPDFButton horseId={horse.id} horseName={horse.name} />
-      </div>
+      {!isStarter && (
+        <div className="flex justify-end">
+          <ExportPDFButton horseId={horse.id} horseName={horse.name} />
+        </div>
+      )}
 
       {/* 3. Carte Horse Index */}
-      <div className="card flex flex-col items-center gap-5">
+      {isStarter ? (
+        <UpgradeBanner feature="Horse Index" requiredPlan="pro" />
+      ) : <div className="card flex flex-col items-center gap-5">
         <div className="w-full flex items-center justify-between">
           <div className="flex items-center gap-2">
             <h2 className="font-bold text-black text-sm uppercase tracking-wide">Horse Index</h2>
@@ -353,7 +357,7 @@ export default async function HorsePage({ params }: Props) {
             </p>
           </div>
         )}
-      </div>
+      </div>}
 
       {/* 5. Streak */}
       {(streak.current > 0 || streak.best > 0) && (

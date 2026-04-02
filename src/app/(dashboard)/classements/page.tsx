@@ -4,6 +4,7 @@ import { getScoreColor, getScoreLabel, DISCIPLINE_LABELS } from "@/lib/utils";
 import { Trophy, Medal } from "lucide-react";
 import ClassementsFilters from "@/components/classements/ClassementsFilters";
 import HorseAvatar from "@/components/ui/HorseAvatar";
+import UpgradeBanner from "@/components/ui/UpgradeBanner";
 
 interface SearchParams {
   discipline?: string;
@@ -37,6 +38,14 @@ type ScoreWithHorse = {
 
 export default async function ClassementsPage({ searchParams }: Props) {
   const supabase = createClient();
+
+  const { data: { user: authUser } } = await supabase.auth.getUser();
+  if (authUser) {
+    const { data: userProfile } = await supabase.from("users").select("plan").eq("id", authUser.id).single();
+    if ((userProfile?.plan ?? "starter") === "starter") {
+      return <UpgradeBanner feature="Classements Horse Index" requiredPlan="pro" />;
+    }
+  }
 
   const { data: rawScores } = await supabase
     .from("horse_scores")

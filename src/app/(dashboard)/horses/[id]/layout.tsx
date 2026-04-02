@@ -97,24 +97,26 @@ export default async function HorseLayout({ children, params }: Props) {
               <ArrowLeft className="h-4 w-4" />
             </Link>
             <HeroActionsWrapper>
-              <PdfDownloadButton
-                type="fiche"
-                horse={horse}
-                score={
-                  currentScore
-                    ? {
-                        score: currentScore.score,
-                        score_breakdown:
-                          currentScore.score_breakdown as Record<
-                            string,
-                            number
-                          > | null,
-                        computed_at: currentScore.computed_at,
-                      }
-                    : null
-                }
-              />
-              {horse.share_horse_index && (
+              {plan !== "starter" && (
+                <PdfDownloadButton
+                  type="fiche"
+                  horse={horse}
+                  score={
+                    currentScore
+                      ? {
+                          score: currentScore.score,
+                          score_breakdown:
+                            currentScore.score_breakdown as Record<
+                              string,
+                              number
+                            > | null,
+                          computed_at: currentScore.computed_at,
+                        }
+                      : null
+                  }
+                />
+              )}
+              {plan !== "starter" && horse.share_horse_index && (
                 <ShareButton horseId={horse.id} horseName={horse.name} />
               )}
               <RecalculateButton horseId={horse.id} />

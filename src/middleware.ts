@@ -39,6 +39,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/ecurie/") ||
     pathname.startsWith("/pricing") ||
     pathname.startsWith("/success") ||
+    pathname.startsWith("/sentry-example-page") ||
     isAuthRoute;
 
   if (!user && !isPublicRoute) {

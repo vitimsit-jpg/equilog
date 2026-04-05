@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { parseBody, ShareCreateSchema } from "@/lib/schemas";
 
 function createClient() {
   const cookieStore = cookies();
@@ -56,14 +57,12 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   const { data: horse } = await supabase.from("horses").select("id").eq("id", params.id).eq("user_id", user.id).single();
   if (!horse) return NextResponse.json({ error: "Cheval introuvable" }, { status: 404 });
 
-  const { email, role, can_see_training, can_see_health, can_see_competitions, can_see_planning } = await request.json();
-
-  if (!email || !role) return NextResponse.json({ error: "Champs manquants" }, { status: 400 });
-  if (!["gerant", "coach"].includes(role)) return NextResponse.json({ error: "Rôle invalide" }, { status: 400 });
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return NextResponse.json({ error: "Email invalide" }, { status: 400 });
+  const parsed = parseBody(ShareCreateSchema, await request.json());
+  if (!parsed.success) return parsed.response;
+  const { email, role, can_see_training, can_see_health, can_see_competitions, can_see_planning } = parsed.data;
 
   // Empêcher auto-partage
-  if (email.toLowerCase() === user.email?.toLowerCase()) {
+  if (email === user.email?.toLowerCase()) {
     return NextResponse.json({ error: "Vous ne pouvez pas partager avec vous-même" }, { status: 400 });
   }
 

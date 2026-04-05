@@ -3,6 +3,7 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextRequest } from "next/server";
 import { formatDate } from "@/lib/utils";
+import { parseBody, CoachChatSchema } from "@/lib/schemas";
 
 const PROFILE_TONE: Record<string, string> = {
   // Canonical 4-profile system
@@ -39,8 +40,9 @@ export async function POST(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return new Response("Unauthorized", { status: 401 });
 
-  const { horseId, messages } = await request.json();
-  if (!horseId || !messages?.length) return new Response("Bad request", { status: 400 });
+  const parsed = parseBody(CoachChatSchema, await request.json());
+  if (!parsed.success) return parsed.response;
+  const { horseId, messages } = parsed.data;
 
   const [
     { data: horse },

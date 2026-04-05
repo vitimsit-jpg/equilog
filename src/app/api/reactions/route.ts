@@ -1,9 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
-
-const VALID_TYPES = ["like", "fire", "strong", "trophy"] as const;
-type ReactionType = (typeof VALID_TYPES)[number];
+import { parseBody, ReactionSchema } from "@/lib/schemas";
 
 export async function POST(request: NextRequest) {
   const cookieStore = cookies();
@@ -28,11 +26,9 @@ export async function POST(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { item_type, item_id, reaction_type = "like" } = await request.json();
-  if (!item_type || !item_id) {
-    return NextResponse.json({ error: "Missing item_type or item_id" }, { status: 400 });
-  }
-  const type: ReactionType = VALID_TYPES.includes(reaction_type) ? reaction_type : "like";
+  const parsed = parseBody(ReactionSchema, await request.json());
+  if (!parsed.success) return parsed.response;
+  const { item_type, item_id, reaction_type: type } = parsed.data;
 
   // Check if user already has a reaction for this item (any type)
   const { data: existing } = await supabase

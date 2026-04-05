@@ -1,3 +1,5 @@
+import { withSentryConfig } from "@sentry/nextjs";
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   eslint: { ignoreDuringBuilds: true },
@@ -18,4 +20,16 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+
+  // Upload des source maps en prod uniquement (pour les stack traces lisibles)
+  silent: true,
+  hideSourceMaps: true,
+  disableLogger: true,
+
+  // Pas de tunnel par défaut (évite la complexité)
+  tunnelRoute: undefined,
+});

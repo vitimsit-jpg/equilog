@@ -70,8 +70,8 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   const { data: existingUser } = await supabase
     .from("users")
     .select("id")
-    .eq("email", email.toLowerCase())
-    .single();
+    .eq("email", email)
+    .maybeSingle();
 
   const alreadyUser = !!existingUser;
   const sharedWithUserId = existingUser?.id ?? null;
@@ -81,13 +81,13 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     .from("horse_shares")
     .upsert({
       horse_id: params.id,
-      shared_with_email: email.toLowerCase(),
+      shared_with_email: email,
       shared_with_user_id: sharedWithUserId,
       role,
-      can_see_training: can_see_training ?? true,
-      can_see_health: can_see_health ?? false,
-      can_see_competitions: can_see_competitions ?? true,
-      can_see_planning: can_see_planning ?? true,
+      can_see_training,
+      can_see_health,
+      can_see_competitions,
+      can_see_planning,
       status,
       invited_by: user.id,
     }, { onConflict: "horse_id,shared_with_email" })

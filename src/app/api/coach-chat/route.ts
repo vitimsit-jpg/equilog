@@ -128,10 +128,7 @@ ${(competitions || []).map((c) => `- ${formatDate(c.date)}: ${c.event_name} (${c
     model: "claude-sonnet-4-6",
     max_tokens: 600,
     system: systemPrompt,
-    messages: messages.map((m: { role: string; content: string }) => ({
-      role: m.role as "user" | "assistant",
-      content: m.content,
-    })),
+    messages,
   });
 
   const encoder = new TextEncoder();

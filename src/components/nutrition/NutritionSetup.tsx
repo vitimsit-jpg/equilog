@@ -11,7 +11,7 @@ import type { HorseNutrition, NutritionFibre, NutritionHerbe, NutritionGranule, 
 // ── Small helpers ──────────────────────────────────────────────────────────────
 
 function uid() {
-  return Math.random().toString(36).slice(2);
+  return crypto.randomUUID().replace(/-/g, "");
 }
 
 function BtnGroup<T extends string>({

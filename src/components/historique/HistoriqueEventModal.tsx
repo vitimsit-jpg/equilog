@@ -77,7 +77,7 @@ export default function HistoriqueEventModal({ open, horseId, event, onClose, on
     const urls: string[] = [...existing];
     for (const file of files) {
       const ext = file.name.split(".").pop() ?? "bin";
-      const path = `history/${horseId}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+      const path = `history/${horseId}/${Date.now()}_${crypto.randomUUID().replace(/-/g, "")}.${ext}`;
       const { error } = await supabase.storage.from("health-attachments").upload(path, file);
       if (!error) {
         const { data } = supabase.storage.from("health-attachments").getPublicUrl(path);

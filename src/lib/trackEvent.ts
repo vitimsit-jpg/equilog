@@ -55,7 +55,7 @@ function getSessionId(): string {
   if (typeof window === "undefined") return "";
   let sid = sessionStorage.getItem("eq_sid");
   if (!sid) {
-    sid = Math.random().toString(36).slice(2);
+    sid = crypto.randomUUID().replace(/-/g, "");
     sessionStorage.setItem("eq_sid", sid);
   }
   return sid;

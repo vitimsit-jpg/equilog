@@ -50,7 +50,7 @@ export default function BudgetForm({ horseId, onSaved, onCancel, defaultValues }
     const urls: string[] = [...existingUrls];
     for (const file of files) {
       const ext = file.name.split(".").pop() ?? "bin";
-      const path = `${horseId}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+      const path = `${horseId}/${Date.now()}_${crypto.randomUUID().replace(/-/g, "")}.${ext}`;
       const { error } = await supabase.storage.from("budget-attachments").upload(path, file);
       if (!error) {
         const { data } = supabase.storage.from("budget-attachments").getPublicUrl(path);

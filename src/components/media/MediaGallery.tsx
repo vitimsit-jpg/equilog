@@ -63,7 +63,7 @@ export default function MediaGallery({ entityType, entityId, horseId, initialMed
       }
 
       const ext = file.name.split(".").pop() || "bin";
-      const path = `${horseId}/${entityType}/${entityId}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+      const path = `${horseId}/${entityType}/${entityId}/${Date.now()}_${crypto.randomUUID().replace(/-/g, "")}.${ext}`;
 
       const bucket = entityType === "health" ? "health-media" : "session-media";
       const { error } = await supabase.storage

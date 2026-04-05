@@ -255,7 +255,7 @@ export default function QuickTrainingModal({
     const urls: string[] = [];
     for (const file of files) {
       const ext = file.name.split(".").pop() || "bin";
-      const filename = `${horseId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const filename = `${horseId}/${Date.now()}-${crypto.randomUUID().replace(/-/g, "")}.${ext}`;
       const { data, error } = await supabase.storage.from("training-media").upload(filename, file);
       if (!error && data) {
         const { data: urlData } = supabase.storage.from("training-media").getPublicUrl(data.path);

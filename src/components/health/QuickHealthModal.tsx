@@ -82,7 +82,7 @@ export default function QuickHealthModal({ open, onClose, horseId, onSaved, defa
     const urls: string[] = [];
     for (const file of files) {
       const ext = file.name.split(".").pop() ?? "bin";
-      const path = `${horseId}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+      const path = `${horseId}/${Date.now()}_${crypto.randomUUID().replace(/-/g, "")}.${ext}`;
       const { error } = await supabase.storage.from("health-attachments").upload(path, file);
       if (!error) {
         const { data } = supabase.storage.from("health-attachments").getPublicUrl(path);

@@ -8,6 +8,14 @@
 
 # testing
 /coverage
+/playwright-report
+/test-results
+e2e/auth-pro.json
+e2e/auth-guest.json
+e2e/starter-auth.json
+
+# docs générés
+/docs
 
 # next.js
 /.next/

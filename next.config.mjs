@@ -4,6 +4,7 @@ import { withSentryConfig } from "@sentry/nextjs";
 const nextConfig = {
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: true },
+  experimental: { instrumentationHook: true },
   async redirects() {
     return [
       { source: "/", destination: "/dashboard", permanent: false },

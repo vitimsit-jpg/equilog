@@ -1,7 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
 import { NextRequest } from "next/server";
+import { createClient } from "@/lib/supabase/server";
 import { formatDate } from "@/lib/utils";
 import { parseBody, CoachChatSchema } from "@/lib/schemas";
 
@@ -18,24 +17,7 @@ const PROFILE_TONE: Record<string, string> = {
 };
 
 export async function POST(request: NextRequest) {
-  const cookieStore = cookies();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = createServerClient<any>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll: () => cookieStore.getAll(),
-        setAll: (cookiesToSet) => {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {}
-        },
-      },
-    }
-  );
+  const supabase = createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return new Response("Unauthorized", { status: 401 });

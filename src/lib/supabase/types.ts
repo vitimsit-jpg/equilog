@@ -739,8 +739,7 @@ export interface RiderLog {
   created_at: string;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type T<R = any> = {
+type T<R> = {
   Row: R;
   Insert: Partial<R>;
   Update: Partial<R>;

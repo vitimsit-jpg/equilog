@@ -45,11 +45,11 @@ export function useHorseMode(horseId: string): HorseModeInfo {
       .eq("id", horseId)
       .single()
       .then(({ data }) => {
-        const mode = (data?.horse_index_mode as HorseIndexMode) ?? null;
+        const mode = data?.horse_index_mode ?? null;
         setInfo({
           mode,
-          modeSince: (data as any)?.horse_mode_since ?? null,
-          modeReason: (data as any)?.horse_mode_reason ?? null,
+          modeSince: data?.horse_mode_since ?? null,
+          modeReason: data?.horse_mode_reason ?? null,
           isInactif: mode ? INACTIVE_MODES.includes(mode) : false,
           isRehab:   mode ? REHAB_MODES.includes(mode)    : false,
           isJeune:   mode ? JEUNE_MODES.includes(mode)    : false,

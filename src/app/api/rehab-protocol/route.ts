@@ -1,6 +1,5 @@
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { format, addDays, addWeeks, startOfWeek } from "date-fns";
 import type { RehabPhase } from "@/lib/supabase/types";
@@ -61,30 +60,8 @@ function generateSessionsForPhase(
   return sessions;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function createSupabase(cookieStore: any) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return createServerClient<any>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll: () => cookieStore.getAll(),
-        setAll: (cookiesToSet: { name: string; value: string; options: unknown }[]) => {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {}
-        },
-      },
-    }
-  );
-}
-
 export async function POST(request: NextRequest) {
-  const cookieStore = cookies();
-  const supabase = createSupabase(cookieStore);
+  const supabase = createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

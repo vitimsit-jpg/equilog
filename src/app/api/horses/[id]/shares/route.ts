@@ -1,24 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { createClient } from "@/lib/supabase/server";
 import { parseBody, ShareCreateSchema } from "@/lib/schemas";
-
-function createClient() {
-  const cookieStore = cookies();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return createServerClient<any>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll: () => cookieStore.getAll(),
-        setAll: (cookiesToSet) => {
-          try { cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options)); } catch {}
-        },
-      },
-    }
-  );
-}
 
 export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
   const supabase = createClient();

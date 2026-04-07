@@ -321,8 +321,8 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
         intensity_target: planForm.intensity_target ? parseInt(planForm.intensity_target) as (1 | 2 | 3 | 4 | 5) : null,
       };
       const { error } = editPlanned
-        ? await supabase.from("training_planned_sessions").update(payload).eq("id", editPlanned.id)
-        : await supabase.from("training_planned_sessions").insert(payload);
+        ? await supabase.from("training_planned_sessions").update(payload as Partial<TrainingPlannedSession>).eq("id", editPlanned.id)
+        : await supabase.from("training_planned_sessions").insert(payload as Partial<TrainingPlannedSession>);
       if (error) {
         toast.error("Erreur lors de l'enregistrement");
       } else {

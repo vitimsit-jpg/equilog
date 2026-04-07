@@ -3,9 +3,20 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { sendWeeklySummary } from "@/lib/email";
 import { sendPushNotification } from "@/lib/webpush";
 
+type PushSub = { user_id: string; endpoint: string; p256dh: string; auth: string };
+
 function isAuthorized(request: NextRequest) {
   const auth = request.headers.get("authorization");
   return auth === `Bearer ${process.env.CRON_SECRET}`;
+}
+
+function groupBy<T>(items: T[], key: (item: T) => string): Record<string, T[]> {
+  return items.reduce<Record<string, T[]>>((acc, item) => {
+    const k = key(item);
+    if (!acc[k]) acc[k] = [];
+    acc[k].push(item);
+    return acc;
+  }, {});
 }
 
 export async function GET(request: NextRequest) {
@@ -19,65 +30,98 @@ export async function GET(request: NextRequest) {
   const weekAgo = new Date();
   weekAgo.setDate(weekAgo.getDate() - 7);
   const weekAgoStr = weekAgo.toISOString().split("T")[0];
+  const todayStr = new Date().toISOString().split("T")[0];
 
-  // Get all users with their horses
+  // ── Fetch 1 : tous les users avec email ─────────────────────────────────
   const { data: users } = await supabase
     .from("users")
-    .select("id, email, name");
+    .select("id, email, name")
+    .not("email", "is", null);
+
+  const userIds = (users || []).map((u) => u.id);
+  if (userIds.length === 0) return NextResponse.json({ ok: true, ...results });
+
+  // ── Fetch 2 : tous les chevaux + toutes les données semaine en parallèle ─
+  const { data: allHorses } = await supabase
+    .from("horses")
+    .select("id, name, user_id")
+    .in("user_id", userIds);
+
+  const allHorseIds = (allHorses || []).map((h) => h.id);
+  if (allHorseIds.length === 0) return NextResponse.json({ ok: true, ...results });
+
+  const [
+    { data: allSessions },
+    { data: allScores },
+    { data: allPlanned },
+    { data: allPushSubs },
+  ] = await Promise.all([
+    supabase
+      .from("training_sessions")
+      .select("horse_id, duration_min")
+      .in("horse_id", allHorseIds)
+      .gte("date", weekAgoStr),
+    supabase
+      .from("horse_scores")
+      .select("horse_id, score, computed_at")
+      .in("horse_id", allHorseIds)
+      .order("computed_at", { ascending: false })
+      .limit(allHorseIds.length * 10),
+    supabase
+      .from("training_planned_sessions")
+      .select("horse_id, id, status")
+      .in("horse_id", allHorseIds)
+      .gte("date", weekAgoStr)
+      .lte("date", todayStr),
+    supabase
+      .from("push_subscriptions")
+      .select("user_id, endpoint, p256dh, auth")
+      .in("user_id", userIds),
+  ]);
+
+  // ── Groupements JS ────────────────────────────────────────────────────────
+  const horsesByUser = groupBy(allHorses || [], (h) => h.user_id);
+  const sessionsByHorse = groupBy(allSessions || [], (s) => s.horse_id);
+  const plannedByHorse = groupBy(allPlanned || [], (p) => p.horse_id);
+  const pushSubsByUser = groupBy((allPushSubs || []) as unknown as PushSub[], (s) => s.user_id);
+
+  // Top 1 score par horse (allScores trié DESC)
+  const latestScoreByHorse = (allScores || []).reduce<Record<string, number>>((acc, s) => {
+    if (!(s.horse_id in acc)) acc[s.horse_id] = s.score;
+    return acc;
+  }, {});
+
+  // ── Traitement par user — 0 requête DB ────────────────────────────────────
+  const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://equilog-i3nr-vitimsit-jpgs-projects.vercel.app";
 
   for (const user of users || []) {
     if (!user.email) continue;
 
-    const { data: horses } = await supabase
-      .from("horses")
-      .select("id, name")
-      .eq("user_id", user.id);
+    const horses = horsesByUser[user.id] || [];
+    if (horses.length === 0) continue;
 
-    if (!horses || horses.length === 0) continue;
+    const horseSummaries = horses.map((horse) => {
+      const sessions = sessionsByHorse[horse.id] || [];
+      const planned = plannedByHorse[horse.id] || [];
 
-    const todayStr = new Date().toISOString().split("T")[0];
+      const plannedTotal = planned.length;
+      const plannedSkipped = planned.filter((p) => p.status === "skipped").length;
+      const denominator = plannedTotal - plannedSkipped + sessions.length;
+      const completionPct =
+        plannedTotal > 0 && denominator > 0
+          ? Math.round((sessions.length / denominator) * 100)
+          : null;
 
-    const horseSummaries = await Promise.all(
-      horses.map(async (horse) => {
-        const [{ data: sessions }, { data: latestScore }, { data: plannedDone }] = await Promise.all([
-          supabase
-            .from("training_sessions")
-            .select("duration_min")
-            .eq("horse_id", horse.id)
-            .gte("date", weekAgoStr),
-          supabase
-            .from("horse_scores")
-            .select("score")
-            .eq("horse_id", horse.id)
-            .order("computed_at", { ascending: false })
-            .limit(1),
-          supabase
-            .from("training_planned_sessions")
-            .select("id, status")
-            .eq("horse_id", horse.id)
-            .gte("date", weekAgoStr)
-            .lte("date", todayStr),
-        ]);
+      return {
+        name: horse.name,
+        id: horse.id,
+        sessionCount: sessions.length,
+        totalMinutes: sessions.reduce((s, t) => s + (t.duration_min || 0), 0),
+        score: latestScoreByHorse[horse.id] ?? null,
+        completionPct,
+      };
+    });
 
-        const plannedTotal = plannedDone?.length ?? 0;
-        const plannedSkipped = (plannedDone || []).filter((p) => p.status === "skipped").length;
-        const completionPct =
-          plannedTotal > 0
-            ? Math.round(((sessions?.length ?? 0) / (plannedTotal - plannedSkipped + (sessions?.length ?? 0))) * 100)
-            : null;
-
-        return {
-          name: horse.name,
-          id: horse.id,
-          sessionCount: sessions?.length ?? 0,
-          totalMinutes: (sessions || []).reduce((s, t) => s + (t.duration_min || 0), 0),
-          score: latestScore?.[0]?.score ?? null,
-          completionPct,
-        };
-      })
-    );
-
-    // Only send if there was activity this week
     const totalSessions = horseSummaries.reduce((s, h) => s + h.sessionCount, 0);
     if (totalSessions === 0) continue;
 
@@ -89,16 +133,8 @@ export async function GET(request: NextRequest) {
       });
       results.summaries++;
 
-      // Push notification résumé hebdo
-      const { data: pushSubs } = await supabase
-        .from("push_subscriptions")
-        .select("endpoint, p256dh, auth")
-        .eq("user_id", user.id);
-
       const totalMin = horseSummaries.reduce((s, h) => s + h.totalMinutes, 0);
-      const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://equilog-i3nr-vitimsit-jpgs-projects.vercel.app";
-
-      for (const sub of pushSubs || []) {
+      for (const sub of pushSubsByUser[user.id] || []) {
         try {
           await sendPushNotification(sub, {
             title: "Résumé de la semaine",

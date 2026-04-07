@@ -17,7 +17,7 @@ export type WearableSource = "equisense" | "seaver" | "garmin" | "equilab" | "au
 export type BudgetCategory = "pension" | "soins" | "concours" | "equipement" | "maréchalerie" | "alimentation" | "transport" | "autre";
 export type Discipline = "CSO" | "Dressage" | "CCE" | "Endurance" | "Attelage" | "Voltige" | "TREC" | "Hunter" | "Equitation_Western" | "Autre";
 
-export interface User {
+export type User = {
   id: string;
   email: string;
   name: string;
@@ -60,7 +60,7 @@ export interface User {
   deleted_at: string | null;
 }
 
-export interface Horse {
+export type Horse = {
   id: string;
   user_id: string;
   name: string;
@@ -114,7 +114,7 @@ export interface Horse {
 }
 
 // ── Nutrition types ────────────────────────────────────────────────────────────
-export interface NutritionFibre {
+export type NutritionFibre = {
   id: string;
   type: "foin" | "luzerne" | "melange";
   mode: "fixe" | "volonte";
@@ -122,24 +122,24 @@ export interface NutritionFibre {
   distributions_par_jour?: "1" | "2" | "3" | null;
 }
 
-export interface NutritionHerbe {
+export type NutritionHerbe = {
   actif: boolean;
   heures: "2" | "4" | "6" | "journee" | null;
 }
 
-export interface NutritionRepas {
+export type NutritionRepas = {
   horaire: "matin" | "midi" | "soir" | "apresmidi";
   quantite_l: number;
 }
 
-export interface NutritionGranule {
+export type NutritionGranule = {
   id: string;
   nom: string;
   type: "standard" | "floconnes" | "extrudes" | "mash" | "autre";
   repas: NutritionRepas[];
 }
 
-export interface NutritionComplement {
+export type NutritionComplement = {
   id: string;
   nom: string;
   forme: "poudre" | "liquide" | "granules" | "seringue" | "autre";
@@ -151,14 +151,14 @@ export interface NutritionComplement {
   cure_debut: string | null;
 }
 
-export interface NutritionRation {
+export type NutritionRation = {
   fibres: NutritionFibre[];
   herbe: NutritionHerbe;
   granules: NutritionGranule[];
   complements: NutritionComplement[];
 }
 
-export interface HorseNutrition {
+export type HorseNutrition = {
   id: string;
   horse_id: string;
   user_id: string;
@@ -170,7 +170,7 @@ export interface HorseNutrition {
   updated_at: string;
 }
 
-export interface NutritionHistoryEntry {
+export type NutritionHistoryEntry = {
   id: string;
   horse_id: string;
   element: string;
@@ -181,7 +181,7 @@ export interface NutritionHistoryEntry {
   created_at: string;
 }
 
-export interface HealthRecord {
+export type HealthRecord = {
   id: string;
   horse_id: string;
   type: HealthType;
@@ -207,7 +207,7 @@ export interface HealthRecord {
 
 export type InterventionType = "parage" | "ferrure" | "ferrure_ortho" | "urgence" | "deferrage" | "autre";
 
-export interface MarechalProfile {
+export type MarechalProfile = {
   id: string;
   horse_id: string;
   user_id: string;
@@ -224,7 +224,7 @@ export interface MarechalProfile {
   updated_at: string;
 }
 
-export interface TrainingSession {
+export type TrainingSession = {
   id: string;
   horse_id: string;
   date: string;
@@ -254,7 +254,7 @@ export interface TrainingSession {
   created_at: string;
 }
 
-export interface Competition {
+export type Competition = {
   id: string;
   horse_id: string;
   date: string;
@@ -276,7 +276,7 @@ export interface Competition {
 
 export type RecurrenceFrequency = "weekly" | "monthly" | "yearly";
 
-export interface BudgetEntry {
+export type BudgetEntry = {
   id: string;
   horse_id: string;
   date: string;
@@ -293,7 +293,7 @@ export interface BudgetEntry {
 export type TodoFrequency = "quotidien" | "hebdo" | "mensuel" | "ponctuel";
 export type TodoStatus = "a_faire" | "en_cours" | "fait";
 
-export interface EcurieTodo {
+export type EcurieTodo = {
   id: string;
   user_id: string;
   title: string;
@@ -306,7 +306,7 @@ export interface EcurieTodo {
 
 export type AlertUrgency = "normal" | "urgent" | "critique";
 
-export interface HorseAlert {
+export type HorseAlert = {
   id: string;
   horse_id: string;
   reporter_id: string;
@@ -316,7 +316,7 @@ export interface HorseAlert {
   created_at: string;
 }
 
-export interface CoachStudent {
+export type CoachStudent = {
   id: string;
   coach_id: string;
   student_name: string;
@@ -327,7 +327,7 @@ export interface CoachStudent {
   created_at: string;
 }
 
-export interface CoachPlannedSession {
+export type CoachPlannedSession = {
   id: string;
   coach_id: string;
   student_id: string;
@@ -339,7 +339,7 @@ export interface CoachPlannedSession {
   created_at: string;
 }
 
-export interface TrainingPlannedSession {
+export type TrainingPlannedSession = {
   id: string;
   horse_id: string;
   date: string;
@@ -354,7 +354,7 @@ export interface TrainingPlannedSession {
   created_at: string;
 }
 
-export interface WearableData {
+export type WearableData = {
   id: string;
   horse_id: string;
   source: WearableSource;
@@ -370,7 +370,7 @@ export interface WearableData {
 export type ShareRole = "gerant" | "coach";
 export type ShareStatus = "pending" | "active" | "revoked";
 
-export interface HorseShare {
+export type HorseShare = {
   id: string;
   horse_id: string;
   shared_with_email: string;
@@ -386,7 +386,7 @@ export interface HorseShare {
   updated_at: string;
 }
 
-export interface HorseScore {
+export type HorseScore = {
   id: string;
   horse_id: string;
   score: number;
@@ -397,7 +397,7 @@ export interface HorseScore {
   region: string | null;
 }
 
-export interface ScoreBreakdown {
+export type ScoreBreakdown = {
   // v2 pillar-based fields (new format)
   version?: 2;
   mode?: HorseIndexMode;
@@ -422,7 +422,7 @@ export type HorseDailyLogAppetit = "mange_bien" | "mange_peu" | "na_pas_mange";
 export type HistoryCategory = "boiterie" | "ulcere" | "colique" | "operation" | "vaccination" | "bilan_sanguin" | "soins_dentaires" | "osteo" | "radio" | "physio" | "traitement_long_terme" | "autre";
 export type DatePrecision = "exact" | "mois" | "annee" | "inconnue";
 
-export interface HorseDailyLog {
+export type HorseDailyLog = {
   id: string;
   horse_id: string;
   date: string;
@@ -430,10 +430,11 @@ export interface HorseDailyLog {
   appetit: HorseDailyLogAppetit | null;
   observations: string[] | null;
   notes: string | null;
+  paddock_checked: boolean | null;
   created_at: string;
 }
 
-export interface HorseHistoryEvent {
+export type HorseHistoryEvent = {
   id: string;
   horse_id: string;
   category: HistoryCategory;
@@ -455,7 +456,7 @@ export interface HorseHistoryEvent {
   created_at: string;
 }
 
-export interface HorsePedigree {
+export type HorsePedigree = {
   id: string;
   horse_id: string;
   pere_name: string | null;
@@ -489,7 +490,7 @@ export type ListingCategory = "cheval" | "materiel" | "service";
 export type ListingCondition = "neuf" | "bon_etat" | "usage";
 export type ListingStatus = "active" | "sold" | "expired";
 
-export interface Listing {
+export type Listing = {
   id: string;
   user_id: string;
   title: string;
@@ -511,7 +512,7 @@ export interface Listing {
   users?: { name: string };
 }
 
-export interface AIInsight {
+export type AIInsight = {
   id: string;
   horse_id: string;
   content: string;
@@ -520,7 +521,7 @@ export interface AIInsight {
   created_at: string;
 }
 
-export interface RehabPhase {
+export type RehabPhase = {
   index: number;
   name: string;
   duration_weeks: number;
@@ -532,7 +533,7 @@ export interface RehabPhase {
   progression_criteria: string;
 }
 
-export interface RehabProtocol {
+export type RehabProtocol = {
   id: string;
   horse_id: string;
   user_id: string;
@@ -554,7 +555,7 @@ export interface RehabProtocol {
 // ── TRAV-19 : Gardien non-cavalier ───────────────────────────────────────────
 export type HorseUserRole = "owner" | "guardian" | "caretaker";
 
-export interface HorseUserRoleEntry {
+export type HorseUserRoleEntry = {
   id: string;
   horse_id: string;
   user_id: string;
@@ -574,7 +575,7 @@ export type GrowthMilestoneType =
   | "identification"
   | "autre";
 
-export interface HorseGrowthMilestone {
+export type HorseGrowthMilestone = {
   id: string;
   horse_id: string;
   user_id: string;
@@ -585,7 +586,7 @@ export interface HorseGrowthMilestone {
   created_at: string;
 }
 
-export interface HorseGrowthMeasure {
+export type HorseGrowthMeasure = {
   id: string;
   horse_id: string;
   user_id: string;
@@ -601,7 +602,7 @@ export interface HorseGrowthMeasure {
 export type MedicationForme = "oral" | "injectable" | "topique" | "autre";
 export type MedicationFrequence = "quotidien" | "matin_soir" | "hebdomadaire" | "si_besoin" | "cure";
 
-export interface HorseMedication {
+export type HorseMedication = {
   id: string;
   horse_id: string;
   user_id: string;
@@ -617,7 +618,7 @@ export interface HorseMedication {
   created_at: string;
 }
 
-export interface HorseBcsLog {
+export type HorseBcsLog = {
   id: string;
   horse_id: string;
   user_id: string;
@@ -635,7 +636,7 @@ export type MovementLogType =
   | "monte_douce"
   | "autre";
 
-export interface HorseMovementLog {
+export type HorseMovementLog = {
   id: string;
   horse_id: string;
   user_id: string;
@@ -649,7 +650,7 @@ export interface HorseMovementLog {
 // ── TRAV-22 : Praticiens / Examens médicaux ──────────────────────────────────
 export type PractitionerType = "vet" | "osteo" | "physio" | "kine" | "marechal" | "dentiste" | "autre";
 
-export interface HorsePractitioner {
+export type HorsePractitioner = {
   id: string;
   horse_id: string;
   user_id: string;
@@ -664,7 +665,7 @@ export interface HorsePractitioner {
 
 export type MedicalExamType = "radio" | "echo" | "endoscopie" | "bilan_sanguin" | "scintigraphie" | "irm" | "autre";
 
-export interface HorseMedicalExam {
+export type HorseMedicalExam = {
   id: string;
   horse_id: string;
   user_id: string;
@@ -678,7 +679,7 @@ export interface HorseMedicalExam {
 }
 
 // ── TRAV-23 : Historique des transitions de mode ─────────────────────────────
-export interface HorseModeHistory {
+export type HorseModeHistory = {
   id: string;
   horse_id: string;
   user_id: string;
@@ -689,7 +690,7 @@ export interface HorseModeHistory {
 }
 
 // TRAV P1 — Journal d'évolution IR
-export interface HorseRecoveryEntry {
+export type HorseRecoveryEntry = {
   id: string;
   horse_id: string;
   user_id: string;
@@ -705,7 +706,7 @@ export interface HorseRecoveryEntry {
 export type ExerciseCategory = "plat" | "obstacle" | "cross" | "longe" | "travail_a_pied";
 export type ExerciseDifficulty = "debutant" | "intermediaire" | "avance";
 
-export interface Exercise {
+export type Exercise = {
   id: string;
   title: string;
   description: string | null;
@@ -720,13 +721,13 @@ export interface Exercise {
   created_at: string;
 }
 
-export interface UserExerciseFavorite {
+export type UserExerciseFavorite = {
   user_id: string;
   exercise_id: string;
   created_at: string;
 }
 
-export interface RiderLog {
+export type RiderLog = {
   id: string;
   user_id: string;
   date: string;
@@ -739,6 +740,63 @@ export interface RiderLog {
   created_at: string;
 }
 
+export type HorseStreak = {
+  id: string;
+  horse_id: string;
+  current_streak: number;
+  best_streak: number;
+  last_session_date: string | null;
+  updated_at: string;
+}
+
+export type Challenge = {
+  id: string;
+  name: string;
+  description: string | null;
+  type: string;
+  objective_value: number;
+  discipline_type: string | null;
+  start_date: string;
+  end_date: string;
+  scope: string;
+  is_national: boolean;
+  created_at: string;
+}
+
+export type ChallengeParticipant = {
+  id: string;
+  challenge_id: string;
+  user_id: string;
+  horse_id: string | null;
+  status: string;
+  joined_at: string;
+}
+
+export type VideoAnalysis = {
+  id: string;
+  horse_id: string;
+  user_id: string;
+  allure: string | null;
+  score: number | null;
+  posture_cheval: string | null;
+  position_cavalier: string | null;
+  points_forts: string[] | null;
+  axes_amelioration: string[] | null;
+  conseil_principal: string | null;
+  video_url: string | null;
+  title: string | null;
+  notes: string | null;
+  share_token: string | null;
+  created_at: string;
+}
+
+export type FeatureInterest = {
+  id: string;
+  user_id: string;
+  feature_key: string;
+  created_at: string;
+}
+
 type T<R> = {
   Row: R;
   Insert: Partial<R>;
@@ -746,7 +804,7 @@ type T<R> = {
   Relationships: never[];
 };
 
-export interface Database {
+export type Database = {
   public: {
     Tables: {
       users: T<User>;
@@ -780,8 +838,29 @@ export interface Database {
       horse_recovery_journal: T<HorseRecoveryEntry>;
       exercises: T<Exercise>;
       user_exercise_favorites: T<UserExerciseFavorite>;
+      horse_shares: T<HorseShare>;
+      horse_nutrition: T<HorseNutrition>;
+      nutrition_history: T<NutritionHistoryEntry>;
+      horse_marechal_profile: T<MarechalProfile>;
+      video_analyses: T<VideoAnalysis>;
+      feature_interest: T<FeatureInterest>;
+      // Tables sans interface TypeScript définie — Record<string, unknown> force
+      // un cast explicite plutôt que de retourner never (qui casse tout)
+      feed_reactions: T<Record<string, unknown>>;
+      feed_comments: T<Record<string, unknown>>;
+      challenges: T<Challenge>;
+      challenge_participants: T<ChallengeParticipant>;
+      horse_streaks: T<HorseStreak>;
+      user_follows: T<Record<string, unknown>>;
+      push_subscriptions: T<Record<string, unknown>>;
+      event_logs: T<Record<string, unknown>>;
+      rider_logs: T<RiderLog>;
+      nutrition_plans: T<Record<string, unknown>>;
+      horse_videos: T<Record<string, unknown>>;
+      feature_interests: T<Record<string, unknown>>;
+      notifications: T<Record<string, unknown>>;
     };
-    Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Views: Record<never, never>;
+    Functions: Record<never, never>;
   };
 }

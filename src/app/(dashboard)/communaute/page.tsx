@@ -229,7 +229,7 @@ export default async function CommunautePage({ searchParams }: Props) {
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-bold text-black truncate">{horse.name}</p>
                       <p className="text-xs text-gray-400">
-                        {DISCIPLINE_LABELS[horse.discipline] || horse.discipline} · {item.nbComps} concours
+                        {DISCIPLINE_LABELS[horse.discipline ?? ""] || horse.discipline} · {item.nbComps} concours
                       </p>
                     </div>
                     <div className="text-right flex-shrink-0">
@@ -512,7 +512,7 @@ export default async function CommunautePage({ searchParams }: Props) {
       .select("following_id")
       .eq("follower_id", authUser.id);
     if (follows && follows.length > 0) {
-      const followingIds = follows.map((f) => f.following_id);
+      const followingIds = follows.map((f) => f.following_id as string);
       const { data: fHorses } = await supabase
         .from("horses")
         .select("*")
@@ -598,8 +598,9 @@ export default async function CommunautePage({ searchParams }: Props) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const commentsByItem: Record<string, any[]> = {};
   (allComments || []).forEach((c) => {
-    if (!commentsByItem[c.item_id]) commentsByItem[c.item_id] = [];
-    commentsByItem[c.item_id].push(c);
+    const itemId = c.item_id as string;
+    if (!commentsByItem[itemId]) commentsByItem[itemId] = [];
+    commentsByItem[itemId].push(c);
   });
 
   const rankedHorses = [...horsesForFeed].sort(

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { calculateHorseIndex } from "@/lib/horse-index/calculator";
 import { differenceInDays } from "date-fns";
-import type { HorseIndexMode } from "@/lib/supabase/types";
+import type { HorseIndexMode, TrainingSession, HealthRecord, Competition, WearableData } from "@/lib/supabase/types";
 
 export async function POST(request: NextRequest) {
   const supabase = createClient();
@@ -29,25 +29,29 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Horse not found" }, { status: 404 });
   }
 
+  const windowStart = new Date();
+  windowStart.setDate(windowStart.getDate() - 180);
+  const windowStartStr = windowStart.toISOString().split("T")[0];
+
   const [
     { data: trainingSessions },
     { data: healthRecords },
     { data: competitions },
     { data: wearableData },
   ] = await Promise.all([
-    supabase.from("training_sessions").select("*").eq("horse_id", horseId),
-    supabase.from("health_records").select("*").eq("horse_id", horseId),
-    supabase.from("competitions").select("*").eq("horse_id", horseId),
-    supabase.from("wearable_data").select("*").eq("horse_id", horseId),
+    supabase.from("training_sessions").select("date, duration_min, feeling, intensity, equipement_recuperation").eq("horse_id", horseId).gte("date", windowStartStr),
+    supabase.from("health_records").select("date, type, next_date, urgency, vet_name").eq("horse_id", horseId),
+    supabase.from("competitions").select("date, result_rank, total_riders").eq("horse_id", horseId).gte("date", windowStartStr),
+    supabase.from("wearable_data").select("id").eq("horse_id", horseId).limit(1),
   ]);
 
   const mode = (horse.horse_index_mode as HorseIndexMode) || "IE";
   const breakdown = calculateHorseIndex(
     {
-      trainingSessions: trainingSessions || [],
-      healthRecords: healthRecords || [],
-      competitions: competitions || [],
-      wearableData: wearableData || [],
+      trainingSessions: (trainingSessions || []) as unknown as TrainingSession[],
+      healthRecords: (healthRecords || []) as unknown as HealthRecord[],
+      competitions: (competitions || []) as unknown as Competition[],
+      wearableData: (wearableData || []) as unknown as WearableData[],
       horseProfile: {
         breed: horse.breed,
         birth_year: horse.birth_year,
@@ -89,21 +93,22 @@ export async function POST(request: NextRequest) {
 
   // ── Percentiles filtrés par indice (HI-01 — comparabilité par mode) ───────
   // Un score IC ne se compare qu'avec des scores IC, etc.
+  const [regionScoresResult, categoryScoresResult] = await Promise.all([
+    horse.region
+      ? supabase.from("horse_scores").select("score, score_breakdown").eq("region", horse.region).order("computed_at", { ascending: false }).limit(2000)
+      : Promise.resolve({ data: null }),
+    horse.discipline
+      ? supabase.from("horse_scores").select("score, score_breakdown, horses!inner(discipline, horse_index_mode)").eq("horses.discipline", horse.discipline).eq("horses.horse_index_mode", mode).order("computed_at", { ascending: false }).limit(2000)
+      : Promise.resolve({ data: null }),
+  ]);
+
   let percentileRegion: number | null = null;
   let percentileCategory: number | null = null;
 
-  if (horse.region) {
-    const { data: regionScores } = await supabase
-      .from("horse_scores")
-      .select("score, score_breakdown")
-      .eq("region", horse.region)
-      .order("computed_at", { ascending: false });
-
-    // Filtrer par même mode d'indice
-    const sameMode = (regionScores || []).filter(
+  if (regionScoresResult.data) {
+    const sameMode = regionScoresResult.data.filter(
       (s: { score_breakdown: { mode?: string } }) => s.score_breakdown?.mode === mode
     );
-
     if (sameMode.length >= 10) {
       const sorted = sameMode.map((s: { score: number }) => s.score).sort((a: number, b: number) => a - b);
       const position = sorted.filter((s: number) => s < breakdown.total).length;
@@ -111,19 +116,10 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  if (horse.discipline) {
-    const { data: categoryScores } = await supabase
-      .from("horse_scores")
-      .select("score, score_breakdown, horses!inner(discipline, horse_index_mode)")
-      .eq("horses.discipline", horse.discipline)
-      .eq("horses.horse_index_mode", mode) // même indice uniquement
-      .order("computed_at", { ascending: false });
-
-    if (categoryScores && categoryScores.length >= 10) {
-      const sorted = categoryScores.map((s: { score: number }) => s.score).sort((a: number, b: number) => a - b);
-      const position = sorted.filter((s: number) => s < breakdown.total).length;
-      percentileCategory = Math.round((position / sorted.length) * 100);
-    }
+  if (categoryScoresResult.data && categoryScoresResult.data.length >= 10) {
+    const sorted = categoryScoresResult.data.map((s: { score: number }) => s.score).sort((a: number, b: number) => a - b);
+    const position = sorted.filter((s: number) => s < breakdown.total).length;
+    percentileCategory = Math.round((position / sorted.length) * 100);
   }
 
   const { data: newScore, error } = await supabase

@@ -450,6 +450,7 @@ export default function HorseEditModal({ horse, compact = false }: Props) {
               Enregistrer
             </Button>
           </div>
+
         </form>
       </Modal>
 

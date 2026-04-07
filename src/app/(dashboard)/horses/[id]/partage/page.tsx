@@ -25,7 +25,8 @@ export default async function PartagePage({ params }: { params: { id: string } }
     .neq("status", "revoked")
     .order("created_at", { ascending: false });
 
-  const shares = (sharesRaw || []).map((s) => ({
+  type ShareWithUser = NonNullable<typeof sharesRaw>[number] & { shared_with_user?: { name: string } | null };
+  const shares = ((sharesRaw || []) as ShareWithUser[]).map((s) => ({
     ...s,
     shared_with_name: s.shared_with_user?.name ?? null,
     shared_with_user: undefined,

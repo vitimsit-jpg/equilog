@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import toast from "react-hot-toast";
-import type { ProfileType, HorseIndexMode } from "@/lib/supabase/types";
+import type { ProfileType, HorseIndexMode, Horse } from "@/lib/supabase/types";
 import { Check, ArrowRight, ArrowLeft, ChevronRight, Plus, Trash2, Bell, ChevronDown } from "lucide-react";
 import PushNotificationToggle from "@/components/settings/PushNotificationToggle";
 import RideQuestionStep from "@/components/onboarding/RideQuestionStep";
@@ -213,7 +213,7 @@ export default function OnboardingPage() {
       tonte: tonte || null,
       taille: horseTaille || null,
       region: horseRegion || null,
-    }).select("id").single();
+    } as Partial<Horse>).select("id").single();
 
     if (error || !horse) {
       toast.error("Erreur lors de la création du cheval");

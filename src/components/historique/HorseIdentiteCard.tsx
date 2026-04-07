@@ -39,7 +39,7 @@ export default function HorseIdentiteCard({ horseId, horseName, identite }: Prop
     const { error } = await supabase.from("horses").update({
       sire_number: sire.trim() || null,
       lieu_naissance: lieu.trim() || null,
-      conditions_acquisition: conditions || null,
+      conditions_acquisition: (conditions || null) as 'achat' | 'don' | 'pret' | 'elevage_personnel' | null,
       historique_avant_acquisition: historique.trim() || null,
     }).eq("id", horseId);
     if (error) {

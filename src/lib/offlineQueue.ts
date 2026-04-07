@@ -82,7 +82,8 @@ export async function flushQueue(
   let synced = 0;
   for (const mutation of pending) {
     try {
-      const { error } = await supabase.from(mutation.table).insert(mutation.payload);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase.from as any)(mutation.table).insert(mutation.payload);
       if (!error) {
         await remove(mutation.id);
         synced++;

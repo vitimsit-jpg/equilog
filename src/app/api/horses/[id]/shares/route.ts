@@ -20,8 +20,9 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
+  type ShareWithUser = typeof shares extends (infer U)[] | null ? U & { shared_with_user?: { name: string } | null } : never;
   // Aplatir le join
-  const result = (shares || []).map((s) => ({
+  const result = ((shares || []) as ShareWithUser[]).map((s) => ({
     ...s,
     shared_with_name: s.shared_with_user?.name ?? null,
     shared_with_user: undefined,

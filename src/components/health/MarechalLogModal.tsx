@@ -294,7 +294,7 @@ export default function MarechalLogModal({
   const handleQuickSave = async () => {
     setLoading(true);
     const payload = buildPayload(true);
-    const { error } = await supabase.from("health_records").insert(payload);
+    const { error } = await supabase.from("health_records").insert(payload as Partial<HealthRecord>);
     if (error) { toast.error("Erreur lors de l'enregistrement"); setLoading(false); return; }
     if (addToBudget && payload.cost && payload.cost > 0) {
       const desc = ["Parage / Maréchal", payload.vet_name].filter(Boolean).join(" — ");
@@ -317,10 +317,10 @@ export default function MarechalLogModal({
 
     let err;
     if (defaultValues?.id) {
-      const res = await supabase.from("health_records").update(payload).eq("id", defaultValues.id);
+      const res = await supabase.from("health_records").update(payload as Partial<HealthRecord>).eq("id", defaultValues.id);
       err = res.error;
     } else {
-      const res = await supabase.from("health_records").insert(payload);
+      const res = await supabase.from("health_records").insert(payload as Partial<HealthRecord>);
       err = res.error;
     }
 

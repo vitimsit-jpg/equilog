@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Users } from "lucide-react";
 import CoachChat from "@/components/coaching/CoachChat";
+import type { Horse } from "@/lib/supabase/types";
 import HorseTabNav from "@/components/horse/HorseTabNav";
 import HorseSwipeNav from "@/components/horse/HorseSwipeNav";
 import HeroActionsWrapper from "@/components/horse/HeroActionsWrapper";
@@ -23,7 +24,7 @@ export default async function HorseLayout({ children, params }: Props) {
   if (!authUser) return notFound();
 
   // Essayer en tant que propriétaire
-  let horse = null;
+  let horse: Horse | null = null;
   let isOwner = false;
 
   const { data: ownedHorse } = await supabase
@@ -45,7 +46,7 @@ export default async function HorseLayout({ children, params }: Props) {
       .eq("shared_with_user_id", authUser.id)
       .eq("status", "active")
       .maybeSingle();
-    if (shareData) horse = shareData.horse;
+    if (shareData) horse = shareData.horse as unknown as Horse | null;
   }
 
   if (!horse) return notFound();
@@ -125,7 +126,7 @@ export default async function HorseLayout({ children, params }: Props) {
                       ? {
                           score: currentScore.score,
                           score_breakdown:
-                            currentScore.score_breakdown as Record<
+                            currentScore.score_breakdown as unknown as Record<
                               string,
                               number
                             > | null,

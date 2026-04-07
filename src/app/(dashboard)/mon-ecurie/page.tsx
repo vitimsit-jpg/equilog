@@ -122,9 +122,9 @@ export default async function MonEcuriePage() {
   });
 
   // Health alerts
-  const overdueAlerts = (healthRecords || []).filter((h) => h.next_date < todayStr);
+  const overdueAlerts = (healthRecords || []).filter((h) => h.next_date != null && h.next_date < todayStr);
   const upcomingAlerts = (healthRecords || []).filter(
-    (h) => h.next_date >= todayStr && h.next_date <= sevenDaysAheadStr
+    (h) => h.next_date != null && h.next_date >= todayStr && h.next_date <= sevenDaysAheadStr
   );
 
   // Horses inactive > 7 days
@@ -200,7 +200,7 @@ export default async function MonEcuriePage() {
                         <AlertTriangle className="h-3.5 w-3.5 text-danger flex-shrink-0" />
                         <div>
                           <p className="text-sm font-semibold text-black">{horse?.name} · {rec.type}</p>
-                          <p className="text-xs text-danger">En retard · prévu le {formatDate(rec.next_date)}</p>
+                          <p className="text-xs text-danger">En retard · prévu le {formatDate(rec.next_date ?? "")}</p>
                         </div>
                       </div>
                     </Link>
@@ -218,7 +218,7 @@ export default async function MonEcuriePage() {
                         <Clock className="h-3.5 w-3.5 text-warning flex-shrink-0" />
                         <div>
                           <p className="text-sm font-semibold text-black">{horse?.name} · {rec.type}</p>
-                          <p className="text-xs text-warning">Dans 7j · {formatDate(rec.next_date)}</p>
+                          <p className="text-xs text-warning">Dans 7j · {formatDate(rec.next_date ?? "")}</p>
                         </div>
                       </div>
                     </Link>

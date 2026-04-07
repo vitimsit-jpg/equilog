@@ -9,7 +9,7 @@ export interface BadgeDef {
 }
 
 // Famille 1 — Régularité & engagement (IC / IE uniquement)
-// Famille 3 — Performance concours (IC uniquement, Compétiteur / Pro)
+// Famille 3 — Performance concours (IC uniquement, Compétiteur amateur / Pro)
 // Famille 4 — Longue durée (tous modes)
 // Famille 6 — Défis
 // Spéciaux — divers

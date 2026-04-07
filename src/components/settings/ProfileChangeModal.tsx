@@ -9,7 +9,7 @@ import { X, AlertTriangle, ArrowRight, Check, ShieldCheck } from "lucide-react";
 
 const PROFILES: { type: ProfileType; emoji: string; label: string; subtitle: string }[] = [
   { type: "loisir",      emoji: "🌿", label: "Cavalier loisir",    subtitle: "Je monte pour le plaisir" },
-  { type: "competition", emoji: "🏆", label: "Compétiteur",        subtitle: "Je concours régulièrement" },
+  { type: "competition", emoji: "🏆", label: "Compétiteur amateur", subtitle: "Je concours régulièrement" },
   { type: "pro",         emoji: "⭐", label: "Professionnel",      subtitle: "Haut niveau / semi-pro" },
   { type: "gerant",      emoji: "🏢", label: "Gérant d'écurie",    subtitle: "Gestion de structure équestre" },
 ];

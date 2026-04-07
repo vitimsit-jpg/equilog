@@ -5,6 +5,8 @@ import { TRAINING_TYPE_LABELS } from "@/lib/utils";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://equilog-i3nr-vitimsit-jpgs-projects.vercel.app";
 
+type PushSub = { user_id: string; endpoint: string; p256dh: string; auth: string };
+
 function isAuthorized(request: NextRequest) {
   const auth = request.headers.get("authorization");
   return auth === `Bearer ${process.env.CRON_SECRET}`;
@@ -18,12 +20,11 @@ export async function GET(request: NextRequest) {
   const supabase = createAdminClient();
   const results = { notified: 0, errors: 0 };
 
-  // Tomorrow's date
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   const tomorrowStr = tomorrow.toISOString().split("T")[0];
 
-  // Fetch all planned sessions for tomorrow, not yet completed or skipped
+  // Fetch all planned sessions for tomorrow with horse + owner info
   const { data: planned } = await supabase
     .from("training_planned_sessions")
     .select("id, type, duration_min_target, horses(id, name, user_id)")
@@ -35,7 +36,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: true, ...results });
   }
 
-  // Group by user_id → list of (horse, sessions)
+  // Group by user_id in JS (no extra queries)
   const byUser: Record<string, { userId: string; horses: { id: string; name: string; sessions: typeof planned }[] }> = {};
 
   for (const p of planned) {
@@ -43,7 +44,7 @@ export async function GET(request: NextRequest) {
     const horse = p.horses as any;
     if (!horse?.user_id || !horse?.id) continue;
 
-    const userId = horse.user_id;
+    const userId = horse.user_id as string;
     if (!byUser[userId]) byUser[userId] = { userId, horses: [] };
 
     const existing = byUser[userId].horses.find((h) => h.id === horse.id);
@@ -54,14 +55,28 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // For each user, send one push per horse
-  for (const { userId, horses } of Object.values(byUser)) {
-    const { data: pushSubs } = await supabase
-      .from("push_subscriptions")
-      .select("endpoint, p256dh, auth")
-      .eq("user_id", userId);
+  const userIds = Object.keys(byUser);
+  if (userIds.length === 0) return NextResponse.json({ ok: true, ...results });
 
-    if (!pushSubs || pushSubs.length === 0) continue;
+  // Batch fetch ALL push subscriptions for ALL users — 1 query instead of N
+  const { data: allPushSubs } = await supabase
+    .from("push_subscriptions")
+    .select("user_id, endpoint, p256dh, auth")
+    .in("user_id", userIds);
+
+  const pushSubsByUser = ((allPushSubs || []) as unknown as PushSub[]).reduce<Record<string, PushSub[]>>(
+    (acc, sub) => {
+      if (!acc[sub.user_id]) acc[sub.user_id] = [];
+      acc[sub.user_id].push(sub);
+      return acc;
+    },
+    {}
+  );
+
+  // Send notifications — only push delivery, no more DB reads in this loop
+  for (const { userId, horses } of Object.values(byUser)) {
+    const pushSubs = pushSubsByUser[userId] || [];
+    if (pushSubs.length === 0) continue;
 
     for (const horse of horses) {
       const firstSession = horse.sessions[0];

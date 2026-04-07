@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import { format } from "date-fns";
 import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
+import type { HorseDailyLog } from "@/lib/supabase/types";
 
 const ETAT_OPTIONS = [
   { value: "excellent", emoji: "😄", label: "Excellent" },
@@ -64,7 +65,7 @@ export default function QuickStateModal({ open, onClose, horseId, horseName, onS
         appetit: appetit || null,
         observations: observations.length > 0 ? observations : null,
         notes: notes || null,
-      },
+      } as Partial<HorseDailyLog>,
       { onConflict: "horse_id,date" }
     );
     if (error) { toast.error("Erreur lors de l'enregistrement"); }

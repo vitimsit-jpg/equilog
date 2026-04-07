@@ -43,7 +43,7 @@ export default function ConfidentialitePage() {
             est chiffré et jamais lisible par nos équipes.
           </p>
           <p className="mt-1">
-            Nous enregistrons également votre type de profil (Cavalier loisir, Compétiteur, Professionnel ou
+            Nous enregistrons également votre type de profil (Cavalier loisir, Compétiteur amateur, Professionnel ou
             Gérant d&apos;écurie) et les modules que vous activez.
           </p>
         </SubSection>

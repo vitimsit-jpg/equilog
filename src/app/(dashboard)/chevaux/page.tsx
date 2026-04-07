@@ -55,7 +55,7 @@ export default async function ChevauxPage() {
   });
 
   // Next soin per horse
-  const nextSoinByHorse: Record<string, { type: string; next_date: string }> = {};
+  const nextSoinByHorse: Record<string, { type: string; next_date: string | null }> = {};
   (soonRecords || []).forEach((r) => {
     if (!nextSoinByHorse[r.horse_id]) nextSoinByHorse[r.horse_id] = r;
   });
@@ -169,7 +169,7 @@ export default async function ChevauxPage() {
                         <p className="text-xs font-bold text-danger">{overdue} soin{overdue > 1 ? "s" : ""} en retard</p>
                       ) : nextSoin ? (
                         <p className="text-xs font-bold text-black truncate">
-                          {(HEALTH_TYPE_LABELS as Record<string, string>)[nextSoin.type] || nextSoin.type} dans {differenceInDays(new Date(nextSoin.next_date), new Date())}j
+                          {(HEALTH_TYPE_LABELS as Record<string, string>)[nextSoin.type] || nextSoin.type} dans {nextSoin.next_date ? differenceInDays(new Date(nextSoin.next_date), new Date()) : "?"}j
                         </p>
                       ) : (
                         <p className="text-xs text-success font-semibold">À jour</p>

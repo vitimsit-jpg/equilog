@@ -7,9 +7,19 @@ import { addDays, addMonths, addYears, format as formatDate } from "date-fns";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://equilog-i3nr-vitimsit-jpgs-projects.vercel.app";
 
+type PushSub = { user_id: string; endpoint: string; p256dh: string; auth: string };
+
 function isAuthorized(request: NextRequest) {
   const auth = request.headers.get("authorization");
   return auth === `Bearer ${process.env.CRON_SECRET}`;
+}
+
+function groupByUserId(subs: PushSub[] | null): Record<string, PushSub[]> {
+  return (subs || []).reduce<Record<string, PushSub[]>>((acc, sub) => {
+    if (!acc[sub.user_id]) acc[sub.user_id] = [];
+    acc[sub.user_id].push(sub);
+    return acc;
+  }, {});
 }
 
 export async function GET(request: NextRequest) {
@@ -20,17 +30,95 @@ export async function GET(request: NextRequest) {
   const supabase = createAdminClient();
   const results = { healthReminders: 0, scoreAlerts: 0, rehabCompleted: 0, recurringBudget: 0, errors: 0 };
 
-  // ── 1. Rappels soins J-7 ──────────────────────────────────────────────────
   const today = new Date();
-  const targetDate = new Date(today);
-  targetDate.setDate(today.getDate() + 7);
-  const targetStr = targetDate.toISOString().split("T")[0];
+  const todayStr = formatDate(today, "yyyy-MM-dd");
+  const targetDate = addDays(today, 7);
+  const targetStr = formatDate(targetDate, "yyyy-MM-dd");
 
-  const { data: upcomingCares } = await supabase
-    .from("health_records")
-    .select("*, horses(id, name, user_id, users(email, name))")
-    .eq("next_date", targetStr);
+  // ── Fetch initiale en parallèle (aucune requête dans les boucles après) ─────
+  const [
+    { data: upcomingCares },
+    { data: horses },
+    { data: activeProtocols },
+    { data: templates },
+  ] = await Promise.all([
+    supabase
+      .from("health_records")
+      .select("type, next_date, horses(id, name, user_id, users(email, name))")
+      .eq("next_date", targetStr),
+    supabase
+      .from("horses")
+      .select("id, name, user_id, users(email, name)"),
+    supabase
+      .from("rehab_protocols")
+      .select("id, horse_id, user_id, phases, created_at, horses(id, name, users(email, name))")
+      .eq("status", "active"),
+    supabase
+      .from("budget_entries")
+      .select("id, horse_id, date, category, amount, description, recurrence_frequency")
+      .eq("is_recurring", true)
+      .is("recurring_template_id", null),
+  ]);
 
+  // Collecter tous les user_ids concernés pour batch fetch push_subscriptions
+  const careUserIds = (upcomingCares || [])
+    .map((c) => ((c.horses as unknown as { user_id: string } | null)?.user_id))
+    .filter((id): id is string => !!id);
+
+  const horseIds = (horses || []).map((h) => h.id);
+
+  const protocolUserIds = (activeProtocols || [])
+    .map((p) => p.user_id)
+    .filter((id): id is string => !!id);
+
+  const templateIds = (templates || []).map((t) => t.id);
+
+  // Batch fetch secondaire en parallèle
+  const [
+    { data: carePushSubs },
+    { data: allScores },
+    { data: rehabPushSubs },
+    { data: allGenerated },
+  ] = await Promise.all([
+    careUserIds.length
+      ? supabase.from("push_subscriptions").select("user_id, endpoint, p256dh, auth").in("user_id", Array.from(new Set(careUserIds)))
+      : Promise.resolve({ data: [] }),
+    // × 5 : buffer pour que le tri global DESC couvre 5 entrées par cheval en moyenne
+    // (sans DISTINCT ON supporté par Supabase, on sur-charge légèrement)
+    horseIds.length
+      ? supabase.from("horse_scores").select("horse_id, score, computed_at").in("horse_id", horseIds).order("computed_at", { ascending: false }).limit(horseIds.length * 5)
+      : Promise.resolve({ data: [] }),
+    protocolUserIds.length
+      ? supabase.from("push_subscriptions").select("user_id, endpoint, p256dh, auth").in("user_id", Array.from(new Set(protocolUserIds)))
+      : Promise.resolve({ data: [] }),
+    templateIds.length
+      ? supabase.from("budget_entries").select("date, recurring_template_id").in("recurring_template_id", templateIds)
+      : Promise.resolve({ data: [] }),
+  ]);
+
+  // Groupements JS
+  const carePushByUser = groupByUserId(carePushSubs as unknown as PushSub[]);
+  const rehabPushByUser = groupByUserId(rehabPushSubs as unknown as PushSub[]);
+
+  // Top 2 scores par horse (les scores sont déjà triés DESC par computed_at)
+  const scoresByHorse = (allScores || []).reduce<Record<string, { score: number; computed_at: string }[]>>(
+    (acc, s) => {
+      if (!acc[s.horse_id]) acc[s.horse_id] = [];
+      if (acc[s.horse_id].length < 2) acc[s.horse_id].push(s);
+      return acc;
+    },
+    {}
+  );
+
+  // Generated dates par template
+  const generatedByTemplate = ((allGenerated || []) as unknown as { date: string; recurring_template_id: string }[])
+    .reduce<Record<string, Set<string>>>((acc, e) => {
+      if (!acc[e.recurring_template_id]) acc[e.recurring_template_id] = new Set();
+      acc[e.recurring_template_id].add(e.date);
+      return acc;
+    }, {});
+
+  // ── 1. Rappels soins J-7 ──────────────────────────────────────────────────
   for (const care of upcomingCares || []) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const horse = care.horses as any;
@@ -43,17 +131,11 @@ export async function GET(request: NextRequest) {
         userName: user.name || "Cavalier",
         horseName: horse.name,
         careType: care.type,
-        dueDate: new Date(care.next_date).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }),
+        dueDate: new Date(care.next_date ?? targetStr).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }),
       });
       results.healthReminders++;
 
-      // Send push notifications
-      const { data: pushSubs } = await supabase
-        .from("push_subscriptions")
-        .select("endpoint, p256dh, auth")
-        .eq("user_id", horse.user_id);
-
-      for (const sub of pushSubs || []) {
+      for (const sub of carePushByUser[horse.user_id] || []) {
         try {
           await sendPushNotification(sub, {
             title: `Rappel soin — ${horse.name}`,
@@ -61,7 +143,6 @@ export async function GET(request: NextRequest) {
             url: `${APP_URL}/horses/${horse.id}/health`,
           });
         } catch (err: unknown) {
-          // 410 Gone = subscription expired, delete it
           const status = (err as { statusCode?: number })?.statusCode;
           if (status === 410 || status === 404) {
             await supabase.from("push_subscriptions").delete().eq("endpoint", sub.endpoint);
@@ -74,22 +155,12 @@ export async function GET(request: NextRequest) {
   }
 
   // ── 2. Alertes Horse Index en baisse ──────────────────────────────────────
-  const { data: horses } = await supabase
-    .from("horses")
-    .select("id, name, user_id, users(email, name)");
-
   for (const horse of horses || []) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const user = (horse as any).users;
     if (!user?.email) continue;
 
-    const { data: scores } = await supabase
-      .from("horse_scores")
-      .select("score, computed_at")
-      .eq("horse_id", horse.id)
-      .order("computed_at", { ascending: false })
-      .limit(2);
-
+    const scores = scoresByHorse[horse.id];
     if (!scores || scores.length < 2) continue;
 
     const [current, previous] = scores;
@@ -114,11 +185,6 @@ export async function GET(request: NextRequest) {
   }
 
   // ── 3. IR fin de protocole ────────────────────────────────────────────────
-  const { data: activeProtocols } = await supabase
-    .from("rehab_protocols")
-    .select("id, horse_id, user_id, phases, created_at, horses(id, name, users(email, name))")
-    .eq("status", "active");
-
   const todayMs = new Date().setHours(0, 0, 0, 0);
 
   for (const protocol of activeProtocols || []) {
@@ -127,24 +193,16 @@ export async function GET(request: NextRequest) {
     const user = horse?.users;
     if (!horse || !user) continue;
 
-    // Total duration from phases
     const phases = (protocol.phases as Array<{ duration_weeks: number }>) || [];
     const estimatedDays = phases.reduce((sum, p) => sum + (p.duration_weeks || 0) * 7, 0);
     if (estimatedDays === 0) continue;
 
     const startMs = new Date(protocol.created_at).setHours(0, 0, 0, 0);
     const endMs = startMs + estimatedDays * 24 * 60 * 60 * 1000;
-
-    if (todayMs < endMs) continue; // not yet finished
+    if (todayMs < endMs) continue;
 
     try {
-      // Push notification — NEVER auto-complete, owner must act manually
-      const { data: pushSubs } = await supabase
-        .from("push_subscriptions")
-        .select("endpoint, p256dh, auth")
-        .eq("user_id", protocol.user_id);
-
-      for (const sub of pushSubs || []) {
+      for (const sub of rehabPushByUser[protocol.user_id] || []) {
         try {
           await sendPushNotification(sub, {
             title: `${horse.name} a terminé sa rééducation 🎉`,
@@ -158,7 +216,6 @@ export async function GET(request: NextRequest) {
           }
         }
       }
-
       results.rehabCompleted++;
     } catch {
       results.errors++;
@@ -166,43 +223,27 @@ export async function GET(request: NextRequest) {
   }
 
   // ── 4. Dépenses récurrentes ────────────────────────────────────────────────
-  const todayStr = formatDate(today, "yyyy-MM-dd");
-
-  const { data: templates } = await supabase
-    .from("budget_entries")
-    .select("*")
-    .eq("is_recurring", true)
-    .is("recurring_template_id", null);
-
   for (const template of templates || []) {
     try {
       const freq = template.recurrence_frequency;
       if (!freq) continue;
 
-      // Toutes les occurrences déjà générées
-      const { data: generated } = await supabase
-        .from("budget_entries")
-        .select("date")
-        .eq("recurring_template_id", template.id);
-
-      const existingDates = new Set([
+      const existingDates = new Set<string>([
         template.date,
-        ...((generated || []).map((e: { date: string }) => e.date)),
+        ...Array.from(generatedByTemplate[template.id] || new Set<string>()),
       ]);
 
-      // Générer toutes les échéances manquantes jusqu'à aujourd'hui
       let cursor = new Date(template.date);
       let safety = 0;
       while (safety++ < 1000) {
-        // Avancer d'une période
-        if (freq === "weekly")  cursor = addDays(cursor, 7);
+        if (freq === "weekly")       cursor = addDays(cursor, 7);
         else if (freq === "monthly") cursor = addMonths(cursor, 1);
         else if (freq === "yearly")  cursor = addYears(cursor, 1);
         else break;
 
         const dateStr = formatDate(cursor, "yyyy-MM-dd");
-        if (dateStr > todayStr) break; // pas encore dû
-        if (existingDates.has(dateStr)) continue; // déjà généré
+        if (dateStr > todayStr) break;
+        if (existingDates.has(dateStr)) continue;
 
         const { error: insertError } = await supabase.from("budget_entries").insert({
           horse_id: template.horse_id,

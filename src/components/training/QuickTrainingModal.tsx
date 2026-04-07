@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import toast from "react-hot-toast";
 import { format, subDays, addDays } from "date-fns";
 import { fr } from "date-fns/locale";
-import type { TrainingType, TrainingRider, TrainingPlannedSession, RehabProtocol, HorseIndexMode, HorseGrowthMilestone } from "@/lib/supabase/types";
+import type { TrainingType, TrainingRider, TrainingPlannedSession, TrainingSession, RehabProtocol, HorseIndexMode, HorseGrowthMilestone } from "@/lib/supabase/types";
 import { trackEvent } from "@/lib/trackEvent";
 import Modal from "@/components/ui/Modal";
 import VoiceButton from "./VoiceButton";
@@ -345,7 +345,7 @@ export default function QuickTrainingModal({
       return;
     }
 
-    const { error } = await supabase.from("training_sessions").insert(payload);
+    const { error } = await supabase.from("training_sessions").insert(payload as Partial<TrainingSession>);
     if (error) {
       toast.error("Erreur lors de l'enregistrement");
       setLoading(false);

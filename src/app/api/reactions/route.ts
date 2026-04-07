@@ -22,13 +22,14 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (existing) {
+    const existingId = existing.id as string;
     if (existing.reaction_type === type) {
       // Same emoji → toggle off
-      const { error } = await supabase.from("feed_reactions").delete().eq("id", existing.id);
+      const { error } = await supabase.from("feed_reactions").delete().eq("id", existingId);
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     } else {
       // Different emoji → change type
-      const { error } = await supabase.from("feed_reactions").update({ reaction_type: type }).eq("id", existing.id);
+      const { error } = await supabase.from("feed_reactions").update({ reaction_type: type }).eq("id", existingId);
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     }
   } else {

@@ -46,9 +46,9 @@ export default async function PublicHorseProfilePage({ params }: Props) {
 
   // Competition stats
   const allComps = competitions || [];
-  const compsWithRank = allComps.filter((c) => c.result_rank && c.total_riders);
-  const podiums = compsWithRank.filter((c) => c.result_rank <= 3).length;
-  const bestRank = compsWithRank.length > 0 ? Math.min(...compsWithRank.map((c) => c.result_rank)) : null;
+  const compsWithRank = allComps.filter((c) => c.result_rank != null && c.total_riders != null);
+  const podiums = compsWithRank.filter((c) => (c.result_rank ?? Infinity) <= 3).length;
+  const bestRank = compsWithRank.length > 0 ? Math.min(...compsWithRank.map((c) => c.result_rank ?? Infinity)) : null;
 
   const shareUrl = `${process.env.NEXT_PUBLIC_SITE_URL || "https://equilog-i3nr-vitimsit-jpgs-projects.vercel.app"}/share/${params.horseId}`;
 
@@ -141,7 +141,7 @@ export default async function PublicHorseProfilePage({ params }: Props) {
                   { label: "Santé", key: "sante", max: 20 },
                   { label: "Récup.", key: "recuperation", max: 20 },
                 ].map((item) => {
-                  const val = currentScore.score_breakdown?.[item.key] ?? 0;
+                  const val = (currentScore.score_breakdown as unknown as Record<string, number> | null)?.[item.key] ?? 0;
                   const pct = Math.round((val / item.max) * 100);
                   return (
                     <div key={item.key} className="text-center">

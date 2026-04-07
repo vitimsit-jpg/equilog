@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { format, addDays, addWeeks, startOfWeek } from "date-fns";
-import type { RehabPhase } from "@/lib/supabase/types";
+import type { RehabPhase, TrainingPlannedSession } from "@/lib/supabase/types";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -171,7 +171,7 @@ Règles :
   const sessions = generateSessionsForPhase(horseId, phases[0], startMonday);
 
   if (sessions.length > 0) {
-    const { error: sessionsError } = await supabase.from("training_planned_sessions").insert(sessions);
+    const { error: sessionsError } = await supabase.from("training_planned_sessions").insert(sessions as Partial<TrainingPlannedSession>[]);
     if (sessionsError) return NextResponse.json({ error: sessionsError.message }, { status: 500 });
   }
 
@@ -179,8 +179,7 @@ Règles :
 }
 
 export async function PATCH(request: NextRequest) {
-  const cookieStore = cookies();
-  const supabase = createSupabase(cookieStore);
+  const supabase = createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -222,7 +221,7 @@ export async function PATCH(request: NextRequest) {
     const startMonday = getNextMonday(new Date());
     const sessions = generateSessionsForPhase(protocol.horse_id, protocol.phases[newIndex], startMonday);
     if (sessions.length > 0) {
-      const { error: sessionsError } = await supabase.from("training_planned_sessions").insert(sessions);
+      const { error: sessionsError } = await supabase.from("training_planned_sessions").insert(sessions as Partial<TrainingPlannedSession>[]);
       if (sessionsError) return NextResponse.json({ error: sessionsError.message }, { status: 500 });
     }
     insertedCount = sessions.length;

@@ -33,7 +33,7 @@ export default async function PartagesPage() {
         <h1 className="text-xl font-bold text-black">Accès partagés</h1>
         <p className="text-sm text-gray-400 mt-1">Chevaux auxquels vous avez accès via invitation.</p>
       </div>
-      <ReceivedSharesList initialShares={shares || []} />
+      <ReceivedSharesList initialShares={(shares as unknown as Parameters<typeof ReceivedSharesList>[0]["initialShares"] ) ?? []} />
     </div>
   );
 }

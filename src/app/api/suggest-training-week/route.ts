@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { format, addDays } from "date-fns";
+import type { TrainingPlannedSession } from "@/lib/supabase/types";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -125,7 +126,7 @@ Règles :
     return NextResponse.json({ error: "Aucune séance valide générée" }, { status: 500 });
   }
 
-  const { error } = await supabase.from("training_planned_sessions").insert(toInsert);
+  const { error } = await supabase.from("training_planned_sessions").insert(toInsert as Partial<TrainingPlannedSession>[]);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   return NextResponse.json({ count: toInsert.length });

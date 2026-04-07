@@ -44,7 +44,7 @@ export default function CoursAujourdhui({ todaySessions: initial, students, toda
       .select("*, coach_students(*)")
       .single();
     if (!error && data) {
-      setSessions((prev) => [...prev, data as SessionWithStudent].sort((a, b) => (a.time_slot ?? "").localeCompare(b.time_slot ?? "")));
+      setSessions((prev) => [...prev, data as unknown as SessionWithStudent].sort((a, b) => (a.time_slot ?? "").localeCompare(b.time_slot ?? "")));
       setShowAdd(false);
       setTimeSlot("");
       setNotes("");

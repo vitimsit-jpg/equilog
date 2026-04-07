@@ -1,5 +1,3 @@
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
 import { daysUntil } from "@/lib/utils";
 import type { ReactNode } from "react";
 
@@ -14,6 +12,7 @@ interface Props {
   upcomingCompetition: { event_name: string; date: string } | null;
   horsesCount: number;
   quickAddSlot?: ReactNode;
+  todayLabel: string;
 }
 
 const PROFILE_BADGE: Record<string, { label: string; classes: string }> = {
@@ -41,8 +40,9 @@ export default function DashboardHeader({
   upcomingCompetition,
   horsesCount,
   quickAddSlot,
+  todayLabel,
 }: Props) {
-  const today = format(new Date(), "EEEE d MMMM", { locale: fr });
+  const today = todayLabel;
 
   // Compute first name
   const firstName = userName.includes(" ") ? userName.split(" ")[0] : userName.split("@")[0];

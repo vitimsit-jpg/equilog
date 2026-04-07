@@ -9,6 +9,7 @@ import { differenceInDays, startOfDay, parseISO } from "date-fns";
 import PremiumNudge from "@/components/ui/PremiumNudge";
 import AvatarUpload from "@/components/horse/AvatarUpload";
 import HorseEditModal from "@/components/horse/HorseEditModal";
+import DeleteHorseButton from "@/components/horse/DeleteHorseButton";
 import UpgradeBanner from "@/components/ui/UpgradeBanner";
 import ExportPDFButton from "@/components/horse/ExportPDFButton";
 import StreakBadge from "@/components/training/StreakBadge";
@@ -18,7 +19,7 @@ import FamilleWidget from "@/components/horse/FamilleWidget";
 import FirstRideButton from "@/components/horse/FirstRideButton";
 import { computeStreak, getStreakTarget } from "@/lib/streaks";
 import { computeEarnedBadgeKeys } from "@/lib/badges";
-import type { HorseIndexMode, HorseModeHistory } from "@/lib/supabase/types";
+import type { Horse, HorseIndexMode, HorseModeHistory } from "@/lib/supabase/types";
 
 const MODE_LABELS: Record<HorseIndexMode, string> = {
   IC:  "Compétition",
@@ -55,7 +56,7 @@ export default async function HorsePage({ params }: Props) {
   const { data: { user: authUser } } = await supabase.auth.getUser();
   if (!authUser) return notFound();
 
-  let horse = null;
+  let horse: Horse | null = null;
   let isOwner = false;
 
   const { data: ownedHorse } = await supabase
@@ -76,7 +77,7 @@ export default async function HorsePage({ params }: Props) {
       .eq("shared_with_user_id", authUser.id)
       .eq("status", "active")
       .maybeSingle();
-    if (shareData) horse = shareData.horse;
+    if (shareData) horse = shareData.horse as unknown as Horse | null;
   }
 
   if (!horse) return notFound();
@@ -211,7 +212,12 @@ export default async function HorsePage({ params }: Props) {
       <div className="card">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-bold text-black text-sm">Profil du cheval</h2>
-          {isOwner && <HorseEditModal horse={horse as any} compact />}
+          {isOwner && (
+            <div className="flex items-center gap-1">
+              <HorseEditModal horse={horse as any} compact />
+              <DeleteHorseButton horseId={horse.id} horseName={horse.name} />
+            </div>
+          )}
         </div>
 
         <div className="flex items-start gap-4">

@@ -76,8 +76,11 @@ export default function WeatherWidget({ horses, ecurie }: Props) {
   const [state, setState] = useState<WeatherState | null>(null);
   const [error, setError] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
-  const hour = new Date().getHours();
+  useEffect(() => { setMounted(true); }, []);
+
+  const hour = mounted ? new Date().getHours() : 0;
   const mode: "matin" | "soir" | "nuit" =
     hour >= 6 && hour < 15 ? "matin" :
     hour >= 15 && hour < 21 ? "soir" : "nuit";

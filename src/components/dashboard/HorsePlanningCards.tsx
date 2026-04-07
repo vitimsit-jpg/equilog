@@ -8,7 +8,7 @@
  * Refresh au focus de page (router.refresh()).
  */
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -155,6 +155,11 @@ export default function HorsePlanningCards({ horses, weekSessions, weekPlannedSe
     return () => window.removeEventListener("focus", onFocus);
   }, [router]);
 
+  // Date courante calculée après mount pour éviter les mismatchs d'hydration
+  // (serveur et client peuvent avoir des fuseaux horaires différents)
+  const [today, setToday] = useState<Date | null>(null);
+  useEffect(() => { setToday(new Date()); }, []);
+
   // §1.1 — Filtrer chevaux actifs (hors IS / date_retraite)
   const activeHorses = [...horses]
     .filter((h) => h.horse_index_mode !== "IS" && !h.date_retraite)
@@ -163,9 +168,9 @@ export default function HorsePlanningCards({ horses, weekSessions, weekPlannedSe
     );
 
   if (activeHorses.length === 0) return null;
+  if (!today) return null;
 
   // Semaine courante (lundi → dimanche)
-  const today = new Date();
   const weekStart = startOfWeek(today, { weekStartsOn: 1 });
   const days = eachDayOfInterval({ start: weekStart, end: addDays(weekStart, 6) });
   const todayKey = format(today, "yyyy-MM-dd");

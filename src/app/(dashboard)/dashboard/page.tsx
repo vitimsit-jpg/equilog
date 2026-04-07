@@ -30,11 +30,11 @@ import {
   addDays,
 } from "date-fns";
 import { fr } from "date-fns/locale";
-import WeatherWidget from "@/components/weather/WeatherWidget";
+import WeatherWidget from "@/components/weather/WeatherWidgetClient";
+import HorsePlanningCards from "@/components/dashboard/HorsePlanningCardsClient";
 import OnboardingChecklist from "@/components/dashboard/OnboardingChecklist";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import PaddockToggle from "@/components/dashboard/PaddockToggle";
-import HorsePlanningCards from "@/components/dashboard/HorsePlanningCards";
 import DashboardModeToggle from "@/components/dashboard/DashboardModeToggle";
 import TodoEcurie from "@/components/dashboard/TodoEcurie";
 import AlerteCheval from "@/components/horses/AlerteCheval";
@@ -342,7 +342,7 @@ export default async function DashboardPage({
       supabase.from("coach_planned_sessions").select("*, coach_students(*)").eq("coach_id", authUser.id).eq("date", todayStr).order("time_slot"),
     ]);
     coachStudents = (studentsData as CoachStudent[]) || [];
-    coachTodaySessions = (sessionsData as SessionWithStudent[]) || [];
+    coachTodaySessions = (sessionsData as unknown as SessionWithStudent[]) || [];
   }
 
   // Agenda semaine (P3/P4) — 7 days ahead
@@ -607,8 +607,11 @@ export default async function DashboardPage({
 
   const horseCount = (horses || []).length;
 
+  const todayLabel = format(new Date(), "EEEE d MMMM", { locale: fr });
+
   const headerBlock = (
     <DashboardHeader
+      todayLabel={todayLabel}
       userName={userProfile?.name || authUser.email || ""}
       profileType={profileType}
       moduleCoach={moduleCoach}

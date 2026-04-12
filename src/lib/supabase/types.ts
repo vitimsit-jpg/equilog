@@ -354,6 +354,22 @@ export type TrainingPlannedSession = {
   created_at: string;
 }
 
+export type TrainingWeekTemplate = {
+  id: string;
+  user_id: string;
+  name: string;
+  horse_id: string | null;
+  sessions: {
+    day_offset: number;
+    type: string;
+    duration_min: number;
+    intensity: number;
+    qui_sen_occupe: string | null;
+    notes: string | null;
+  }[];
+  created_at: string;
+}
+
 export type WearableData = {
   id: string;
   horse_id: string;
@@ -825,6 +841,7 @@ export type Database = {
       coach_students: T<CoachStudent>;
       coach_planned_sessions: T<CoachPlannedSession>;
       training_planned_sessions: T<TrainingPlannedSession>;
+      training_week_templates: T<TrainingWeekTemplate>;
       rehab_protocols: T<RehabProtocol>;
       horse_user_roles: T<HorseUserRoleEntry>;
       horse_growth_milestones: T<HorseGrowthMilestone>;

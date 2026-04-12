@@ -6,7 +6,7 @@ import type { TrainingSession, TrainingPlannedSession, AIInsight, HorseIndexMode
 import RehabProtocolCard from "./RehabProtocolCard";
 import TrainingDashboard from "./TrainingDashboard";
 import TrainingPlanCard from "./TrainingPlanCard";
-import VueSemaine from "./VueSemaine";
+import PlanningView from "@/components/planning-v2/PlanningView";
 import HistoriqueSeances from "./HistoriqueSeances";
 import QuickTrainingModal from "./QuickTrainingModal";
 import EducationTab from "./EducationTab";
@@ -789,11 +789,12 @@ export default function TrainingTabs({ horseId, horseName, horseBirthYear, sessi
       )}
 
       {activeTab === "semaine" && showPlanTab && (
-        <VueSemaine
-          horseId={horseId}
+        <PlanningView
           sessions={sessions}
           plannedSessions={plannedSessions}
-          healthRecords={healthRecords}
+          horses={[{ id: horseId, name: horseName || "", avatar_url: null, horse_index_mode: horseMode ?? null }]}
+          singleHorse
+          horseId={horseId}
           horseMode={horseMode}
         />
       )}

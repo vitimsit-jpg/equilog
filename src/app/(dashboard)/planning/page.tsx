@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { addWeeks, subWeeks, format } from "date-fns";
-import TableauHebdomadaire from "@/components/planning/TableauHebdomadaire";
+import PlanningView from "@/components/planning-v2/PlanningView";
 
 export default async function PlanningPage() {
   const supabase = createClient();
@@ -52,15 +52,13 @@ export default async function PlanningPage() {
     .order("date", { ascending: true });
 
   return (
-    <TableauHebdomadaire
-      horses={horses}
-      sessions={sessions || []}
-      plannedSessions={plannedSessions || []}
-      userId={authUser.id}
-      userName={userProfile?.name || "Moi"}
-      moduleGerant={userProfile?.module_gerant ?? false}
-      moduleCoach={userProfile?.module_coach ?? false}
-      profileType={userProfile?.profile_type ?? null}
-    />
+    <div className="max-w-2xl mx-auto px-4 py-6">
+      <h1 className="text-xl font-black text-black mb-4">Planning</h1>
+      <PlanningView
+        horses={horses}
+        sessions={sessions || []}
+        plannedSessions={plannedSessions || []}
+      />
+    </div>
   );
 }

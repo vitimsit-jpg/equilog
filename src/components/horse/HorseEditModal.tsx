@@ -51,6 +51,46 @@ const assureurOptions = [
   { value: "Autre",                         label: "Autre" },
 ];
 
+const breedOptions = [
+  { value: "Selle Français",         label: "Selle Français" },
+  { value: "Anglo-Arabe",            label: "Anglo-Arabe" },
+  { value: "Pur-Sang Anglais",       label: "Pur-Sang Anglais" },
+  { value: "Pur-Sang Arabe",         label: "Pur-Sang Arabe" },
+  { value: "Trotteur Français",      label: "Trotteur Français" },
+  { value: "KWPN",                   label: "KWPN" },
+  { value: "BWP",                    label: "BWP" },
+  { value: "Holsteiner",             label: "Holsteiner" },
+  { value: "Hanovrien",              label: "Hanovrien" },
+  { value: "Oldenbourg",             label: "Oldenbourg" },
+  { value: "Westphalien",            label: "Westphalien" },
+  { value: "Lusitanien",             label: "Lusitanien" },
+  { value: "PRE",                    label: "PRE (Pure Race Espagnole)" },
+  { value: "Frison",                 label: "Frison" },
+  { value: "Connemara",              label: "Connemara" },
+  { value: "Welsh",                  label: "Welsh" },
+  { value: "New Forest",             label: "New Forest" },
+  { value: "Fjord",                  label: "Fjord" },
+  { value: "Haflinger",              label: "Haflinger" },
+  { value: "Appaloosa",              label: "Appaloosa" },
+  { value: "Quarter Horse",          label: "Quarter Horse" },
+  { value: "Paint Horse",            label: "Paint Horse" },
+  { value: "Mustang",                label: "Mustang" },
+  { value: "Mérens",                 label: "Mérens" },
+  { value: "Camargue",               label: "Camargue" },
+  { value: "Percheron",              label: "Percheron" },
+  { value: "Boulonnais",             label: "Boulonnais" },
+  { value: "Comtois",                label: "Comtois" },
+  { value: "Breton",                 label: "Breton" },
+  { value: "Ardennais",              label: "Ardennais" },
+  { value: "Irish Cob",              label: "Irish Cob" },
+  { value: "Poney Français de Selle", label: "Poney Français de Selle" },
+  { value: "Shetland",               label: "Shetland" },
+  { value: "Islandais",              label: "Islandais" },
+  { value: "OC",                     label: "OC (Origine Constatée)" },
+  { value: "ONC",                    label: "ONC (Origine Non Constatée)" },
+  { value: "Autre",                  label: "Autre" },
+];
+
 const regionOptions = [
   { value: "Auvergne-Rhône-Alpes",        label: "Auvergne-Rhône-Alpes" },
   { value: "Bourgogne-Franche-Comté",     label: "Bourgogne-Franche-Comté" },
@@ -205,12 +245,30 @@ export default function HorseEditModal({ horse, compact = false }: Props) {
           />
 
           <div className="grid grid-cols-2 gap-4">
-            <Input
-              label="Race"
-              value={form.breed}
-              onChange={(e) => setForm({ ...form, breed: e.target.value })}
-              placeholder="Selle Français"
-            />
+            {form.breed === "Autre" || (form.breed && !breedOptions.some((o) => o.value === form.breed) && form.breed !== "") ? (
+              <div className="space-y-1">
+                <Input
+                  label="Race (libre)"
+                  value={form.breed === "Autre" ? "" : form.breed}
+                  onChange={(e) => setForm({ ...form, breed: e.target.value })}
+                  placeholder="Tapez la race"
+                />
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, breed: "" })}
+                  className="text-2xs text-orange hover:underline"
+                >
+                  ← Revenir à la liste
+                </button>
+              </div>
+            ) : (
+              <Select
+                label="Race"
+                value={form.breed}
+                onChange={(e) => setForm({ ...form, breed: e.target.value })}
+                options={[{ value: "", label: "Sélectionner" }, ...breedOptions]}
+              />
+            )}
             <Select
               label="Année de naissance"
               value={form.birth_year}

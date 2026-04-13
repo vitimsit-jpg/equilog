@@ -19,7 +19,7 @@ import {
   isToday,
 } from "date-fns";
 import { ChevronRight } from "lucide-react";
-import { TRAINING_TYPE_LABELS } from "@/lib/utils";
+import { TRAINING_TYPE_LABELS, TRAINING_EMOJIS } from "@/lib/utils";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -36,6 +36,7 @@ interface WeekSession {
   horse_id: string;
   date: string;
   type: string;
+  duration_min: number;
   rider: string | null;
   est_complement: boolean | null;
 }
@@ -232,27 +233,48 @@ export default function HorsePlanningCards({ horses, weekSessions, weekPlannedSe
               </span>
             </div>
 
-            {/* §2.4 Mini grille semaine — purement informative */}
-            <div className="flex items-end gap-0.5">
+            {/* Mini grille semaine — barres emoji + durée */}
+            <div className="grid grid-cols-7 gap-1">
               {days.map((day, i) => {
                 const dateKey = format(day, "yyyy-MM-dd");
                 const isCurrentDay = isToday(day);
                 const daySessions = sessionsByHorseDay[horse.id]?.[dateKey] || [];
                 const dayPlanned = plannedByHorseDay[horse.id]?.[dateKey] || [];
-                const dayStatus = getDayStatus(daySessions, dayPlanned);
+
+                // Séance principale (pas complément)
+                const mainSession = daySessions.find((s) => !s.est_complement && s.type !== "marcheur" && s.type !== "paddock");
+                const mainPlanned = dayPlanned.find((p) => p.status === "planned");
+                const complement = daySessions.find((s) => s.est_complement || s.type === "marcheur" || s.type === "paddock");
 
                 return (
-                  <div key={dateKey} className="flex-1 flex flex-col items-center gap-0.5">
-                    <div className="flex items-center justify-center h-2.5">
-                      <StatusDot status={dayStatus} sm />
-                    </div>
-                    <span
-                      className={`text-[9px] leading-none ${
-                        isCurrentDay ? "font-black text-gray-600" : "font-medium text-gray-400"
-                      }`}
-                    >
+                  <div
+                    key={dateKey}
+                    className={`flex flex-col items-center gap-0.5 py-1 rounded-lg ${
+                      isCurrentDay ? "bg-orange-light/40 ring-1 ring-orange/20" : ""
+                    }`}
+                  >
+                    <span className={`text-[9px] leading-none ${isCurrentDay ? "font-black text-orange" : "font-medium text-gray-400"}`}>
                       {DAY_LABELS[i]}
                     </span>
+                    <div className="w-full px-0.5 h-5 flex items-center justify-center">
+                      {mainSession ? (
+                        <div className="w-full h-[18px] rounded bg-green-50 border border-green-200 flex items-center justify-center gap-0.5 overflow-hidden">
+                          <span className="text-[10px] leading-none">{TRAINING_EMOJIS[mainSession.type] ?? "✳️"}</span>
+                          <span className="text-[9px] font-bold text-green-700 leading-none">{mainSession.duration_min}′</span>
+                        </div>
+                      ) : mainPlanned ? (
+                        <div className="w-full h-[18px] rounded border border-dashed border-gray-300 flex items-center justify-center gap-0.5 overflow-hidden">
+                          <span className="text-[10px] leading-none">{TRAINING_EMOJIS[mainPlanned.type] ?? "✳️"}</span>
+                          <span className="text-[9px] text-gray-400 leading-none">prévu</span>
+                        </div>
+                      ) : complement ? (
+                        <div className="w-full h-3 rounded bg-gray-50 flex items-center justify-center">
+                          <span className="text-[9px] leading-none">{TRAINING_EMOJIS[complement.type] ?? "⚙️"}</span>
+                        </div>
+                      ) : (
+                        <div className="w-1.5 h-1.5 rounded-full bg-gray-200" />
+                      )}
+                    </div>
                   </div>
                 );
               })}

@@ -1,9 +1,8 @@
-import { useMemo } from "react";
 import type { TrainingSession, TrainingPlannedSession } from "@/lib/supabase/types";
 import type { DayState } from "./types";
 import { isComplement } from "./constants";
 
-// ── Index sessions par date ──────────────────────────────────────────────────
+// ── Index sessions par date (fonction pure, pas de hooks) ────────────────────
 
 function groupByDate<T extends { date: string }>(items: T[]): Record<string, T[]> {
   const map: Record<string, T[]> = {};
@@ -15,18 +14,13 @@ function groupByDate<T extends { date: string }>(items: T[]): Record<string, T[]
   return map;
 }
 
-// ── Hook ─────────────────────────────────────────────────────────────────────
-
-export function usePlanningData(
+export function buildPlanningData(
   sessions: TrainingSession[],
   plannedSessions: TrainingPlannedSession[],
 ) {
-  const sessionsByDate = useMemo(() => groupByDate(sessions), [sessions]);
-
-  const plannedByDate = useMemo(() => {
-    const active = plannedSessions.filter((p) => p.status === "planned" && !p.linked_session_id);
-    return groupByDate(active);
-  }, [plannedSessions]);
+  const sessionsByDate = groupByDate(sessions);
+  const active = plannedSessions.filter((p) => p.status === "planned" && !p.linked_session_id);
+  const plannedByDate = groupByDate(active);
 
   function getDayState(dateKey: string): DayState {
     const done = sessionsByDate[dateKey] ?? [];
@@ -72,3 +66,4 @@ export function usePlanningData(
     getPlannedForDay,
   };
 }
+

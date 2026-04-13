@@ -31,8 +31,8 @@ import {
 } from "date-fns";
 import { fr } from "date-fns/locale";
 import WeatherWidget from "@/components/weather/WeatherWidgetClient";
-import DashboardPlanningCards from "@/components/planning-v2/DashboardPlanningCards";
-import TodayBlock from "@/components/planning-v2/TodayBlock";
+import HorsePlanningCards from "@/components/dashboard/HorsePlanningCardsClient";
+import TodayBlock from "@/components/planning-v2/TodayBlockClient";
 import OnboardingChecklist from "@/components/dashboard/OnboardingChecklist";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import PaddockToggle from "@/components/dashboard/PaddockToggle";
@@ -196,7 +196,7 @@ export default async function DashboardPage({
     horseIds.length
       ? supabase
           .from("training_sessions")
-          .select("id, horse_id, date, type, intensity, coach_present, rider, est_complement")
+          .select("id, horse_id, date, type, intensity, duration_min, coach_present, rider, est_complement")
           .in("horse_id", horseIds)
           .gte("date", weekStartStr)
           .lte("date", weekEndStr)
@@ -1086,34 +1086,33 @@ export default async function DashboardPage({
       </div>
     ) : null;
 
-  const todayDateStr = new Date().toISOString().split("T")[0];
-  const plannedToday = (weekPlannedSessions || []).filter(
-    (p) => p.date.slice(0, 10) === todayDateStr && p.status === "planned" && !p.linked_session_id
-  );
-
-  const todayBlock =
-    horseCount > 0 ? (
-      <TodayBlock
-        horses={(horses || []).map((h) => ({
-          id: h.id,
-          name: h.name,
-          avatar_url: (h as any).avatar_url ?? null,
-        }))}
-        plannedToday={plannedToday as any}
-      />
-    ) : null;
-
   const programmeBlock =
     horseCount > 0 ? (
-      <DashboardPlanningCards
+      <HorsePlanningCards
         horses={(horses || []).map((h) => ({
           id: h.id,
           name: h.name,
           avatar_url: (h as any).avatar_url ?? null,
           horse_index_mode: (h as any).horse_index_mode ?? null,
+          date_retraite: (h as any).date_retraite ?? null,
         }))}
-        sessions={(weekSessions || []) as any}
-        plannedSessions={(weekPlannedSessions || []) as any}
+        weekSessions={(weekSessions || []) as {
+          id: string;
+          horse_id: string;
+          date: string;
+          type: string;
+          duration_min: number;
+          rider: string | null;
+          est_complement: boolean | null;
+        }[]}
+        weekPlannedSessions={(weekPlannedSessions || []) as {
+          id: string;
+          horse_id: string;
+          date: string;
+          type: string;
+          qui_sen_occupe: string | null;
+          status: string;
+        }[]}
       />
     ) : null;
 
@@ -1489,8 +1488,17 @@ export default async function DashboardPage({
       />
 
       {/* ── Aujourd'hui ─────────────────────────────────────────────────── */}
-      {(horses || []).length > 0 && (!isP6 || dashMode === "cavalier") && todayBlock && (
-        <div>{todayBlock}</div>
+      {(horses || []).length > 0 && (!isP6 || dashMode === "cavalier") && (
+        <TodayBlock
+          horses={(horses || []).map((h) => ({
+            id: h.id,
+            name: h.name,
+            avatar_url: (h as any).avatar_url ?? null,
+          }))}
+          plannedToday={((weekPlannedSessions || []) as any[]).filter(
+            (p: any) => p.date?.slice(0, 10) === todayStr && p.status === "planned" && !p.linked_session_id
+          )}
+        />
       )}
 
       {/* ── Mon programme de la semaine ─────────────────────────────────── */}

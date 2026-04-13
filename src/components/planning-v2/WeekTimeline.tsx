@@ -17,7 +17,7 @@ import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import type { TrainingSession, TrainingPlannedSession, TrainingType, HorseIndexMode } from "@/lib/supabase/types";
 import type { PlanningHorse, AISuggestion } from "./types";
-import { usePlanningData } from "./usePlanningData";
+import { buildPlanningData } from "./usePlanningData";
 import DaySection from "./DaySection";
 import QuickTrainingModal from "@/components/training/QuickTrainingModal";
 import type { PrefillData } from "@/components/training/QuickTrainingModal";
@@ -43,8 +43,8 @@ export default function WeekTimeline({
   const router = useRouter();
   const [, startTransition] = useTransition();
 
-  // ── Date (client-only pour éviter hydration mismatch) ────────────────────
-  const [now, setNow] = useState<Date | null>(null);
+  // ── Date ────────────────────────────────────────────────────────────────
+  const [now, setNow] = useState(() => new Date());
   const [weekOffset, setWeekOffset] = useState(0);
   useEffect(() => { setNow(new Date()); }, []);
 
@@ -63,7 +63,7 @@ export default function WeekTimeline({
   // ── Swipe ──────────────────────────────────────────────────────────────
   const touchRef = useRef<number | null>(null);
 
-  if (!now) return null;
+  const { getDayState, getSessionsForDay, getPlannedForDay } = buildPlanningData(sessions, plannedSessions);
 
   const weekStart = startOfWeek(addWeeks(now, weekOffset), { weekStartsOn: 1 });
   const days = eachDayOfInterval({ start: weekStart, end: addDays(weekStart, 6) });
@@ -72,8 +72,6 @@ export default function WeekTimeline({
   const weekLabel = isCurrentWeek
     ? "Cette semaine"
     : `${format(weekStart, "d MMM", { locale: fr })} — ${format(addDays(weekStart, 6), "d MMM", { locale: fr })}`;
-
-  const { getDayState, getSessionsForDay, getPlannedForDay } = usePlanningData(sessions, plannedSessions);
 
   // ── Résumé semaine ─────────────────────────────────────────────────────
   const weekSessions = days.flatMap((d) => getSessionsForDay(format(d, "yyyy-MM-dd")));

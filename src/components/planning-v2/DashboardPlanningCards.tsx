@@ -31,10 +31,10 @@ interface Props {
 const DAY_LABELS = ["L", "M", "M", "J", "V", "S", "D"];
 
 export default function DashboardPlanningCards({ horses, sessions, plannedSessions }: Props) {
-  const [now, setNow] = useState<Date | null>(null);
+  const [now, setNow] = useState(() => new Date());
   useEffect(() => { setNow(new Date()); }, []);
 
-  if (!now || horses.length === 0) return null;
+  if (horses.length === 0) return null;
 
   const weekStart = startOfWeek(now, { weekStartsOn: 1 });
   const days = eachDayOfInterval({ start: weekStart, end: addDays(weekStart, 6) });

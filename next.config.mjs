@@ -1,10 +1,8 @@
-import { withSentryConfig } from "@sentry/nextjs";
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: true },
-  experimental: { instrumentationHook: true },
+  experimental: { instrumentationHook: process.env.NODE_ENV === "production" },
   async redirects() {
     return [
       { source: "/", destination: "/dashboard", permanent: false },
@@ -21,16 +19,19 @@ const nextConfig = {
   },
 };
 
-export default withSentryConfig(nextConfig, {
-  org: process.env.SENTRY_ORG,
-  project: process.env.SENTRY_PROJECT,
-  authToken: process.env.SENTRY_AUTH_TOKEN,
+let exportedConfig = nextConfig;
 
-  // Upload des source maps en prod uniquement (pour les stack traces lisibles)
-  silent: true,
-  hideSourceMaps: true,
-  disableLogger: true,
+if (process.env.NODE_ENV === "production") {
+  const { withSentryConfig } = await import("@sentry/nextjs");
+  exportedConfig = withSentryConfig(nextConfig, {
+    org: process.env.SENTRY_ORG,
+    project: process.env.SENTRY_PROJECT,
+    authToken: process.env.SENTRY_AUTH_TOKEN,
+    silent: true,
+    hideSourceMaps: true,
+    disableLogger: true,
+    tunnelRoute: undefined,
+  });
+}
 
-  // Pas de tunnel par défaut (évite la complexité)
-  tunnelRoute: undefined,
-});
+export default exportedConfig;

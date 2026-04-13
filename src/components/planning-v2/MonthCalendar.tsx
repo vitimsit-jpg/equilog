@@ -15,7 +15,7 @@ import {
 import { fr } from "date-fns/locale";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { TrainingSession, TrainingPlannedSession } from "@/lib/supabase/types";
-import { usePlanningData } from "./usePlanningData";
+import { buildPlanningData } from "./usePlanningData";
 import { getLoadColor } from "./constants";
 
 interface Props {
@@ -27,13 +27,11 @@ interface Props {
 const DAY_HEADERS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 
 export default function MonthCalendar({ sessions, plannedSessions, onDayClick }: Props) {
-  const [now, setNow] = useState<Date | null>(null);
+  const [now, setNow] = useState(() => new Date());
   const [monthOffset, setMonthOffset] = useState(0);
   useEffect(() => { setNow(new Date()); }, []);
 
-  const { getDayState, getDayLoad } = usePlanningData(sessions, plannedSessions);
-
-  if (!now) return null;
+  const { getDayState, getDayLoad } = buildPlanningData(sessions, plannedSessions);
 
   const monthStart = startOfMonth(addMonths(now, monthOffset));
   const monthEnd = endOfMonth(monthStart);

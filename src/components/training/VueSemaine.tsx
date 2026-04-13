@@ -728,50 +728,54 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
         {selectedDayActivePlanned.map((p) => (
           <div
             key={p.id}
-            className="flex items-center gap-2 mb-2 px-3 py-2.5 rounded-xl border border-dashed border-gray-200 bg-gray-50"
+            className="flex items-stretch gap-0 mb-2 rounded-xl border-2 border-dashed border-orange/30 bg-orange-light/10 overflow-hidden"
           >
-            <span className="text-base leading-none flex-shrink-0">{TRAINING_EMOJIS[p.type] || "🏇"}</span>
-            <div className="flex-1 min-w-0">
-              <span className="text-xs font-semibold text-gray-700">
-                {TRAINING_TYPE_LABELS[p.type] || p.type}
-              </span>
-              {p.duration_min_target && (
-                <span className="text-xs text-gray-400 ml-1.5">{p.duration_min_target}min</span>
-              )}
-              {p.intensity_target && (
-                <span className="text-2xs text-gray-400 ml-1.5">· intensité {p.intensity_target}/5</span>
-              )}
-              {p.notes && <p className="text-2xs text-gray-400 truncate mt-0.5">{p.notes}</p>}
-            </div>
-            <div className="flex gap-1 flex-shrink-0">
-              <button
-                onClick={() => handleConfirmSession(p, selectedDateKey)}
-                title="Confirmer réalisée"
-                className="p-1.5 hover:bg-green-50 rounded-lg text-gray-300 hover:text-success transition-colors"
-              >
-                <Check className="h-3.5 w-3.5" />
-              </button>
-              <button
-                onClick={() => openLogModal(selectedDateKey, p)}
-                title="Enregistrer avec détails"
-                className="p-1.5 hover:bg-orange-light rounded-lg text-gray-300 hover:text-orange transition-colors"
-              >
-                <Pencil className="h-3 w-3" />
-              </button>
-              <button
-                onClick={() => openPlanModal(selectedDateKey, p)}
-                title="Modifier la planification"
-                className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-300 hover:text-gray-600 transition-colors"
-              >
-                <Pencil className="h-2.5 w-2.5" />
-              </button>
-              <button
-                onClick={() => skipPlanned(p.id)}
-                title="Passer"
-                className="p-1.5 hover:bg-red-50 rounded-lg text-gray-300 hover:text-danger transition-colors"
-              >
-                <X className="h-3 w-3" />
-              </button>
+            {/* Barre gauche orange */}
+            <div className="w-1.5 bg-orange/40 flex-shrink-0 rounded-l-xl" />
+            <div className="flex items-center gap-2 flex-1 px-3 py-2.5">
+              <span className="text-lg leading-none flex-shrink-0">{TRAINING_EMOJIS[p.type] || "🏇"}</span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-sm font-bold text-gray-800">
+                    {TRAINING_TYPE_LABELS[p.type] || p.type}
+                  </span>
+                  {p.duration_min_target && (
+                    <span className="text-xs text-gray-500">{p.duration_min_target}min</span>
+                  )}
+                  <span className="text-2xs font-semibold text-orange bg-orange-light px-1.5 py-0.5 rounded-full">Planifié</span>
+                </div>
+                {p.intensity_target && (
+                  <div className="flex gap-0.5 mt-1">
+                    {Array.from({ length: 5 }).map((_, idx) => (
+                      <div key={idx} className={`w-1.5 h-2 rounded-full ${idx < p.intensity_target! ? "bg-orange/60" : "bg-gray-200"}`} />
+                    ))}
+                  </div>
+                )}
+                {p.notes && <p className="text-2xs text-gray-400 truncate mt-0.5">{p.notes}</p>}
+              </div>
+              <div className="flex gap-1 flex-shrink-0">
+                <button
+                  onClick={() => handleConfirmSession(p, selectedDateKey)}
+                  title="Fait ✓"
+                  className="p-2 rounded-lg bg-green-100 text-green-700 hover:bg-green-200 transition-colors"
+                >
+                  <Check className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => openLogModal(selectedDateKey, p)}
+                  title="Compléter"
+                  className="p-2 rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  onClick={() => skipPlanned(p.id)}
+                  title="Reporter"
+                  className="p-2 rounded-lg bg-gray-100 text-gray-400 hover:bg-red-50 hover:text-danger transition-colors"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
             </div>
           </div>
         ))}
@@ -792,24 +796,35 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
 
         {/* Done sessions — main */}
         {selectedDayMainSessions.map((s) => (
-          <div key={s.id} className="flex items-center gap-2 mb-2 px-3 py-2.5 rounded-xl bg-white border border-green-100">
-            <span className="text-base leading-none flex-shrink-0">{TRAINING_EMOJIS[s.type] || "🏇"}</span>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-xs font-semibold text-gray-700">{TRAINING_TYPE_LABELS[s.type] || s.type}</span>
-                <span className="text-2xs text-gray-400">{s.duration_min}min</span>
-                {s.coach_present && (
-                  <span className="text-2xs bg-blue-50 text-blue-600 font-semibold px-1.5 py-0.5 rounded-full">Coach</span>
-                )}
-                <span className="text-2xs bg-green-50 text-green-600 font-semibold px-1.5 py-0.5 rounded-full">✓ Réalisée</span>
+          <div key={s.id} className="flex items-stretch gap-0 mb-2 rounded-xl border border-green-200 bg-green-50/30 overflow-hidden">
+            {/* Barre gauche verte */}
+            <div className="w-1.5 bg-green-400 flex-shrink-0 rounded-l-xl" />
+            <div className="flex items-center gap-2.5 flex-1 px-3 py-2.5">
+              <span className="text-lg leading-none flex-shrink-0">{TRAINING_EMOJIS[s.type] || "🏇"}</span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-sm font-bold text-gray-800">{TRAINING_TYPE_LABELS[s.type] || s.type}</span>
+                  <span className="text-xs text-gray-500">{s.duration_min}min</span>
+                  {s.coach_present && (
+                    <span className="text-2xs bg-blue-50 text-blue-600 font-semibold px-1.5 py-0.5 rounded-full">Coach</span>
+                  )}
+                </div>
+                {s.objectif && <p className="text-2xs text-gray-500 truncate mt-0.5">{s.objectif}</p>}
+                {s.notes && !s.objectif && <p className="text-2xs text-gray-400 truncate mt-0.5">{s.notes}</p>}
               </div>
-              {s.objectif && <p className="text-2xs text-gray-500 truncate mt-0.5">{s.objectif}</p>}
-              {s.notes && !s.objectif && <p className="text-2xs text-gray-400 truncate mt-0.5">{s.notes}</p>}
-            </div>
-            <div className="flex gap-0.5 flex-shrink-0">
-              {Array.from({ length: 5 }).map((_, idx) => (
-                <div key={idx} className={`w-1.5 h-3 rounded-full ${idx < s.intensity ? "bg-orange" : "bg-gray-100"}`} />
-              ))}
+              {/* Intensité + feeling */}
+              <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                <div className="flex gap-0.5">
+                  {Array.from({ length: 5 }).map((_, idx) => (
+                    <div key={idx} className={`w-1.5 h-3 rounded-full ${idx < s.intensity ? "bg-orange" : "bg-gray-200"}`} />
+                  ))}
+                </div>
+                {s.feeling && (
+                  <span className="text-sm leading-none">
+                    {["", "🤕", "😕", "😐", "🙂", "😄"][s.feeling] ?? ""}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         ))}

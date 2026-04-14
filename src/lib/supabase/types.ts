@@ -251,6 +251,23 @@ export type TrainingSession = {
   // TRAV-20 ICr foal session fields (migration 051)
   session_type: "manipulation" | "toilettage" | "longe_douce" | "debourrage" | "premiere_monte" | "autre" | null;
   foal_reaction: "calme" | "attentif" | "nerveux" | "agite" | "difficile" | null;
+  // 061 — Balade GPS
+  has_gps_track: boolean;
+  created_at: string;
+}
+
+export type BaladeTrack = {
+  id: string;
+  training_session_id: string;
+  horse_id: string;
+  user_id: string;
+  coordinates: { lat: number; lng: number; alt?: number; ts: number }[];
+  distance_km: number | null;
+  elevation_gain_m: number | null;
+  avg_speed_kmh: number | null;
+  max_speed_kmh: number | null;
+  started_at: string;
+  finished_at: string;
   created_at: string;
 }
 
@@ -842,6 +859,7 @@ export type Database = {
       coach_planned_sessions: T<CoachPlannedSession>;
       training_planned_sessions: T<TrainingPlannedSession>;
       training_week_templates: T<TrainingWeekTemplate>;
+      balade_tracks: T<BaladeTrack>;
       rehab_protocols: T<RehabProtocol>;
       horse_user_roles: T<HorseUserRoleEntry>;
       horse_growth_milestones: T<HorseGrowthMilestone>;

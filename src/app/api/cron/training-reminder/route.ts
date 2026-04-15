@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendPushNotification } from "@/lib/webpush";
+import { createNotification } from "@/lib/notifications";
 import { TRAINING_TYPE_LABELS } from "@/lib/utils";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://equilog-i3nr-vitimsit-jpgs-projects.vercel.app";
@@ -89,6 +90,14 @@ export async function GET(request: NextRequest) {
         body: `${typeLabel}${extra}${duration}`,
         url: `${APP_URL}/horses/${horse.id}/training`,
       };
+
+      // Stocker en DB pour le panel notifications
+      await createNotification(supabase, userId, {
+        type: "training_reminder",
+        title: payload.title,
+        body: payload.body,
+        url: `/horses/${horse.id}/training`,
+      });
 
       for (const sub of pushSubs) {
         try {

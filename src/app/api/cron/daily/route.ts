@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendHealthReminder, sendScoreAlert } from "@/lib/email";
 import { sendPushNotification } from "@/lib/webpush";
+import { createNotification } from "@/lib/notifications";
 import { HEALTH_TYPE_LABELS } from "@/lib/utils";
 import { addDays, addMonths, addYears, format as formatDate } from "date-fns";
 
@@ -135,6 +136,14 @@ export async function GET(request: NextRequest) {
       });
       results.healthReminders++;
 
+      // Stocker en DB pour le panel notifications
+      await createNotification(supabase, horse.user_id, {
+        type: "health_reminder",
+        title: `Rappel soin — ${horse.name}`,
+        body: `${HEALTH_TYPE_LABELS[care.type] || care.type} prévu dans 7 jours`,
+        url: `/horses/${horse.id}/health`,
+      });
+
       for (const sub of carePushByUser[horse.user_id] || []) {
         try {
           await sendPushNotification(sub, {
@@ -178,6 +187,14 @@ export async function GET(request: NextRequest) {
           drop,
         });
         results.scoreAlerts++;
+
+        // Stocker en DB pour le panel notifications
+        await createNotification(supabase, horse.user_id, {
+          type: "score_alert",
+          title: `${horse.name} : score en baisse`,
+          body: `Horse Index : ${previous.score} → ${current.score} (-${drop} pts)`,
+          url: `/horses/${horse.id}`,
+        });
       } catch {
         results.errors++;
       }
@@ -202,6 +219,14 @@ export async function GET(request: NextRequest) {
     if (todayMs < endMs) continue;
 
     try {
+      // Stocker en DB pour le panel notifications
+      await createNotification(supabase, protocol.user_id, {
+        type: "rehab_complete",
+        title: `${horse.name} a terminé sa rééducation 🎉`,
+        body: "Passer en mode Loisir ou Semi-actif ?",
+        url: `/horses/${horse.id}/training`,
+      });
+
       for (const sub of rehabPushByUser[protocol.user_id] || []) {
         try {
           await sendPushNotification(sub, {

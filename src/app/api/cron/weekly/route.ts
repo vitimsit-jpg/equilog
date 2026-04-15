@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendWeeklySummary } from "@/lib/email";
 import { sendPushNotification } from "@/lib/webpush";
+import { createNotification } from "@/lib/notifications";
 
 type PushSub = { user_id: string; endpoint: string; p256dh: string; auth: string };
 
@@ -134,6 +135,16 @@ export async function GET(request: NextRequest) {
       results.summaries++;
 
       const totalMin = horseSummaries.reduce((s, h) => s + h.totalMinutes, 0);
+      const summaryBody = `${totalSessions} séance${totalSessions > 1 ? "s" : ""} · ${Math.floor(totalMin / 60)}h${totalMin % 60 > 0 ? `${totalMin % 60}min` : ""} cette semaine`;
+
+      // Stocker en DB pour le panel notifications
+      await createNotification(supabase, user.id, {
+        type: "weekly_summary",
+        title: "Résumé de la semaine",
+        body: summaryBody,
+        url: "/dashboard",
+      });
+
       for (const sub of pushSubsByUser[user.id] || []) {
         try {
           await sendPushNotification(sub, {

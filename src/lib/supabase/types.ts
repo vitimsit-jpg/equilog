@@ -271,6 +271,27 @@ export type BaladeTrack = {
   created_at: string;
 }
 
+export type NotificationType =
+  | "health_reminder"
+  | "training_reminder"
+  | "rehab_complete"
+  | "weekly_summary"
+  | "score_alert"
+  | "coach_modification"
+  | "horse_share"
+  | "other";
+
+export type Notification = {
+  id: string;
+  user_id: string;
+  type: NotificationType;
+  title: string;
+  body: string | null;
+  url: string | null;
+  read: boolean;
+  created_at: string;
+}
+
 export type Competition = {
   id: string;
   horse_id: string;
@@ -893,7 +914,7 @@ export type Database = {
       nutrition_plans: T<Record<string, unknown>>;
       horse_videos: T<Record<string, unknown>>;
       feature_interests: T<Record<string, unknown>>;
-      notifications: T<Record<string, unknown>>;
+      notifications: T<Notification>;
     };
     Views: Record<never, never>;
     Functions: Record<never, never>;

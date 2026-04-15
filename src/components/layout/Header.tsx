@@ -2,7 +2,8 @@
 
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { LogOut, User, Bell } from "lucide-react";
+import { LogOut, User } from "lucide-react";
+import NotificationsBell from "@/components/notifications/NotificationsBell";
 import { useState } from "react";
 import Link from "next/link";
 import type { User as UserType } from "@/lib/supabase/types";
@@ -33,10 +34,7 @@ export default function Header({ user }: HeaderProps) {
       </Link>
       <div className="hidden md:block" />
       <div className="flex items-center gap-1.5">
-        <button className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-black transition-colors relative">
-          <Bell className="h-4 w-4" />
-          <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-orange" />
-        </button>
+        <NotificationsBell />
 
         <div className="relative">
           <button

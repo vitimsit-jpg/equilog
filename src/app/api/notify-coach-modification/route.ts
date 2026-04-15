@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendPushNotification } from "@/lib/webpush";
+import { createNotification } from "@/lib/notifications";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://equilog-i3nr-vitimsit-jpgs-projects.vercel.app";
 
@@ -36,6 +37,15 @@ export async function POST(req: Request) {
   const elementLabel = element || "une séance";
 
   const admin = createAdminClient();
+
+  // Stocker en DB pour le panel notifications
+  await createNotification(admin, horse.user_id, {
+    type: "coach_modification",
+    title: `${coachName} a modifié ${elementLabel}`,
+    body: `Concernant ${horse.name}`,
+    url: `/horses/${horse.id}/training`,
+  });
+
   const { data: pushSubs } = await admin
     .from("push_subscriptions")
     .select("endpoint, p256dh, auth")

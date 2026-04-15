@@ -34,6 +34,36 @@ const HEALTH_DOT: Record<string, string> = {
   autre: "bg-gray-300",
 };
 
+// TRAV-25 — Système chip type de travail (validé par Agathe le 15/04)
+const WORK_TYPE_CHIPS: Record<string, { label: string; color: string }> = {
+  dressage:               { label: "DRESS", color: "#3D85C8" },
+  plat:                   { label: "PLAT",  color: "#3D85C8" },
+  stretching:             { label: "STRCH", color: "#8E7CC3" },
+  barres_sol:             { label: "BS",    color: "#8E7CC3" },
+  cavalettis:             { label: "CAV",   color: "#8E7CC3" },
+  meca_obstacles:         { label: "MECA",  color: "#E69138" },
+  obstacles_enchainement: { label: "OBS",   color: "#E69138" },
+  cross_entrainement:     { label: "CROSS", color: "#9C4A7A" },
+  longe:                  { label: "LONGE", color: "#45818E" },
+  longues_renes:          { label: "LR",    color: "#45818E" },
+  travail_a_pied:         { label: "TAP",   color: "#45818E" },
+  balade:                 { label: "BAL",   color: "#45818E" },
+  trotting:               { label: "TROTT", color: "#45818E" },
+  galop:                  { label: "GALOP", color: "#4CAF50" },
+  concours:               { label: "CONC",  color: "#D94F00" },
+  autre:                  { label: "AUTRE", color: "#888888" },
+  // marcheur et paddock = pas de chip (tags verts à la place)
+};
+
+// TRAV-25 — Emoji rôle pastille (remplace les initiales M/C)
+function getQuiEmoji(rider: string | null | undefined): string | null {
+  if (!rider) return null;
+  if (rider === "owner" || rider === "longe") return "🌟";
+  if (rider === "owner_with_coach") return "🌟🎓";
+  if (rider === "coach" || rider === "travail_a_pied") return "🎓";
+  return null;
+}
+
 interface Props {
   horseId: string;
   sessions: TrainingSession[];
@@ -172,11 +202,11 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
     plannedByDate[key].push(p);
   }
 
-  const healthByDate: Record<string, { type: string }[]> = {};
+  const healthByDate: Record<string, { id: string; type: string }[]> = {};
   for (const h of (healthRecords || [])) {
     const key = h.date.slice(0, 10);
     if (!healthByDate[key]) healthByDate[key] = [];
-    healthByDate[key].push({ type: h.type });
+    healthByDate[key].push({ id: h.id, type: h.type });
   }
 
   // ── Week stats ────────────────────────────────────────────────────
@@ -186,7 +216,7 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
   });
   const weekPlannedList = plannedSessions.filter((p) => {
     const d = parseISO(p.date);
-    return d >= weekStart && d <= weekEnd && p.status === "planned";
+    return d >= weekStart && d <= weekEnd && p.status === "planned" && !p.linked_session_id;
   });
   const weekMainSessionsList = weekSessionsList.filter((s) => !s.est_complement && s.type !== "marcheur" && s.type !== "paddock");
   const weekMinutes = weekMainSessionsList.reduce((acc, s) => acc + s.duration_min, 0);
@@ -199,43 +229,16 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
   const prevWeekEnd = subWeeks(weekEnd, 1);
   const prevWeekPlanned = plannedSessions.filter((p) => {
     const d = parseISO(p.date);
-    return d >= prevWeekStart && d <= prevWeekEnd && p.status === "planned";
+    return d >= prevWeekStart && d <= prevWeekEnd && p.status === "planned" && !p.linked_session_id;
   });
   const currentWeekHasPlanned = plannedSessions.some((p) => {
     const d = parseISO(p.date);
-    return d >= weekStart && d <= weekEnd;
+    return d >= weekStart && d <= weekEnd && p.status === "planned" && !p.linked_session_id;
   });
   const canCopyPrev = isWeekFutureOrCurrent && !currentWeekHasPlanned && prevWeekPlanned.length > 0;
   const hasEverPlanned = plannedSessions.length > 0;
   // Considérer aussi les sessions loggées (incluant paddock) pour masquer l'état first-use
   const hasEverAnyActivity = hasEverPlanned || sessions.length > 0;
-
-  // ── Presence circle helper ────────────────────────────────────────
-  const getPresence = (dateKey: string) => {
-    const activePlanned = (plannedByDate[dateKey] || []).filter(p => p.status === "planned");
-    const doneSessions = (sessionsByDate[dateKey] || []).filter(
-      s => !s.est_complement && s.type !== "marcheur" && s.type !== "paddock"
-    );
-
-    let hasOwner = false;
-    let hasCoach = false;
-
-    for (const p of activePlanned) {
-      if (p.qui_sen_occupe === "owner" || p.qui_sen_occupe === "longe" || p.qui_sen_occupe === "travail_a_pied") hasOwner = true;
-      if (p.qui_sen_occupe === "owner_with_coach") { hasOwner = true; hasCoach = true; }
-      if (p.qui_sen_occupe === "coach") hasCoach = true;
-    }
-    for (const s of doneSessions) {
-      if (s.rider === "owner" || s.rider === "longe" || s.rider === "travail_a_pied") hasOwner = true;
-      if (s.rider === "owner_with_coach") { hasOwner = true; hasCoach = true; }
-      if (s.rider === "coach") hasCoach = true;
-    }
-
-    const hasAnySessions = (sessionsByDate[dateKey] || []).length > 0;
-    const complementOnly = hasAnySessions && doneSessions.length === 0 && activePlanned.length === 0;
-
-    return { hasOwner, hasCoach, complementOnly };
-  };
 
   // ── Business logic ────────────────────────────────────────────────
   const openPlanModal = (dateStr: string, planned?: TrainingPlannedSession) => {
@@ -303,7 +306,7 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
     setConfirmToast(updated);
     await supabase.from("training_sessions")
       .update({ [field]: value })
-      .eq("id", confirmToast.sessionId);
+      .eq("id", updated.sessionId);
   };
 
   const dismissConfirmToast = () => setConfirmToast(null);
@@ -420,7 +423,7 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
   const selectedDay = days.find(d => format(d, "yyyy-MM-dd") === selectedDateKey) || days[0];
   const selectedDaySessions = sessionsByDate[selectedDateKey] || [];
   const selectedDayPlanned = plannedByDate[selectedDateKey] || [];
-  const selectedDayActivePlanned = selectedDayPlanned.filter(p => p.status === "planned");
+  const selectedDayActivePlanned = selectedDayPlanned.filter(p => p.status === "planned" && !p.linked_session_id);
   const selectedDaySkipped = selectedDayPlanned.filter(p => p.status === "skipped");
   const selectedDayIsToday = isToday(selectedDay);
   const selectedDayIsPast = isPastDay(selectedDay);
@@ -517,73 +520,121 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
             const isPast = isPastDay(day);
             const daySessions = sessionsByDate[dateKey] || [];
             const dayPlanned = plannedByDate[dateKey] || [];
-            const activePlanned = dayPlanned.filter(p => p.status === "planned");
+            const activePlanned = dayPlanned.filter(p => p.status === "planned" && !p.linked_session_id);
             const dayMainSessions = daySessions.filter(s => !s.est_complement && s.type !== "marcheur" && s.type !== "paddock");
-            const dayState = getDayState(isCurrentDay, isPast, dayMainSessions.length > 0, activePlanned.length > 0);
-            const { hasOwner, hasCoach, complementOnly } = getPresence(dateKey);
+            const dayComplements = daySessions.filter(s => s.est_complement || s.type === "marcheur" || s.type === "paddock");
+
+            // TRAV-25 — Logique d'affichage de la case
+            const hasLoggedSession = dayMainSessions.length > 0;
+            const hasPlannedFuture = activePlanned.length > 0 && !isPast;
+            const hasPlannedPast = activePlanned.length > 0 && isPast && !isCurrentDay;
+            const hasComplementOnly = !hasLoggedSession && activePlanned.length === 0 && dayComplements.length > 0;
+            const isRest = !hasLoggedSession && activePlanned.length === 0 && dayComplements.length === 0;
+            const hasComplementWithSession = hasLoggedSession && dayComplements.length > 0;
+
+            // Chip + emoji pour la séance principale (logged > planned)
+            const mainItem = hasLoggedSession ? dayMainSessions[0] : (activePlanned[0] ?? null);
+            const mainType = mainItem?.type;
+            const chip = mainType ? WORK_TYPE_CHIPS[mainType] ?? null : null;
+            const rider = hasLoggedSession ? dayMainSessions[0].rider : (activePlanned[0]?.qui_sen_occupe ?? null);
+            const quiEmoji = getQuiEmoji(rider);
+
+            // Bordures + fond de la case (TRAV-25 §3.4)
+            let cellBorder = "border border-gray-200 bg-white";
+            if (isCurrentDay) cellBorder = "border-2 border-orange bg-orange-light/40";
+            else if (hasPlannedFuture) cellBorder = "border-2 border-dashed border-orange bg-white";
+            else if (hasPlannedPast) cellBorder = "border-2 border-dashed border-orange bg-gray-100";
+            else if (isRest || hasComplementOnly) cellBorder = "border border-gray-200 bg-gray-100";
+
+            const selectedRing = isSelected ? "ring-2 ring-orange/40 shadow-sm" : "";
 
             return (
               <button
                 key={dateKey}
                 onClick={() => setSelectedDayKey(dateKey)}
-                className={`flex flex-col items-center py-2.5 px-1 rounded-xl transition-all flex-1 gap-1 ${
-                  isSelected ? "bg-white shadow-sm" : "hover:bg-white/60"
-                }`}
+                className={`relative flex flex-col items-center py-2 px-1 rounded-xl transition-all flex-1 gap-1 min-h-[100px] ${cellBorder} ${selectedRing}`}
               >
+                {/* Badge "Auj." pour aujourd'hui */}
+                {isCurrentDay && (
+                  <span className="absolute -top-px left-1/2 -translate-x-1/2 bg-orange text-white text-[7px] font-bold px-1.5 py-0.5 rounded-b-md whitespace-nowrap">
+                    Auj.
+                  </span>
+                )}
+
                 {/* Day label */}
-                <span className={`text-2xs font-semibold leading-none ${
-                  isSelected ? "text-orange" : isCurrentDay ? "text-gray-600" : "text-gray-400"
+                <span className={`text-[9px] font-semibold uppercase leading-none mt-0.5 ${
+                  isCurrentDay ? "text-orange" : "text-gray-400"
                 }`}>
                   {DAY_LABELS[i]}
                 </span>
+
                 {/* Day number */}
                 <span className={`text-sm font-black leading-none ${
-                  isSelected ? "text-orange" : isCurrentDay ? "text-black" : isPast ? "text-gray-400" : "text-gray-600"
+                  isCurrentDay ? "text-orange" : hasPlannedFuture || hasPlannedPast ? "text-orange" : isPast ? "text-gray-400" : "text-gray-700"
                 }`}>
                   {format(day, "d")}
                 </span>
-                {/* Presence indicator */}
+
+                {/* Pastille emoji rôle (uniquement si séance montée) */}
                 <div className="h-5 flex items-center justify-center">
-                  {(hasOwner || hasCoach || complementOnly) ? (
-                    complementOnly ? (
-                      <div className="w-4 h-4 rounded bg-green-100 border border-green-300 flex items-center justify-center">
-                        <span className="text-[8px] text-green-600 font-bold leading-none">■</span>
-                      </div>
-                    ) : hasOwner && hasCoach ? (
-                      <div className="relative w-6 h-4 flex-shrink-0">
-                        <div className="absolute left-0 w-4 h-4 rounded-full bg-orange flex items-center justify-center">
-                          <span className="text-[8px] text-white font-bold leading-none">M</span>
-                        </div>
-                        <div className="absolute right-0 w-4 h-4 rounded-full bg-blue-400 flex items-center justify-center border border-white">
-                          <span className="text-[8px] text-white font-bold leading-none">C</span>
-                        </div>
-                      </div>
-                    ) : hasOwner ? (
-                      <div className="w-4 h-4 rounded-full bg-orange/20 border-2 border-orange flex items-center justify-center">
-                        <span className="text-[8px] text-orange font-bold leading-none">M</span>
-                      </div>
-                    ) : (
-                      <div className="w-4 h-4 rounded-full bg-blue-100 border-2 border-blue-400 flex items-center justify-center">
-                        <span className="text-[8px] text-blue-500 font-bold leading-none">C</span>
-                      </div>
-                    )
-                  ) : (
-                    <div className="w-4 h-4" />
+                  {(hasLoggedSession || hasPlannedFuture || hasPlannedPast) && quiEmoji && (
+                    <span className="text-sm leading-none">{quiEmoji}</span>
                   )}
                 </div>
-                {/* Status dot */}
-                <div className="h-2 flex items-center justify-center">
-                  {dayState === "FAIT" && (
-                    <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
+
+                {/* Chip type travail (plein si logué, outline si planifié) */}
+                <div className="min-h-[14px] flex items-center justify-center">
+                  {chip && (
+                    hasLoggedSession ? (
+                      <span
+                        className="text-[8px] font-extrabold text-white px-1.5 py-0.5 rounded whitespace-nowrap leading-none"
+                        style={{ backgroundColor: chip.color }}
+                      >
+                        {chip.label}
+                      </span>
+                    ) : (
+                      <span
+                        className="text-[8px] font-extrabold px-1 py-0.5 rounded whitespace-nowrap leading-none border bg-transparent"
+                        style={{ color: chip.color, borderColor: chip.color }}
+                      >
+                        {chip.label}
+                      </span>
+                    )
                   )}
-                  {(dayState === "AUJOURD_HUI" || dayState === "PLANIFIE") && (
-                    <div className="w-1.5 h-1.5 rounded-full bg-orange" />
+                </div>
+
+                {/* Tags verts si paddock/marcheur seul (repos actif) */}
+                {hasComplementOnly && (
+                  <div className="flex flex-col gap-0.5 w-full px-0.5">
+                    {dayComplements.slice(0, 2).map((c) => (
+                      <span
+                        key={c.id}
+                        className="text-[7px] font-bold text-green-700 bg-green-50 border border-green-300 rounded px-1 py-0.5 text-center leading-none"
+                      >
+                        {c.type === "paddock" ? "🌾 PADD" : "⚙️ MARCH"}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* Tiret repos complet */}
+                {isRest && (
+                  <div className="flex flex-col items-center gap-0.5">
+                    <span className="text-base font-bold text-gray-300 leading-none">—</span>
+                    <span className="text-[7px] text-gray-300 uppercase">repos</span>
+                  </div>
+                )}
+
+                {/* Signal bas : ✓ vert (logué) ou ⏱ (planifié) */}
+                <div className="h-3 flex items-center justify-center mt-auto">
+                  {hasLoggedSession && (
+                    <span className="text-[12px] font-black text-green-600 leading-none">✓</span>
                   )}
-                  {dayState === "A_LOGGER" && (
-                    <div className="w-1.5 h-1.5 rounded-full border-2 border-orange border-dashed" />
+                  {!hasLoggedSession && (hasPlannedFuture || hasPlannedPast) && (
+                    <span className="text-[10px] leading-none">⏱</span>
                   )}
-                  {dayState === "REPOS" && (
-                    <div className="w-1.5 h-1.5" />
+                  {hasComplementWithSession && (
+                    <span className="text-[10px] leading-none ml-1">🌾</span>
                   )}
                 </div>
               </button>
@@ -658,8 +709,8 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
             {/* Health dots */}
             {selectedDayHealth.length > 0 && (
               <div className="flex items-center gap-0.5 mr-1" title={`${selectedDayHealth.length} soin${selectedDayHealth.length > 1 ? "s" : ""} ce jour`}>
-                {selectedDayHealth.slice(0, 3).map((h, idx) => (
-                  <span key={idx} className={`w-1.5 h-1.5 rounded-full ${HEALTH_DOT[h.type] || HEALTH_DOT.autre}`} />
+                {selectedDayHealth.slice(0, 3).map((h) => (
+                  <span key={h.id} className={`w-1.5 h-1.5 rounded-full ${HEALTH_DOT[h.type] || HEALTH_DOT.autre}`} />
                 ))}
               </div>
             )}

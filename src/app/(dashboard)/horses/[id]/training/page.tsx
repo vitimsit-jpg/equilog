@@ -2,7 +2,6 @@ import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import TrainingTabs from "@/components/training/TrainingTabs";
 import PdfDownloadButton from "@/components/pdf/PdfDownloadButton";
-import FeaturesV2Placeholders from "@/components/training/FeaturesV2Placeholders";
 import Link from "next/link";
 
 interface Props {
@@ -86,7 +85,7 @@ export default async function TrainingPage({ params }: Props) {
       .eq("type", "weekly")
       .order("generated_at", { ascending: false })
       .limit(1)
-      .single(),
+      .maybeSingle(),
     supabase
       .from("ai_insights")
       .select("*")
@@ -94,11 +93,11 @@ export default async function TrainingPage({ params }: Props) {
       .eq("type", "training_plan")
       .order("generated_at", { ascending: false })
       .limit(1)
-      .single(),
+      .maybeSingle(),
   ]);
 
   // Section 6.1 — No mode set: guide user to configure horse index mode
-  const horseMode = (horse as any).horse_index_mode ?? null;
+  const horseMode = horse.horse_index_mode ?? null;
   if (!horseMode) {
     return (
       <div className="max-w-4xl mx-auto animate-fade-in">
@@ -184,8 +183,6 @@ export default async function TrainingPage({ params }: Props) {
         competitions={allCompetitions ?? null}
       />
 
-      {/* V2 feature placeholders */}
-      <FeaturesV2Placeholders />
     </div>
   );
 }

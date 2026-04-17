@@ -141,10 +141,10 @@ export default async function TrainingPage({ params }: Props) {
     <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold text-black">
-          {horseMode === "IR" ? "Journal de rééducation"
-            : horseMode === "IS" ? "Journal de bien-être"
-            : horseMode === "ICr" ? "Journal d'éducation"
-            : "Journal de travail"}
+          {horseMode === "IR" ? "Rééducation"
+            : horseMode === "IS" ? "Bien-être"
+            : horseMode === "ICr" ? "Éducation"
+            : "Travail"}
         </h2>
         <div className="flex items-center gap-2">
           <PdfDownloadButton

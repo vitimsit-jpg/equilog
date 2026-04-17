@@ -41,7 +41,7 @@ const mainNav = [
 
 const horseNavItems = [
   { href: "health", icon: Heart, label: "Carnet de santé" },
-  { href: "training", icon: Dumbbell, label: "Journal de travail" },
+  { href: "training", icon: Dumbbell, label: "Travail" },
   { href: "competitions", icon: Trophy, label: "Concours" },
   { href: "budget", icon: Wallet, label: "Budget" },
   { href: "video", icon: Video, label: "Analyse Vidéo" },

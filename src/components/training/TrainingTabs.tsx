@@ -557,7 +557,8 @@ export default function TrainingTabs({ horseId, horseName, horseBirthYear, sessi
 
   const todayStr = format(new Date(), "yyyy-MM-dd");
   const todayPlanned = plannedSessions.find((p) => p.date === todayStr && p.status === "planned") ?? null;
-  const showReminder = !reminderDismissed && !!todayPlanned && new Date().getHours() >= 18;
+  // P0 1.3 — Notification uniquement sur onglet Programme, pas sur tous les onglets
+  const showReminder = !reminderDismissed && !!todayPlanned && new Date().getHours() >= 18 && activeTab === "semaine";
 
   const daysUntilCompetition = nextCompetition
     ? differenceInDays(startOfDay(parseISO(nextCompetition.date)), startOfDay(new Date()))

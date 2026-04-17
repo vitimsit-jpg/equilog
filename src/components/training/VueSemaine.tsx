@@ -34,35 +34,7 @@ const HEALTH_DOT: Record<string, string> = {
   autre: "bg-gray-300",
 };
 
-// TRAV-25 — Système chip type de travail (validé par Agathe le 15/04)
-const WORK_TYPE_CHIPS: Record<string, { label: string; color: string }> = {
-  dressage:               { label: "DRESS", color: "#3D85C8" },
-  plat:                   { label: "PLAT",  color: "#3D85C8" },
-  stretching:             { label: "STRCH", color: "#8E7CC3" },
-  barres_sol:             { label: "BS",    color: "#8E7CC3" },
-  cavalettis:             { label: "CAV",   color: "#8E7CC3" },
-  meca_obstacles:         { label: "MECA",  color: "#E69138" },
-  obstacles_enchainement: { label: "OBS",   color: "#E69138" },
-  cross_entrainement:     { label: "CROSS", color: "#9C4A7A" },
-  longe:                  { label: "LONGE", color: "#45818E" },
-  longues_renes:          { label: "LR",    color: "#45818E" },
-  travail_a_pied:         { label: "TAP",   color: "#45818E" },
-  balade:                 { label: "BAL",   color: "#45818E" },
-  trotting:               { label: "TROTT", color: "#45818E" },
-  galop:                  { label: "GALOP", color: "#4CAF50" },
-  concours:               { label: "CONC",  color: "#D94F00" },
-  autre:                  { label: "AUTRE", color: "#888888" },
-  // marcheur et paddock = pas de chip (tags verts à la place)
-};
-
-// TRAV-25 — Emoji rôle pastille (remplace les initiales M/C)
-function getQuiEmoji(rider: string | null | undefined): string | null {
-  if (!rider) return null;
-  if (rider === "owner" || rider === "longe") return "🌟";
-  if (rider === "owner_with_coach") return "🌟🎓";
-  if (rider === "coach" || rider === "travail_a_pied") return "🎓";
-  return null;
-}
+// TRAV-25 constantes retirées en TRAV-26 (remplacées par TRAINING_EMOJIS directement)
 
 interface Props {
   horseId: string;
@@ -296,6 +268,16 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
     };
     const { data, error } = await supabase.from("training_sessions").insert(payload).select("id").single();
     if (error) { toast.error("Erreur"); return; }
+
+    // P0 1.1 — Lier la planned à la session créée pour éviter la triplication
+    const { error: linkError } = await supabase
+      .from("training_planned_sessions")
+      .update({ linked_session_id: data.id })
+      .eq("id", planned.id);
+    if (linkError) {
+      console.error("[P0 1.1] linked_session_id update failed:", linkError.message);
+    }
+
     setConfirmToast({ sessionId: data.id, type: planned.type, dateKey, intensity, feeling: 3 });
     startTransition(() => router.refresh());
   };
@@ -532,74 +514,74 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
             const isRest = !hasLoggedSession && activePlanned.length === 0 && dayComplements.length === 0;
             const hasComplementWithSession = hasLoggedSession && dayComplements.length > 0;
 
-            // Chip + emoji pour la séance principale (logged > planned)
+            // Emoji type de séance (P1 2.3 — remplace les rôle emoji)
             const mainItem = hasLoggedSession ? dayMainSessions[0] : (activePlanned[0] ?? null);
             const mainType = mainItem?.type;
-            const chip = mainType ? WORK_TYPE_CHIPS[mainType] ?? null : null;
-            const rider = hasLoggedSession ? dayMainSessions[0].rider : (activePlanned[0]?.qui_sen_occupe ?? null);
-            const quiEmoji = getQuiEmoji(rider);
+            const typeEmoji = mainType ? (TRAINING_EMOJIS[mainType] ?? null) : null;
 
-            // Bordures + fond de la case (TRAV-25 §3.4)
-            let cellBorder = "border border-gray-200 bg-white";
-            if (isCurrentDay) cellBorder = "border-2 border-orange bg-orange-light/40";
-            else if (hasPlannedFuture) cellBorder = "border-2 border-dashed border-orange bg-white";
-            else if (hasPlannedPast) cellBorder = "border-2 border-dashed border-orange bg-gray-100";
-            else if (isRest || hasComplementOnly) cellBorder = "border border-gray-200 bg-gray-100";
+            // Hiérarchie visuelle 7 états (P0 1.2 + P2 3.1)
+            let cellBorder: string;
+            if (isSelected && isCurrentDay) {
+              // Aujourd'hui sélectionné : fond orange plein
+              cellBorder = "border-2 border-orange bg-[#E8450A] text-white";
+            } else if (isSelected) {
+              // Jour sélectionné (autre que aujourd'hui) : fond orange clair
+              cellBorder = "border-2 border-orange bg-[#fff3ee]";
+            } else if (isCurrentDay) {
+              // Aujourd'hui non sélectionné : badge Auj., contour orange fin
+              cellBorder = "border border-orange bg-white";
+            } else if (hasLoggedSession && isPast) {
+              // Passé validé : fond blanc, contour gris plein
+              cellBorder = "border border-[#e0e0e0] bg-white";
+            } else if (isPast && !hasLoggedSession && !hasComplementOnly) {
+              // Passé sans séance : fond gris clair
+              cellBorder = "border border-gray-200 bg-[#f5f5f5]";
+            } else if (hasPlannedFuture) {
+              // Futur planifié : contour pointillé orange
+              cellBorder = "border-2 border-dashed border-orange bg-white";
+            } else if (isRest || hasComplementOnly) {
+              // Futur vide ou repos actif
+              cellBorder = "border border-gray-200 bg-[#f8f8f8]";
+            } else {
+              cellBorder = "border border-gray-200 bg-white";
+            }
 
-            const selectedRing = isSelected ? "ring-2 ring-orange/40 shadow-sm" : "";
+            // Couleurs texte adaptées au fond (aujourd'hui sélectionné = fond orange, texte blanc)
+            const isWhiteText = isSelected && isCurrentDay;
 
             return (
               <button
                 key={dateKey}
                 onClick={() => setSelectedDayKey(dateKey)}
-                className={`relative flex flex-col items-center py-2 px-1 rounded-xl transition-all flex-1 gap-1 min-h-[100px] ${cellBorder} ${selectedRing}`}
+                className={`relative flex flex-col items-center py-2 px-1 rounded-xl transition-all flex-1 gap-1 min-h-[100px] ${cellBorder}`}
               >
                 {/* Badge "Auj." pour aujourd'hui */}
                 {isCurrentDay && (
-                  <span className="absolute -top-px left-1/2 -translate-x-1/2 bg-orange text-white text-[7px] font-bold px-1.5 py-0.5 rounded-b-md whitespace-nowrap">
+                  <span className={`absolute -top-px left-1/2 -translate-x-1/2 text-[7px] font-bold px-1.5 py-0.5 rounded-b-md whitespace-nowrap ${
+                    isWhiteText ? "bg-white text-orange" : "bg-orange text-white"
+                  }`}>
                     Auj.
                   </span>
                 )}
 
                 {/* Day label */}
                 <span className={`text-[9px] font-semibold uppercase leading-none mt-0.5 ${
-                  isCurrentDay ? "text-orange" : "text-gray-400"
+                  isWhiteText ? "text-white/80" : isSelected ? "text-orange" : isCurrentDay ? "text-orange" : "text-gray-400"
                 }`}>
                   {DAY_LABELS[i]}
                 </span>
 
                 {/* Day number */}
-                <span className={`text-sm font-black leading-none ${
-                  isCurrentDay ? "text-orange" : hasPlannedFuture || hasPlannedPast ? "text-orange" : isPast ? "text-gray-400" : "text-gray-700"
+                <span className={`text-[15px] font-black leading-none ${
+                  isWhiteText ? "text-white" : isSelected ? "text-orange" : isCurrentDay ? "text-orange" : isPast ? "text-gray-400" : "text-gray-700"
                 }`}>
                   {format(day, "d")}
                 </span>
 
-                {/* Pastille emoji rôle (uniquement si séance montée) */}
-                <div className="h-5 flex items-center justify-center">
-                  {(hasLoggedSession || hasPlannedFuture || hasPlannedPast) && quiEmoji && (
-                    <span className="text-sm leading-none">{quiEmoji}</span>
-                  )}
-                </div>
-
-                {/* Chip type travail (plein si logué, outline si planifié) */}
-                <div className="min-h-[14px] flex items-center justify-center">
-                  {chip && (
-                    hasLoggedSession ? (
-                      <span
-                        className="text-[8px] font-extrabold text-white px-1.5 py-0.5 rounded whitespace-nowrap leading-none"
-                        style={{ backgroundColor: chip.color }}
-                      >
-                        {chip.label}
-                      </span>
-                    ) : (
-                      <span
-                        className="text-[8px] font-extrabold px-1 py-0.5 rounded whitespace-nowrap leading-none border bg-transparent"
-                        style={{ color: chip.color, borderColor: chip.color }}
-                      >
-                        {chip.label}
-                      </span>
-                    )
+                {/* Icône type de séance (P1 2.3 — remplace les pastilles rôle + badges texte) */}
+                <div className="h-7 flex items-center justify-center">
+                  {typeEmoji && (
+                    <span className="text-[20px] leading-none">{typeEmoji}</span>
                   )}
                 </div>
 
@@ -795,23 +777,20 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
                   )}
                   <span className="text-2xs font-semibold text-orange bg-orange-light px-1.5 py-0.5 rounded-full">Planifié</span>
                 </div>
-                {p.intensity_target && (
-                  <div className="flex gap-0.5 mt-1">
-                    {Array.from({ length: 5 }).map((_, idx) => (
-                      <div key={idx} className={`w-1.5 h-2 rounded-full ${idx < p.intensity_target! ? "bg-orange/60" : "bg-gray-200"}`} />
-                    ))}
-                  </div>
-                )}
+                {/* P1 2.2 — Pas de pastilles intensité sur séances planifiées */}
                 {p.notes && <p className="text-2xs text-gray-400 truncate mt-0.5">{p.notes}</p>}
               </div>
+              {/* P1 2.1 — Boutons action uniquement sur aujourd'hui/futur */}
               <div className="flex gap-1 flex-shrink-0">
-                <button
-                  onClick={() => handleConfirmSession(p, selectedDateKey)}
-                  title="Fait ✓"
-                  className="p-2 rounded-lg bg-green-100 text-green-700 hover:bg-green-200 transition-colors"
-                >
-                  <Check className="h-4 w-4" />
-                </button>
+                {!selectedDayIsPast && (
+                  <button
+                    onClick={() => handleConfirmSession(p, selectedDateKey)}
+                    title="Fait ✓"
+                    className="p-2 rounded-lg bg-green-100 text-green-700 hover:bg-green-200 transition-colors"
+                  >
+                    <Check className="h-4 w-4" />
+                  </button>
+                )}
                 <button
                   onClick={() => openLogModal(selectedDateKey, p)}
                   title="Compléter"
@@ -819,13 +798,15 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
                 >
                   <Pencil className="h-3.5 w-3.5" />
                 </button>
-                <button
-                  onClick={() => skipPlanned(p.id)}
-                  title="Reporter"
-                  className="p-2 rounded-lg bg-gray-100 text-gray-400 hover:bg-red-50 hover:text-danger transition-colors"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
+                {!selectedDayIsPast && (
+                  <button
+                    onClick={() => skipPlanned(p.id)}
+                    title="Reporter"
+                    className="p-2 rounded-lg bg-gray-100 text-gray-400 hover:bg-red-50 hover:text-danger transition-colors"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
               </div>
             </div>
           </div>

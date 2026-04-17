@@ -26,6 +26,15 @@ export interface HourlyWeather {
   wind: number;       // km/h
   humidity: number;   // %
   weathercode: number;
+  pressure: number;   // hPa (pressure_msl)
+  visibility: number; // mètres
+}
+
+// METEO-REV01 — Alerte contextuelle
+export interface WeatherAlert {
+  id: string;
+  message: string;
+  severity: "warning" | "danger";
 }
 
 export interface NightMetrics {
@@ -273,6 +282,151 @@ export function computeDayMetrics(hourly: HourlyWeather[], date: string): DayMet
   const tmax = Math.max(...dayHours.map((h) => h.temp));
   const tmin = Math.min(...dayHours.map((h) => h.temp));
   return { tmax, amplitude: tmax - tmin };
+}
+
+// ─── METEO-REV01 — Système d'alertes A-01 à A-08 ────────────────────────────
+
+export function computeAlerts(
+  hourly: HourlyWeather[],
+  date: string,
+  night: NightMetrics,
+  day: DayMetrics,
+): WeatherAlert[] {
+  const alerts: WeatherAlert[] = [];
+  const todayHours = hourly.filter((h) => h.time.startsWith(date));
+  const now = new Date();
+  const nowHour = now.getHours();
+
+  // A-01 Amplitude forte
+  if (day.amplitude > 10) {
+    alerts.push({
+      id: "A-01",
+      message: `Amplitude forte — écart de ${Math.round(day.amplitude)}°C entre nuit et journée`,
+      severity: "warning",
+    });
+  }
+
+  // A-02 Pluie imminente (dans les 12 prochaines heures)
+  const next12h = hourly.filter((h) => {
+    const hTime = new Date(h.time);
+    return hTime >= now && hTime <= new Date(now.getTime() + 12 * 3600000);
+  });
+  const firstRain = next12h.find((h) => h.rainProb > 50);
+  if (firstRain) {
+    alerts.push({
+      id: "A-02",
+      message: `Pluie à partir de ${new Date(firstRain.time).getHours()}h`,
+      severity: "warning",
+    });
+  }
+
+  // A-03 Vent fort
+  const maxWind = todayHours.length > 0 ? Math.max(...todayHours.map((h) => h.wind)) : 0;
+  if (maxWind > 35) {
+    alerts.push({
+      id: "A-03",
+      message: `Vent fort — ${Math.round(maxWind)} km/h`,
+      severity: "warning",
+    });
+  }
+
+  // A-04 Gel sol matin
+  if (night.frostRisk) {
+    alerts.push({
+      id: "A-04",
+      message: "Gel possible cette nuit — sol difficile le matin",
+      severity: "danger",
+    });
+  }
+
+  // A-05 Brouillard dense (visibilité < 200m dans les 12h)
+  const fogHour = next12h.find((h) => h.visibility > 0 && h.visibility < 200);
+  if (fogHour) {
+    alerts.push({
+      id: "A-05",
+      message: "Brouillard dense prévu ce matin",
+      severity: "warning",
+    });
+  }
+
+  // A-06 Canicule (T° ressentie > 35°C)
+  const maxFeelsLike = todayHours.length > 0 ? Math.max(...todayHours.map((h) => h.feelsLike)) : 0;
+  if (maxFeelsLike > 35) {
+    alerts.push({
+      id: "A-06",
+      message: "Canicule — travail déconseillé aux heures chaudes",
+      severity: "danger",
+    });
+  }
+
+  // A-07 Première gelée de la saison — implémenté via localStorage (v1)
+  if (night.frostRisk && typeof window !== "undefined") {
+    const currentYear = now.getFullYear();
+    const augustFirst = new Date(currentYear, 7, 1); // 1er août
+    const storedDate = localStorage.getItem("equistra_first_frost_date");
+    const storedParsed = storedDate ? new Date(storedDate) : null;
+
+    if (!storedParsed || storedParsed < augustFirst) {
+      alerts.push({
+        id: "A-07",
+        message: "Première gelée de la saison cette nuit",
+        severity: "danger",
+      });
+      localStorage.setItem("equistra_first_frost_date", now.toISOString().split("T")[0]);
+    }
+  }
+
+  // A-08 Changement météo rapide (chute pression > 8 hPa en 3h)
+  if (todayHours.length >= 4) {
+    for (let i = 3; i < todayHours.length; i++) {
+      const pressNow = todayHours[i].pressure;
+      const press3hAgo = todayHours[i - 3].pressure;
+      if (pressNow > 0 && press3hAgo > 0 && press3hAgo - pressNow > 8) {
+        alerts.push({
+          id: "A-08",
+          message: "Changement météo rapide prévu — risque de turbulences atmosphériques",
+          severity: "warning",
+        });
+        break;
+      }
+    }
+  }
+
+  return alerts;
+}
+
+// ─── METEO-REV01 — Preview J+1 (phrase générée front-side) ──────────────────
+
+function getWeatherLabelForPreview(code: number): string {
+  if (code === 0) return "Ciel dégagé";
+  if (code <= 3) return "Nuageux";
+  if (code <= 48) return "Brouillard";
+  if (code <= 65) return "Pluie";
+  if (code <= 77) return "Neige";
+  if (code <= 82) return "Averses";
+  return "Variable";
+}
+
+export function getJ1Preview(hourly: HourlyWeather[], tomorrowDate: string): string {
+  const tomorrow = hourly.filter((h) => h.time.startsWith(tomorrowDate));
+  if (!tomorrow.length) return "";
+
+  const maxFeelsLike = Math.max(...tomorrow.map((h) => h.feelsLike));
+  const frostRisk = tomorrow.some((h) => {
+    const hh = new Date(h.time).getHours();
+    return h.temp < 0 && hh >= 2 && hh <= 9;
+  });
+  const rainHour = tomorrow.find((h) => h.rainProb > 50);
+  const maxWind = Math.max(...tomorrow.map((h) => h.wind));
+  const tmin = Math.min(...tomorrow.map((h) => h.temp));
+  const tmax = Math.max(...tomorrow.map((h) => h.temp));
+  const midCode = tomorrow[Math.floor(tomorrow.length / 2)]?.weathercode ?? 0;
+
+  if (maxFeelsLike > 35) return "Demain : canicule prévue";
+  if (frostRisk) return "Demain : gel possible le matin";
+  if (rainHour) return `Demain : pluie à partir de ${new Date(rainHour.time).getHours()}h`;
+  if (maxWind > 35) return "Demain : vent fort";
+  return `Demain : ${getWeatherLabelForPreview(midCode)} — min ${Math.round(tmin)}° / max ${Math.round(tmax)}°`;
 }
 
 // ─── Geocoding écurie → lat/lon (Nominatim OSM, gratuit) ─────────────────────

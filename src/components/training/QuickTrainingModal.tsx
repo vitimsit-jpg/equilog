@@ -14,26 +14,10 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ClipboardList, HeartPulse, AlertTriangle, Link2, ChevronDown, ImagePlus } from "lucide-react";
 
-export const DISCIPLINE_ITEMS: { type: TrainingType; emoji: string; label: string }[] = [
-  { type: "dressage",              emoji: "🎯", label: "Dressage" },
-  { type: "plat",                  emoji: "🏇", label: "Plat" },
-  { type: "stretching",            emoji: "🤸", label: "Stretching" },
-  { type: "barres_sol",            emoji: "📏", label: "Barres au sol" },
-  { type: "cavalettis",            emoji: "🔲", label: "Cavalettis" },
-  { type: "meca_obstacles",        emoji: "🚧", label: "Méca obstacles" },
-  { type: "obstacles_enchainement",emoji: "🏁", label: "Obstacles enchaînés" },
-  { type: "cross_entrainement",    emoji: "🌲", label: "Cross entraîn." },
-  { type: "longe",                 emoji: "🌀", label: "Longe" },
-  { type: "longues_renes",         emoji: "🪢", label: "Longues rênes" },
-  { type: "travail_a_pied",        emoji: "🦶", label: "Trav. à pied" },
-  { type: "balade",                emoji: "🌿", label: "Balade" },
-  { type: "trotting",              emoji: "🏃", label: "Trotting" },
-  { type: "galop",                 emoji: "💨", label: "Galop" },
-  { type: "marcheur",              emoji: "⚙️", label: "Marcheur" },
-  { type: "paddock",               emoji: "🌾", label: "Paddock" },
-  { type: "concours",              emoji: "🏆", label: "Concours" },
-  { type: "autre",                 emoji: "✳️", label: "Autre" },
-];
+// TRAV-26 — Import depuis source unique (inclut marcheur/paddock pour le formulaire complet)
+import { SESSION_TYPE_CONFIG } from "@/constants/sessionTypes";
+export const DISCIPLINE_ITEMS: { type: TrainingType; emoji: string; label: string }[] =
+  Object.values(SESSION_TYPE_CONFIG).map((c) => ({ type: c.key as TrainingType, emoji: c.emoji, label: c.label }));
 
 // Types autorisés par mode non-actif (TRAV-18)
 const MODE_ALLOWED_TYPES: Partial<Record<HorseIndexMode, TrainingType[]>> = {

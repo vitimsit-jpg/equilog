@@ -15,12 +15,14 @@ import type { Exercise, ExerciseCategory } from "@/lib/supabase/types";
 
 // ── Constantes ─────────────────────────────────────────────────────────────────
 
+// TRAV-26 — Emojis depuis source centrale, styles CSS locaux (spécifiques à la bibliothèque)
+import { getSessionEmoji } from "@/constants/sessionTypes";
 export const CATEGORY_CONFIG: Record<ExerciseCategory, { label: string; emoji: string; color: string; bg: string }> = {
-  plat:           { label: "Plat",             emoji: "🏇", color: "text-blue-700",   bg: "bg-blue-50 border-blue-100" },
-  obstacle:       { label: "Obstacles",        emoji: "🚧", color: "text-orange-700", bg: "bg-orange-50 border-orange-100" },
-  cross:          { label: "Cross",            emoji: "🌲", color: "text-green-700",  bg: "bg-green-50 border-green-100" },
-  longe:          { label: "Longe",            emoji: "🌀", color: "text-purple-700", bg: "bg-purple-50 border-purple-100" },
-  travail_a_pied: { label: "Travail à pied",   emoji: "🦶", color: "text-amber-700",  bg: "bg-amber-50 border-amber-100" },
+  plat:           { label: "Plat",             emoji: getSessionEmoji("plat"),           color: "text-blue-700",   bg: "bg-blue-50 border-blue-100" },
+  obstacle:       { label: "Obstacles",        emoji: getSessionEmoji("meca_obstacles"), color: "text-orange-700", bg: "bg-orange-50 border-orange-100" },
+  cross:          { label: "Cross",            emoji: getSessionEmoji("cross_entrainement"), color: "text-green-700",  bg: "bg-green-50 border-green-100" },
+  longe:          { label: "Longe",            emoji: getSessionEmoji("longe"),          color: "text-purple-700", bg: "bg-purple-50 border-purple-100" },
+  travail_a_pied: { label: "Travail à pied",   emoji: getSessionEmoji("travail_a_pied"), color: "text-amber-700",  bg: "bg-amber-50 border-amber-100" },
 };
 
 const DIFFICULTY_LABELS: Record<string, string> = {

@@ -76,26 +76,13 @@ export const HEALTH_TYPE_LABELS: Record<string, string> = {
   ondes_choc: "Ondes de choc",
 };
 
+// TRAV-26 — Source unique : src/constants/sessionTypes.ts
+// Rétro-compatibilité : TRAINING_TYPE_LABELS et TRAINING_EMOJIS re-exportés avec legacy keys
+import { SESSION_TYPE_EMOJIS, SESSION_TYPE_LABELS } from "@/constants/sessionTypes";
+export { SESSION_TYPE_CONFIG, SESSION_TYPE_EMOJIS, SESSION_TYPE_LABELS, SESSION_TYPE_COLORS, getSessionEmoji, getSessionLabel, DISCIPLINE_GRID_ITEMS } from "@/constants/sessionTypes";
+
 export const TRAINING_TYPE_LABELS: Record<string, string> = {
-  dressage: "Dressage",
-  plat: "Plat",
-  stretching: "Stretching & récup",
-  barres_sol: "Barres au sol",
-  cavalettis: "Cavalettis",
-  meca_obstacles: "Méca obstacles",
-  obstacles_enchainement: "Obstacles enchaînés",
-  cross_entrainement: "Cross entraînement",
-  longe: "Longe",
-  longues_renes: "Longues rênes",
-  travail_a_pied: "Travail à pied",
-  balade: "Balade",
-  trotting: "Trot",
-  galop: "Galop",
-  marcheur: "Marcheur",
-  paddock: "Paddock",
-  concours: "Concours",
-  autre: "Autre",
-  // Legacy keys — kept for existing data rows
+  ...SESSION_TYPE_LABELS,
   saut: "Saut d'obstacles",
   endurance: "Endurance",
   cso: "CSO",
@@ -103,12 +90,12 @@ export const TRAINING_TYPE_LABELS: Record<string, string> = {
 };
 
 export const TRAINING_EMOJIS: Record<string, string> = {
-  dressage: "🎯", plat: "🏇", stretching: "🤸", barres_sol: "📏",
-  cavalettis: "🔲", meca_obstacles: "🚧", obstacles_enchainement: "🏁",
-  cross_entrainement: "🌲", longe: "🌀", longues_renes: "🪢",
-  travail_a_pied: "🧑", balade: "🌿", trotting: "🏃", galop: "💨",
-  marcheur: "⚙️", paddock: "🌾", concours: "🏆", autre: "✳️",
-  repos: "😴", saut: "🏇", endurance: "🏅", cso: "🏁", cross: "🌲",
+  ...SESSION_TYPE_EMOJIS,
+  repos: "😴",
+  saut: "🏇",
+  endurance: "🏅",
+  cso: "🏁",
+  cross: "🌲",
 };
 
 export const BUDGET_CATEGORY_LABELS: Record<string, string> = {

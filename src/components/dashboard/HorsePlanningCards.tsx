@@ -134,12 +134,15 @@ function StatusDot({ status, sm }: { status: DayStatus; sm?: boolean }) {
   return <div className={`${base} rounded-full bg-[#E63900] flex-shrink-0`} />;
 }
 
+// FLAG TRAV-26 — Contour card dashboard selon statut du jour
+// Avant : le fallback était border-[#E63900] (orange foncé = perçu comme rouge)
+// Après : contour neutre par défaut, orange uniquement pour planned non-réalisé
 function getCardBorder(status: DayStatus): string {
   if (status.kind === "repos") return "bg-[#F5F5F5] border border-transparent";
   if (status.kind === "complement") return "bg-white border border-[#388E3C]";
-  if (status.kind === "planned") return "bg-white border border-dashed border-[#E63900]";
+  if (status.kind === "planned") return "bg-white border border-dashed border-orange";
   if (status.kind === "main" && status.rider === "coach") return "bg-white border border-[#1565C0]";
-  return "bg-white border border-[#E63900]";
+  return "bg-white border border-gray-200"; // séance principale (proprio) = contour neutre
 }
 
 const DAY_LABELS = ["L", "M", "M", "J", "V", "S", "D"];

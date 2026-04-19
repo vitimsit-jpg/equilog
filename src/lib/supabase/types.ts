@@ -253,6 +253,8 @@ export type TrainingSession = {
   foal_reaction: "calme" | "attentif" | "nerveux" | "agite" | "difficile" | null;
   // 061 — Balade GPS
   has_gps_track: boolean;
+  // 063 — TRAV-26 Amendé soft-delete
+  deleted_at: string | null;
   created_at: string;
 }
 
@@ -377,6 +379,9 @@ export type CoachPlannedSession = {
   created_at: string;
 }
 
+// TRAV-26 Amendé — statut_planification enum
+export type StatutPlanification = "planifiee" | "realisee" | "remplacee" | "annulee";
+
 export type TrainingPlannedSession = {
   id: string;
   horse_id: string;
@@ -389,6 +394,12 @@ export type TrainingPlannedSession = {
   notes: string | null;
   status: "planned" | "skipped";
   linked_session_id: string | null;
+  // TRAV-26 Amendé — nouvelles colonnes
+  statut_planification: StatutPlanification;
+  replaced_by_session_id: string | null;
+  deleted_at: string | null;
+  annulee_auto_at: string | null;
+  notif_j_minus_1_sent_at: string | null;
   created_at: string;
 }
 

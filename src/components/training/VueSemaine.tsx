@@ -757,53 +757,50 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
           </div>
         )}
 
-        {/* Planned sessions */}
-        {/* P2 3.3 — Carte planifiée simplifiée : contour pointillé seul, pas de fond coloré */}
+        {/* Planned sessions — TRAV-26 Amendé §6.2 : bordure dashed orange + 3 boutons TOUJOURS visibles */}
         {selectedDayActivePlanned.map((p) => (
           <div
             key={p.id}
-            className="flex items-stretch gap-0 mb-2 rounded-xl border-2 border-dashed border-gray-300 bg-white overflow-hidden"
+            className="flex items-stretch gap-0 mb-2 rounded-xl border-2 border-dashed border-orange/40 bg-white overflow-hidden"
           >
-            <div className="w-1 bg-gray-300 flex-shrink-0 rounded-l-xl" />
-            <div className="flex items-center gap-2 flex-1 px-3 py-2">
-              <span className="text-base leading-none flex-shrink-0">{TRAINING_EMOJIS[p.type] || "🏇"}</span>
+            <div className="w-1 bg-orange/50 flex-shrink-0 rounded-l-xl" />
+            <div className="flex items-center gap-2 flex-1 px-3 py-2.5">
+              <span className="text-[22px] leading-none flex-shrink-0">{TRAINING_EMOJIS[p.type] || "🐴"}</span>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-sm font-semibold text-gray-600">
+                  <span className="text-sm font-bold text-gray-800">
                     {TRAINING_TYPE_LABELS[p.type] || p.type}
                   </span>
                   {p.duration_min_target && (
-                    <span className="text-xs text-gray-400">{p.duration_min_target}min</span>
+                    <span className="text-xs text-gray-500">{p.duration_min_target}min</span>
                   )}
+                  <span className="text-2xs font-semibold text-orange bg-orange-light px-1.5 py-0.5 rounded-full">Planifié</span>
                 </div>
                 {p.notes && <p className="text-2xs text-gray-400 truncate mt-0.5">{p.notes}</p>}
               </div>
-              <div className="flex gap-0.5 flex-shrink-0">
-                {!selectedDayIsPast && (
-                  <button
-                    onClick={() => handleConfirmSession(p, selectedDateKey)}
-                    title="Fait ✓"
-                    className="p-1.5 rounded-md bg-green-50 text-green-600 hover:bg-green-100 transition-colors"
-                  >
-                    <Check className="h-3.5 w-3.5" />
-                  </button>
-                )}
+              {/* Décision A : 3 boutons TOUJOURS visibles (passé/présent/futur) — 44×44px min */}
+              <div className="flex gap-1 flex-shrink-0">
+                <button
+                  onClick={() => handleConfirmSession(p, selectedDateKey)}
+                  title="Fait ✓"
+                  className="w-[44px] h-[44px] flex items-center justify-center rounded-lg bg-green-100 text-green-700 hover:bg-green-200 transition-colors"
+                >
+                  <Check className="h-5 w-5" />
+                </button>
                 <button
                   onClick={() => openLogModal(selectedDateKey, p)}
-                  title="Compléter"
-                  className="p-1.5 rounded-md text-gray-400 hover:bg-gray-100 transition-colors"
+                  title="Modifier"
+                  className="w-[44px] h-[44px] flex items-center justify-center rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors"
                 >
-                  <Pencil className="h-3 w-3" />
+                  <Pencil className="h-4 w-4" />
                 </button>
-                {!selectedDayIsPast && (
-                  <button
-                    onClick={() => skipPlanned(p.id)}
-                    title="Reporter"
-                    className="p-1.5 rounded-md text-gray-300 hover:bg-red-50 hover:text-danger transition-colors"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                )}
+                <button
+                  onClick={() => skipPlanned(p.id)}
+                  title="Supprimer"
+                  className="w-[44px] h-[44px] flex items-center justify-center rounded-lg bg-gray-100 text-gray-400 hover:bg-red-50 hover:text-danger transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
               </div>
             </div>
           </div>
@@ -853,6 +850,28 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
                     {["", "🤕", "😕", "😐", "🙂", "😄"][s.feeling] ?? ""}
                   </span>
                 )}
+              </div>
+              {/* Décision B : 2 boutons ✏️/✗ toujours visibles sur enregistrées — 44×44px min */}
+              <div className="flex gap-1 flex-shrink-0 ml-1">
+                <button
+                  onClick={() => openLogModal(s.date, undefined)}
+                  title="Modifier"
+                  className="w-[44px] h-[44px] flex items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 transition-colors"
+                >
+                  <Pencil className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={async () => {
+                    // TRAV-26 Amendé §E : soft-delete (pas de hard delete)
+                    await supabase.from("training_sessions").update({ deleted_at: new Date().toISOString() }).eq("id", s.id);
+                    toast.success(`Séance ${TRAINING_TYPE_LABELS[s.type] || s.type} supprimée`);
+                    startTransition(() => router.refresh());
+                  }}
+                  title="Supprimer"
+                  className="w-[44px] h-[44px] flex items-center justify-center rounded-lg text-gray-300 hover:bg-red-50 hover:text-danger transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
               </div>
             </div>
           </div>

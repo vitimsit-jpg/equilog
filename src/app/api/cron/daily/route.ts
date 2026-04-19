@@ -29,12 +29,13 @@ export async function GET(request: NextRequest) {
   }
 
   const supabase = createAdminClient();
-  const results = { healthReminders: 0, scoreAlerts: 0, rehabCompleted: 0, recurringBudget: 0, errors: 0 };
+  const results = { healthReminders: 0, scoreAlerts: 0, rehabCompleted: 0, recurringBudget: 0, autoAnnulated: 0, errors: 0 };
 
   const today = new Date();
   const todayStr = formatDate(today, "yyyy-MM-dd");
   const targetDate = addDays(today, 7);
   const targetStr = formatDate(targetDate, "yyyy-MM-dd");
+  const sevenDaysAgoStr = formatDate(addDays(today, -7), "yyyy-MM-dd");
 
   // ── Fetch initiale en parallèle (aucune requête dans les boucles après) ─────
   const [
@@ -42,6 +43,7 @@ export async function GET(request: NextRequest) {
     { data: horses },
     { data: activeProtocols },
     { data: templates },
+    { data: expiredPlanned },
   ] = await Promise.all([
     supabase
       .from("health_records")
@@ -59,6 +61,13 @@ export async function GET(request: NextRequest) {
       .select("id, horse_id, date, category, amount, description, recurrence_frequency")
       .eq("is_recurring", true)
       .is("recurring_template_id", null),
+    // TRAV-26 §7 — Planned sessions périmées (J+7)
+    supabase
+      .from("training_planned_sessions")
+      .select("id, horse_id, type, date, horses(id, name, user_id)")
+      .eq("statut_planification", "planifiee")
+      .is("deleted_at", null)
+      .lt("date", sevenDaysAgoStr),
   ]);
 
   // Collecter tous les user_ids concernés pour batch fetch push_subscriptions
@@ -288,6 +297,77 @@ export async function GET(request: NextRequest) {
       }
     } catch {
       results.errors++;
+    }
+  }
+
+  // ── 5. Auto-annulation J+7 (TRAV-26 Amendé §7) ─────────────────────────────
+  if (expiredPlanned && expiredPlanned.length > 0) {
+    const nowIso = new Date().toISOString();
+    const expiredIds = expiredPlanned.map((p) => p.id);
+
+    // Batch update toutes les planned périmées
+    const { error: annulError } = await supabase
+      .from("training_planned_sessions")
+      .update({
+        statut_planification: "annulee",
+        annulee_auto_at: nowIso,
+        deleted_at: nowIso,
+      })
+      .in("id", expiredIds);
+
+    if (annulError) {
+      console.error("[cron/daily] auto-annulation failed:", annulError.message);
+      results.errors++;
+    } else {
+      results.autoAnnulated = expiredIds.length;
+
+      // Grouper par user_id + horse pour notification consolidée
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const byUserHorse: Record<string, { userId: string; horseName: string; horseId: string; count: number }> = {};
+      for (const p of expiredPlanned) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const horse = p.horses as any;
+        if (!horse?.user_id) continue;
+        const key = `${horse.user_id}:${horse.id}`;
+        if (!byUserHorse[key]) {
+          byUserHorse[key] = { userId: horse.user_id, horseName: horse.name, horseId: horse.id, count: 0 };
+        }
+        byUserHorse[key].count++;
+      }
+
+      // Fetch push subs pour les users concernés
+      const annulUserIds = Array.from(new Set(Object.values(byUserHorse).map((v) => v.userId)));
+      const { data: annulPushSubs } = annulUserIds.length
+        ? await supabase.from("push_subscriptions").select("user_id, endpoint, p256dh, auth").in("user_id", annulUserIds)
+        : { data: [] };
+      const annulPushByUser = groupByUserId(annulPushSubs as unknown as PushSub[]);
+
+      for (const entry of Object.values(byUserHorse)) {
+        const title = `${entry.horseName} — ${entry.count} séance${entry.count > 1 ? "s" : ""} planifiée${entry.count > 1 ? "s" : ""} annulée${entry.count > 1 ? "s" : ""}`;
+        const body = "Séances non réalisées depuis plus de 7 jours";
+
+        try {
+          await createNotification(supabase, entry.userId, {
+            type: "other",
+            title,
+            body,
+            url: `/horses/${entry.horseId}/training`,
+          });
+
+          for (const sub of annulPushByUser[entry.userId] || []) {
+            try {
+              await sendPushNotification(sub, { title, body, url: `${APP_URL}/horses/${entry.horseId}/training` });
+            } catch (err: unknown) {
+              const status = (err as { statusCode?: number })?.statusCode;
+              if (status === 410 || status === 404) {
+                await supabase.from("push_subscriptions").delete().eq("endpoint", sub.endpoint);
+              }
+            }
+          }
+        } catch {
+          results.errors++;
+        }
+      }
     }
   }
 

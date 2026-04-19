@@ -33,7 +33,7 @@ export async function GET(
   ] = await Promise.all([
     supabase.from("horses").select("*").eq("id", horseId).eq("user_id", user.id).single(),
     supabase.from("health_records").select("*").eq("horse_id", horseId).gte("date", since).order("date", { ascending: false }).limit(200),
-    supabase.from("training_sessions").select("*").eq("horse_id", horseId).gte("date", since).order("date", { ascending: false }).limit(400),
+    supabase.from("training_sessions").select("*").eq("horse_id", horseId).is("deleted_at", null).gte("date", since).order("date", { ascending: false }).limit(400),
     supabase.from("competitions").select("*").eq("horse_id", horseId).gte("date", since).order("date", { ascending: false }).limit(100),
     supabase.from("budget_entries").select("*").eq("horse_id", horseId).gte("date", since).order("date", { ascending: false }).limit(500),
   ]);

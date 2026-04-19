@@ -161,6 +161,7 @@ export default async function DashboardPage({
       .from("training_sessions")
       .select("*, horses!inner(user_id, name)")
       .eq("horses.user_id", authUser.id)
+      .is("deleted_at", null)
       .order("date", { ascending: false })
       .limit(5),
     supabase
@@ -185,6 +186,7 @@ export default async function DashboardPage({
           .from("training_sessions")
           .select("id", { count: "exact", head: true })
           .in("horse_id", horseIds)
+          .is("deleted_at", null)
           .gte("date", thirtyDaysAgo)
       : Promise.resolve({ count: 0 }),
     horseIds.length
@@ -198,6 +200,7 @@ export default async function DashboardPage({
           .from("training_sessions")
           .select("id, horse_id, date, type, intensity, duration_min, coach_present, rider, est_complement")
           .in("horse_id", horseIds)
+          .is("deleted_at", null)
           .gte("date", weekStartStr)
           .lte("date", weekEndStr)
           .order("date", { ascending: true })
@@ -217,6 +220,7 @@ export default async function DashboardPage({
         .from("training_planned_sessions")
         .select("id, horse_id, date, type, qui_sen_occupe, status, duration_min_target, intensity_target, notes, linked_session_id")
         .in("horse_id", horseIds)
+        .is("deleted_at", null)
         .gte("date", weekStartStr)
         .lte("date", weekEndStr)
         .eq("status", "planned")
@@ -229,6 +233,7 @@ export default async function DashboardPage({
       .from("training_sessions")
       .select("horse_id, date, notes, type")
       .in("horse_id", horseIds)
+      .is("deleted_at", null)
       .order("date", { ascending: false })
       .limit(horseIds.length * 2);
     (lastSessions || []).forEach((s) => {
@@ -463,7 +468,7 @@ export default async function DashboardPage({
     if (otherEcurieIds.length > 0) {
       const fiveDaysAgo = format(subDays(now, 5), "yyyy-MM-dd");
       const [{ data: feedSessions }, { data: feedComps }] = await Promise.all([
-        supabase.from("training_sessions").select("id, horse_id, date, type").in("horse_id", otherEcurieIds).gte("date", fiveDaysAgo).order("date", { ascending: false }).limit(6),
+        supabase.from("training_sessions").select("id, horse_id, date, type").in("horse_id", otherEcurieIds).is("deleted_at", null).gte("date", fiveDaysAgo).order("date", { ascending: false }).limit(6),
         supabase.from("competitions").select("id, horse_id, date, event_name").in("horse_id", otherEcurieIds).gte("date", fiveDaysAgo).order("date", { ascending: false }).limit(4),
       ]);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

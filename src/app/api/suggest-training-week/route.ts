@@ -47,6 +47,7 @@ export async function POST(request: NextRequest) {
     .from("training_sessions")
     .select("date, type, duration_min, intensity, feeling")
     .eq("horse_id", horseId)
+    .is("deleted_at", null)
     .gte("date", since.toISOString().split("T")[0])
     .order("date", { ascending: false });
 

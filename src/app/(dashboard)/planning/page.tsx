@@ -39,6 +39,7 @@ export default async function PlanningPage() {
     .from("training_sessions")
     .select("*")
     .in("horse_id", horseIds)
+    .is("deleted_at", null)
     .gte("date", rangeStart)
     .lte("date", rangeEnd)
     .order("date", { ascending: true });
@@ -47,6 +48,7 @@ export default async function PlanningPage() {
     .from("training_planned_sessions")
     .select("*")
     .in("horse_id", horseIds)
+    .is("deleted_at", null)
     .gte("date", rangeStart)
     .lte("date", rangeEnd)
     .order("date", { ascending: true });

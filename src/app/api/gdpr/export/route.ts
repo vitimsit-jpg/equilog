@@ -46,8 +46,8 @@ export async function GET() {
     { data: historyEvents },
   ] = await Promise.all([
     admin.from("health_records").select("*").in("horse_id", horseIds),
-    admin.from("training_sessions").select("*").in("horse_id", horseIds),
-    admin.from("training_planned_sessions").select("*").in("horse_id", horseIds),
+    admin.from("training_sessions").select("*").in("horse_id", horseIds).is("deleted_at", null),
+    admin.from("training_planned_sessions").select("*").in("horse_id", horseIds).is("deleted_at", null),
     admin.from("competitions").select("*").in("horse_id", horseIds),
     admin.from("budget_entries").select("*").in("horse_id", horseIds),
     admin.from("horse_nutrition").select("*").in("horse_id", horseIds),

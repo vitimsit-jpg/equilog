@@ -34,6 +34,7 @@ export default async function EcuriePage({ params }: Props) {
       .from("training_sessions")
       .select("*, horses!inner(name)")
       .in("horse_id", horseIds)
+      .is("deleted_at", null)
       .order("date", { ascending: false })
       .limit(20),
     supabase

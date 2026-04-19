@@ -107,6 +107,7 @@ export default async function HorsePage({ params }: Props) {
       .from("training_sessions")
       .select("date, type")
       .eq("horse_id", horse.id)
+      .is("deleted_at", null)
       .order("date", { ascending: false }),
     supabase
       .from("competitions")

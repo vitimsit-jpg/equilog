@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     { data: scores },
     { data: healthRecords },
   ] = await Promise.all([
-    supabase.from("training_sessions").select("*").eq("horse_id", horseId).order("date", { ascending: false }).limit(28),
+    supabase.from("training_sessions").select("*").eq("horse_id", horseId).is("deleted_at", null).order("date", { ascending: false }).limit(28),
     supabase.from("competitions").select("*").eq("horse_id", horseId).order("date", { ascending: false }).limit(5),
     supabase.from("horse_scores").select("*").eq("horse_id", horseId).order("computed_at", { ascending: false }).limit(1),
     supabase.from("health_records").select("*").eq("horse_id", horseId).order("date", { ascending: false }).limit(10),

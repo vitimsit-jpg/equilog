@@ -37,6 +37,7 @@ export default async function BaladePage({ params }: Props) {
         .from("training_sessions")
         .select("id, date, duration_min, intensity, feeling, notes")
         .in("id", trackSessionIds)
+        .is("deleted_at", null)
     : { data: [] };
 
   // Combiner tracks + sessions

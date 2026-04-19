@@ -61,6 +61,7 @@ export async function GET(request: NextRequest) {
       .from("training_sessions")
       .select("horse_id, duration_min")
       .in("horse_id", allHorseIds)
+      .is("deleted_at", null)
       .gte("date", weekAgoStr),
     supabase
       .from("horse_scores")
@@ -72,6 +73,7 @@ export async function GET(request: NextRequest) {
       .from("training_planned_sessions")
       .select("horse_id, id, status")
       .in("horse_id", allHorseIds)
+      .is("deleted_at", null)
       .gte("date", weekAgoStr)
       .lte("date", todayStr),
     supabase

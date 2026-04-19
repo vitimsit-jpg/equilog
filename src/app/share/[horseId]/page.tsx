@@ -29,8 +29,8 @@ export default async function PublicHorseProfilePage({ params }: Props) {
   ] = await Promise.all([
     supabase.from("horse_scores").select("*").eq("horse_id", horse.id).order("computed_at", { ascending: false }).limit(1),
     supabase.from("competitions").select("*").eq("horse_id", horse.id).order("date", { ascending: false }).limit(50),
-    supabase.from("training_sessions").select("*").eq("horse_id", horse.id).order("date", { ascending: false }).limit(30),
-    supabase.from("training_sessions").select("id", { count: "exact", head: true }).eq("horse_id", horse.id),
+    supabase.from("training_sessions").select("*").eq("horse_id", horse.id).is("deleted_at", null).order("date", { ascending: false }).limit(30),
+    supabase.from("training_sessions").select("id", { count: "exact", head: true }).eq("horse_id", horse.id).is("deleted_at", null),
   ]);
 
   const currentScore = scores?.[0] ?? null;

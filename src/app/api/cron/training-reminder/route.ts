@@ -31,7 +31,8 @@ export async function GET(request: NextRequest) {
     .select("id, type, duration_min_target, horses(id, name, user_id)")
     .eq("date", tomorrowStr)
     .eq("status", "planned")
-    .is("linked_session_id", null);
+    .is("linked_session_id", null)
+    .is("deleted_at", null);
 
   if (!planned || planned.length === 0) {
     return NextResponse.json({ ok: true, ...results });

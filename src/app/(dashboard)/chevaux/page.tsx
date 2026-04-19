@@ -29,7 +29,7 @@ export default async function ChevauxPage() {
     { data: scores },
   ] = await Promise.all([
     horseIds.length
-      ? supabase.from("training_sessions").select("horse_id, date, type").in("horse_id", horseIds).order("date", { ascending: false }).limit(horseIds.length * 3)
+      ? supabase.from("training_sessions").select("horse_id, date, type").in("horse_id", horseIds).is("deleted_at", null).order("date", { ascending: false }).limit(horseIds.length * 3)
       : Promise.resolve({ data: [] }),
     horseIds.length
       ? supabase.from("health_records").select("horse_id").in("horse_id", horseIds).not("next_date", "is", null).lt("next_date", today)

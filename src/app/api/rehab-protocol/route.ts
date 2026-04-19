@@ -86,6 +86,7 @@ export async function POST(request: NextRequest) {
     .from("training_sessions")
     .select("*")
     .eq("horse_id", horseId)
+    .is("deleted_at", null)
     .gte("date", cutoff)
     .order("date", { ascending: false });
 

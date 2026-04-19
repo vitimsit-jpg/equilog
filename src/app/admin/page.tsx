@@ -34,7 +34,7 @@ export default async function AdminPage() {
     admin.rpc("get_active_users_count", { days_back: 7 }),
     admin.rpc("get_active_users_count", { days_back: 30 }),
     admin.rpc("get_sessions_count", { days_back: 7 }),
-    admin.from("training_sessions").select("*", { count: "exact", head: true }),
+    admin.from("training_sessions").select("*", { count: "exact", head: true }).is("deleted_at", null),
     admin.from("health_records").select("*", { count: "exact", head: true }),
     admin.from("users")
       .select("id")

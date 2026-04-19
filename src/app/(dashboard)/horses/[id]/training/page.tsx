@@ -38,11 +38,13 @@ export default async function TrainingPage({ params }: Props) {
       .from("training_sessions")
       .select("*")
       .eq("horse_id", horse.id)
+      .is("deleted_at", null)
       .order("date", { ascending: false }),
     supabase
       .from("training_planned_sessions")
       .select("*")
       .eq("horse_id", horse.id)
+      .is("deleted_at", null)
       .order("date", { ascending: true }),
     supabase
       .from("health_records")

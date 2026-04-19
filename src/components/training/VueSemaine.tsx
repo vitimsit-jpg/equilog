@@ -321,17 +321,58 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
     }
   };
 
-  const skipPlanned = async (id: string) => {
+  // TRAV-26 Amendé §5 — Toast undo suppression 5s
+  const softDeleteToast = (
+    table: "training_sessions" | "training_planned_sessions",
+    id: string,
+    label: string
+  ) => {
+    toast.custom(
+      (t) => (
+        <div
+          className={`${
+            t.visible ? "animate-enter" : "animate-leave"
+          } flex items-center gap-3 px-4 py-3 rounded-lg bg-[#1A1A1A] text-white text-sm shadow-lg`}
+        >
+          <span>{label} supprimée</span>
+          <button
+            onClick={async () => {
+              const undoData: Record<string, unknown> = { deleted_at: null };
+              if (table === "training_planned_sessions") {
+                undoData.statut_planification = "planifiee";
+              }
+              await supabase.from(table).update(undoData).eq("id", id);
+              toast.dismiss(t.id);
+              startTransition(() => router.refresh());
+            }}
+            className="font-bold text-orange hover:text-orange-light transition-colors whitespace-nowrap"
+          >
+            Annuler
+          </button>
+        </div>
+      ),
+      { duration: 5000 }
+    );
+  };
+
+  const skipPlanned = async (id: string, type: string) => {
     const { error } = await supabase
       .from("training_planned_sessions")
-      .update({ status: "skipped" })
+      .update({ statut_planification: "annulee", deleted_at: new Date().toISOString() })
       .eq("id", id);
-    if (error) toast.error("Erreur");
-    else startTransition(() => router.refresh());
+    if (error) {
+      toast.error("Erreur");
+      return;
+    }
+    startTransition(() => router.refresh());
+    softDeleteToast("training_planned_sessions", id, `Séance planifiée ${TRAINING_TYPE_LABELS[type] || type}`);
   };
 
   const deletePlanned = async (id: string) => {
-    const { error } = await supabase.from("training_planned_sessions").delete().eq("id", id);
+    const { error } = await supabase
+      .from("training_planned_sessions")
+      .update({ deleted_at: new Date().toISOString() })
+      .eq("id", id);
     if (error) toast.error("Erreur");
     else { toast.success("Séance supprimée"); startTransition(() => router.refresh()); }
   };
@@ -811,7 +852,7 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
                   <Pencil className="h-4 w-4" />
                 </button>
                 <button
-                  onClick={() => skipPlanned(p.id)}
+                  onClick={() => skipPlanned(p.id, p.type)}
                   title="Supprimer"
                   className="w-[44px] h-[44px] flex items-center justify-center rounded-lg bg-gray-100 text-gray-400 hover:bg-red-50 hover:text-danger transition-colors"
                 >
@@ -878,10 +919,10 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
                 </button>
                 <button
                   onClick={async () => {
-                    // TRAV-26 Amendé §E : soft-delete (pas de hard delete)
+                    // TRAV-26 Amendé §5 : soft-delete + toast undo 5s
                     await supabase.from("training_sessions").update({ deleted_at: new Date().toISOString() }).eq("id", s.id);
-                    toast.success(`Séance ${TRAINING_TYPE_LABELS[s.type] || s.type} supprimée`);
                     startTransition(() => router.refresh());
+                    softDeleteToast("training_sessions", s.id, `Séance ${TRAINING_TYPE_LABELS[s.type] || s.type}`);
                   }}
                   title="Supprimer"
                   className="w-[44px] h-[44px] flex items-center justify-center rounded-lg text-gray-300 hover:bg-red-50 hover:text-danger transition-colors"

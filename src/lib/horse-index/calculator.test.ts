@@ -50,6 +50,8 @@ function makeSession(
     note_vocale_brute: null,
     session_type: null,
     foal_reaction: null,
+    has_gps_track: false,
+    deleted_at: null,
     created_at: FROZEN_NOW.toISOString(),
     ...overrides,
   };

@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     { data: competitions },
     { data: wearableData },
   ] = await Promise.all([
-    supabase.from("training_sessions").select("date, duration_min, feeling, intensity, equipement_recuperation").eq("horse_id", horseId).gte("date", windowStartStr),
+    supabase.from("training_sessions").select("date, duration_min, feeling, intensity, equipement_recuperation").eq("horse_id", horseId).is("deleted_at", null).gte("date", windowStartStr),
     supabase.from("health_records").select("date, type, next_date, urgency, vet_name").eq("horse_id", horseId),
     supabase.from("competitions").select("date, result_rank, total_riders").eq("horse_id", horseId).gte("date", windowStartStr),
     supabase.from("wearable_data").select("id").eq("horse_id", horseId).limit(1),

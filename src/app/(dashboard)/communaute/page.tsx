@@ -419,6 +419,7 @@ export default async function CommunautePage({ searchParams }: Props) {
           .from("training_sessions")
           .select("horse_id, date, type")
           .in("horse_id", userHorseIds)
+          .is("deleted_at", null)
           .gte("date", earliestStart)
           .lte("date", today)
       : { data: [] };
@@ -551,7 +552,7 @@ export default async function CommunautePage({ searchParams }: Props) {
     { data: myReactions },
   ] = await Promise.all([
     feedHorseIds.length
-      ? supabase.from("training_sessions").select("*").in("horse_id", feedHorseIds).order("date", { ascending: false }).limit(30)
+      ? supabase.from("training_sessions").select("*").in("horse_id", feedHorseIds).is("deleted_at", null).order("date", { ascending: false }).limit(30)
       : Promise.resolve({ data: [] }),
     feedHorseIds.length
       ? supabase.from("competitions").select("*").in("horse_id", feedHorseIds).order("date", { ascending: false }).limit(20)

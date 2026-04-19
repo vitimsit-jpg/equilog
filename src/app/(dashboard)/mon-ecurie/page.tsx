@@ -83,6 +83,7 @@ export default async function MonEcuriePage() {
       .from("training_sessions")
       .select("horse_id, date, type, duration_min, intensity")
       .in("horse_id", myHorseIds)
+      .is("deleted_at", null)
       .gte("date", sevenDaysAgoStr)
       .order("date", { ascending: false }),
     supabase

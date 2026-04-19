@@ -506,13 +506,15 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
             const dayMainSessions = daySessions.filter(s => !s.est_complement && s.type !== "marcheur" && s.type !== "paddock");
             const dayComplements = daySessions.filter(s => s.est_complement || s.type === "marcheur" || s.type === "paddock");
 
-            // TRAV-25 — Logique d'affichage de la case
+            // TRAV-26 Amendé §5.3 — Logique d'affichage de la case
             const hasLoggedSession = dayMainSessions.length > 0;
-            const hasPlannedFuture = activePlanned.length > 0 && !isPast;
-            const hasPlannedPast = activePlanned.length > 0 && isPast && !isCurrentDay;
-            const hasComplementOnly = !hasLoggedSession && activePlanned.length === 0 && dayComplements.length > 0;
-            const isRest = !hasLoggedSession && activePlanned.length === 0 && dayComplements.length === 0;
+            const hasOrphanPlanned = activePlanned.length > 0; // planned non liée à une session
+            const hasPlannedFuture = hasOrphanPlanned && !isPast && !isCurrentDay;
+            const hasComplementOnly = !hasLoggedSession && !hasOrphanPlanned && dayComplements.length > 0;
+            const isRest = !hasLoggedSession && !hasOrphanPlanned && dayComplements.length === 0;
             const hasComplementWithSession = hasLoggedSession && dayComplements.length > 0;
+            // Double indicateur : enregistrée + orpheline sur le même jour
+            const hasDoubleIndicator = hasLoggedSession && hasOrphanPlanned;
 
             // Emoji type de séance (P1 2.3 — remplace les rôle emoji)
             const mainItem = hasLoggedSession ? dayMainSessions[0] : (activePlanned[0] ?? null);
@@ -607,16 +609,27 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
                   </div>
                 )}
 
-                {/* Signal bas : ✓ vert (logué) ou ⏱ (planifié) */}
-                <div className="h-3 flex items-center justify-center mt-auto">
-                  {hasLoggedSession && (
+                {/* TRAV-26 Amendé §5.3 — Indicateur d'état (coin bas du chip) */}
+                <div className="h-4 flex items-center justify-center gap-0.5 mt-auto">
+                  {/* Jour futur → AUCUN indicateur */}
+                  {/* Double indicateur ✓+⏱ : enregistrée + orpheline sur le même jour */}
+                  {hasDoubleIndicator && (isPast || isCurrentDay) && (
+                    <>
+                      <span className="text-[11px] font-black text-green-600 leading-none">✓</span>
+                      <span className="text-[9px] leading-none">⏱</span>
+                    </>
+                  )}
+                  {/* ✓ seul : enregistrée sans orpheline */}
+                  {hasLoggedSession && !hasDoubleIndicator && (
                     <span className="text-[12px] font-black text-green-600 leading-none">✓</span>
                   )}
-                  {!hasLoggedSession && (hasPlannedFuture || hasPlannedPast) && (
+                  {/* ⏱ seul : orpheline passée/aujourd'hui sans enregistrée — PAS sur futur */}
+                  {!hasLoggedSession && hasOrphanPlanned && (isPast || isCurrentDay) && (
                     <span className="text-[10px] leading-none">⏱</span>
                   )}
-                  {hasComplementWithSession && (
-                    <span className="text-[10px] leading-none ml-1">🌾</span>
+                  {/* 🌾 complément avec séance */}
+                  {hasComplementWithSession && !hasDoubleIndicator && (
+                    <span className="text-[10px] leading-none ml-0.5">🌾</span>
                   )}
                 </div>
               </button>
@@ -674,9 +687,12 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
                 {format(selectedDay, "EEEE d MMMM", { locale: fr })}
               </h3>
               {selectedDayIsToday && (
-                <span className="text-2xs font-semibold text-orange">Aujourd&apos;hui</span>
+                <span className="text-2xs font-semibold text-orange">
+                  {selectedDayActivePlanned.length > 0 ? "À enregistrer aujourd\u0027hui" : "Aujourd\u0027hui"}
+                </span>
               )}
-              {!selectedDayIsToday && selectedDayState === "A_LOGGER" && (
+              {/* TRAV-26 Amendé §6.1 : "À enregistrer" si passé ET planifiée orpheline — indépendamment des enregistrées */}
+              {!selectedDayIsToday && selectedDayIsPast && selectedDayActivePlanned.length > 0 && (
                 <span className="text-2xs font-semibold text-orange">À enregistrer</span>
               )}
             </div>

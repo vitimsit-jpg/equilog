@@ -88,6 +88,7 @@ interface Props {
   horseId: string;
   horseName?: string;
   onSaved: () => void;
+  onSavedWithDetails?: (sessionId: string, sessionType: string) => void;
   todayPlanned?: TrainingPlannedSession | null;
   rehabProtocol?: RehabProtocol | null;
   horseMode?: HorseIndexMode | null;
@@ -100,7 +101,7 @@ interface Props {
 }
 
 export default function QuickTrainingModal({
-  open, onClose, horseId, horseName, onSaved,
+  open, onClose, horseId, horseName, onSaved, onSavedWithDetails,
   todayPlanned, rehabProtocol, horseMode, competitions, riderLog, prefill, initialMode,
   defaultWorkType, defaultNote,
 }: Props) {
@@ -115,6 +116,8 @@ export default function QuickTrainingModal({
   const [pendingMilestones, setPendingMilestones] = useState<HorseGrowthMilestone[]>([]);
   const [selectedMilestoneId, setSelectedMilestoneId] = useState<string | null>(null);
   const [milestoneLoading, setMilestoneLoading] = useState(false);
+  // Stocke la session créée pour que handleMilestoneValidate puisse notifier onSavedWithDetails
+  const [lastInserted, setLastInserted] = useState<{ id: string; type: string } | null>(null);
   const [mode, setMode] = useState<"log" | "plan">(initialMode ?? "log");
   const [planDate, setPlanDate] = useState(format(addDays(new Date(), 1), "yyyy-MM-dd"));
 
@@ -329,7 +332,7 @@ export default function QuickTrainingModal({
       return;
     }
 
-    const { error } = await supabase.from("training_sessions").insert(payload as Partial<TrainingSession>);
+    const { data: insertedSession, error } = await supabase.from("training_sessions").insert(payload as Partial<TrainingSession>).select("id").single();
     if (error) {
       toast.error("Erreur lors de l'enregistrement");
       setLoading(false);
@@ -343,8 +346,18 @@ export default function QuickTrainingModal({
       properties: { type: effectiveType, mode: "quick", duration_min: effectiveDuration, rider: rider || "complement_only" },
     });
 
+    // Helper: appeler le bon callback (avec ou sans détails)
+    const notifySaved = () => {
+      if (onSavedWithDetails && insertedSession) {
+        onSavedWithDetails(insertedSession.id, effectiveType);
+      } else {
+        onSaved();
+      }
+    };
+
     // ICr — proposer la validation d'un jalon après la séance
     if (horseMode === "ICr") {
+      if (insertedSession) setLastInserted({ id: insertedSession.id, type: effectiveType });
       const { data: ms } = await supabase
         .from("horse_growth_milestones")
         .select("*")
@@ -358,11 +371,11 @@ export default function QuickTrainingModal({
 
     if (!isOnlyComplement && feelingValue === 1) {
       setShowHealthBridge(true);
-      onSaved();
+      notifySaved();
     } else {
       const msg = computeCoachMsg();
-      if (msg) { setCoachMsg(msg); setShowCoachMsg(true); onSaved(); }
-      else { reset(); onSaved(); }
+      if (msg) { setCoachMsg(msg); setShowCoachMsg(true); notifySaved(); }
+      else { reset(); notifySaved(); }
     }
     setLoading(false);
   };
@@ -393,6 +406,7 @@ export default function QuickTrainingModal({
     setShowMilestoneStep(false);
     setPendingMilestones([]);
     setSelectedMilestoneId(null);
+    setLastInserted(null);
     setMode(initialMode ?? "log");
     setPlanDate(format(addDays(new Date(), 1), "yyyy-MM-dd"));
   };
@@ -411,7 +425,11 @@ export default function QuickTrainingModal({
       toast.success("Jalon validé !");
     }
     reset();
-    onSaved();
+    if (onSavedWithDetails && lastInserted) {
+      onSavedWithDetails(lastInserted.id, lastInserted.type);
+    } else {
+      onSaved();
+    }
   };
 
   // suppress unused import warning
@@ -473,7 +491,14 @@ export default function QuickTrainingModal({
 
           <div className="flex gap-2 pt-1">
             <button
-              onClick={() => { reset(); onSaved(); }}
+              onClick={() => {
+                reset();
+                if (onSavedWithDetails && lastInserted) {
+                  onSavedWithDetails(lastInserted.id, lastInserted.type);
+                } else {
+                  onSaved();
+                }
+              }}
               className="btn-ghost flex-1 text-sm py-2.5"
             >
               Ignorer

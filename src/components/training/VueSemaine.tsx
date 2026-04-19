@@ -109,6 +109,12 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
   const [copyingPrev, setCopyingPrev] = useState(false);
   const [suggestingIA, setSuggestingIA] = useState(false);
   const [confirmToast, setConfirmToast] = useState<ConfirmToast | null>(null);
+  // TRAV-26 Amendé §6 — Modale orpheline
+  const [orphanContext, setOrphanContext] = useState<{
+    plannedSession: TrainingPlannedSession;
+    newSessionId: string;
+    newSessionType: string;
+  } | null>(null);
 
   // Swipe refs
   const stripSwipeRef = useRef<number | null>(null);
@@ -248,6 +254,37 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
       setLogPrefill(null);
     }
     setShowLogModal(true);
+  };
+
+  // TRAV-26 Amendé §6 — Après enregistrement, détecter orphelins
+  const handleSessionSaved = async (sessionId: string, sessionType: string) => {
+    setShowLogModal(false);
+    setLogPrefill(null);
+
+    // Chercher une planned orpheline sur la même date
+    const { data: orphans } = await supabase
+      .from("training_planned_sessions")
+      .select("*")
+      .eq("horse_id", horseId)
+      .eq("date", selectedDateKey)
+      .is("linked_session_id", null)
+      .is("deleted_at", null)
+      .eq("statut_planification", "planifiee");
+
+    if (orphans && orphans.length > 0) {
+      const orphan = orphans[0];
+      if (orphan.type === sessionType) {
+        // Même type → auto-link silencieux
+        await supabase
+          .from("training_planned_sessions")
+          .update({ linked_session_id: sessionId, statut_planification: "realisee" })
+          .eq("id", orphan.id);
+      } else {
+        // Type différent → modale orpheline
+        setOrphanContext({ plannedSession: orphan, newSessionId: sessionId, newSessionType: sessionType });
+      }
+    }
+    startTransition(() => router.refresh());
   };
 
   const handleConfirmSession = async (planned: TrainingPlannedSession, dateKey: string) => {
@@ -1201,8 +1238,74 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
         onClose={() => { setShowLogModal(false); setLogPrefill(null); }}
         horseId={horseId}
         onSaved={() => { setShowLogModal(false); setLogPrefill(null); startTransition(() => router.refresh()); }}
+        onSavedWithDetails={handleSessionSaved}
         prefill={logPrefill}
       />
+
+      {/* TRAV-26 Amendé §6 — Modale orpheline */}
+      <Modal
+        open={!!orphanContext}
+        onClose={() => setOrphanContext(null)}
+        title="Séance planifiée en attente"
+        size="sm"
+      >
+        {orphanContext && (
+          <div>
+            <p className="text-sm text-gray-600 mb-5">
+              Vous aviez planifié{" "}
+              <strong>
+                {TRAINING_EMOJIS[orphanContext.plannedSession.type] || "🐴"}{" "}
+                {TRAINING_TYPE_LABELS[orphanContext.plannedSession.type] || orphanContext.plannedSession.type}
+              </strong>{" "}
+              mais avez enregistré{" "}
+              <strong>
+                {TRAINING_EMOJIS[orphanContext.newSessionType] || "🐴"}{" "}
+                {TRAINING_TYPE_LABELS[orphanContext.newSessionType] || orphanContext.newSessionType}
+              </strong>.
+            </p>
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={async () => {
+                  await supabase
+                    .from("training_planned_sessions")
+                    .update({
+                      statut_planification: "remplacee",
+                      replaced_by_session_id: orphanContext.newSessionId,
+                    })
+                    .eq("id", orphanContext.plannedSession.id);
+                  setOrphanContext(null);
+                  startTransition(() => router.refresh());
+                }}
+                className="w-full py-3 px-4 rounded-xl bg-orange text-white font-semibold text-sm hover:bg-orange/90 transition-colors"
+              >
+                Remplacer la planifiée
+              </button>
+              <button
+                onClick={async () => {
+                  await supabase
+                    .from("training_planned_sessions")
+                    .update({
+                      statut_planification: "annulee",
+                      deleted_at: new Date().toISOString(),
+                    })
+                    .eq("id", orphanContext.plannedSession.id);
+                  setOrphanContext(null);
+                  startTransition(() => router.refresh());
+                }}
+                className="w-full py-3 px-4 rounded-xl bg-gray-100 text-gray-700 font-semibold text-sm hover:bg-gray-200 transition-colors"
+              >
+                Annuler la planifiée
+              </button>
+              <button
+                onClick={() => setOrphanContext(null)}
+                className="w-full py-3 px-4 rounded-xl text-gray-400 font-medium text-sm hover:text-gray-600 transition-colors"
+              >
+                Garder les deux
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

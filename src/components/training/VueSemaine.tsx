@@ -194,7 +194,7 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
   });
   const weekPlannedList = plannedSessions.filter((p) => {
     const d = parseISO(p.date);
-    return d >= weekStart && d <= weekEnd && p.status === "planned" && !p.linked_session_id;
+    return d >= weekStart && d <= weekEnd && p.statut_planification === "planifiee" && !p.linked_session_id;
   });
   const weekMainSessionsList = weekSessionsList.filter((s) => !s.est_complement && s.type !== "marcheur" && s.type !== "paddock");
   const weekMinutes = weekMainSessionsList.reduce((acc, s) => acc + s.duration_min, 0);
@@ -207,11 +207,11 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
   const prevWeekEnd = subWeeks(weekEnd, 1);
   const prevWeekPlanned = plannedSessions.filter((p) => {
     const d = parseISO(p.date);
-    return d >= prevWeekStart && d <= prevWeekEnd && p.status === "planned" && !p.linked_session_id;
+    return d >= prevWeekStart && d <= prevWeekEnd && p.statut_planification === "planifiee" && !p.linked_session_id;
   });
   const currentWeekHasPlanned = plannedSessions.some((p) => {
     const d = parseISO(p.date);
-    return d >= weekStart && d <= weekEnd && p.status === "planned" && !p.linked_session_id;
+    return d >= weekStart && d <= weekEnd && p.statut_planification === "planifiee" && !p.linked_session_id;
   });
   const canCopyPrev = isWeekFutureOrCurrent && !currentWeekHasPlanned && prevWeekPlanned.length > 0;
   const hasEverPlanned = plannedSessions.length > 0;
@@ -261,12 +261,15 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
     setShowLogModal(false);
     setLogPrefill(null);
 
+    // Utiliser selectedDate (fixé à l'ouverture du modal) plutôt que selectedDateKey (navigation globale)
+    const sessionDate = selectedDate || selectedDateKey;
+
     // Chercher une planned orpheline sur la même date
     const { data: orphans } = await supabase
       .from("training_planned_sessions")
       .select("*")
       .eq("horse_id", horseId)
-      .eq("date", selectedDateKey)
+      .eq("date", sessionDate)
       .is("linked_session_id", null)
       .is("deleted_at", null)
       .eq("statut_planification", "planifiee");
@@ -309,7 +312,7 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
     // P0 1.1 — Lier la planned à la session créée pour éviter la triplication
     const { error: linkError } = await supabase
       .from("training_planned_sessions")
-      .update({ linked_session_id: data.id })
+      .update({ linked_session_id: data.id, statut_planification: "realisee" })
       .eq("id", planned.id);
     if (linkError) {
       console.error("[P0 1.1] linked_session_id update failed:", linkError.message);
@@ -483,8 +486,7 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
   const selectedDay = days.find(d => format(d, "yyyy-MM-dd") === selectedDateKey) || days[0];
   const selectedDaySessions = sessionsByDate[selectedDateKey] || [];
   const selectedDayPlanned = plannedByDate[selectedDateKey] || [];
-  const selectedDayActivePlanned = selectedDayPlanned.filter(p => p.status === "planned" && !p.linked_session_id);
-  const selectedDaySkipped = selectedDayPlanned.filter(p => p.status === "skipped");
+  const selectedDayActivePlanned = selectedDayPlanned.filter(p => p.statut_planification === "planifiee" && !p.linked_session_id);
   const selectedDayIsToday = isToday(selectedDay);
   const selectedDayIsPast = isPastDay(selectedDay);
   const selectedDayHealth = healthByDate[selectedDateKey] || [];
@@ -504,7 +506,7 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
   const hasPaddock = selectedDayComplements.some(s => s.type === "paddock");
   const hasMarcheur = selectedDayComplements.some(s => s.type === "marcheur");
 
-  const hasAnything = selectedDayMainSessions.length > 0 || selectedDayActivePlanned.length > 0 || selectedDaySkipped.length > 0;
+  const hasAnything = selectedDayMainSessions.length > 0 || selectedDayActivePlanned.length > 0;
 
   // ── Render ────────────────────────────────────────────────────────
   return (
@@ -580,7 +582,7 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
             const isPast = isPastDay(day);
             const daySessions = sessionsByDate[dateKey] || [];
             const dayPlanned = plannedByDate[dateKey] || [];
-            const activePlanned = dayPlanned.filter(p => p.status === "planned" && !p.linked_session_id);
+            const activePlanned = dayPlanned.filter(p => p.statut_planification === "planifiee" && !p.linked_session_id);
             const dayMainSessions = daySessions.filter(s => !s.est_complement && s.type !== "marcheur" && s.type !== "paddock");
             const dayComplements = daySessions.filter(s => s.est_complement || s.type === "marcheur" || s.type === "paddock");
 
@@ -897,20 +899,6 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
                 </button>
               </div>
             </div>
-          </div>
-        ))}
-
-        {/* Skipped planned */}
-        {selectedDaySkipped.map((p) => (
-          <div key={p.id} className="flex items-center gap-2 mb-1.5 px-2.5 py-1.5 rounded-lg opacity-40">
-            <span className="text-sm leading-none flex-shrink-0">{TRAINING_EMOJIS[p.type] || "🏇"}</span>
-            <span className="text-xs text-gray-400 line-through flex-1">{TRAINING_TYPE_LABELS[p.type] || p.type}</span>
-            <button
-              onClick={() => deletePlanned(p.id)}
-              className="p-1 hover:bg-red-50 rounded text-gray-300 hover:text-danger transition-colors"
-            >
-              <X className="h-3 w-3" />
-            </button>
           </div>
         ))}
 

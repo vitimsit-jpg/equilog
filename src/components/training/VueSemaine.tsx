@@ -976,8 +976,7 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
               }`}
             >
               <span>🌿</span>
-              <span>Paddock</span>
-              {hasPaddock && <Check className="h-3 w-3" />}
+              <span>{hasPaddock ? "Paddock ✔" : "Paddock"}</span>
             </button>
             <button
               onClick={() => toggleComplement("marcheur")}
@@ -988,8 +987,7 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
               }`}
             >
               <span>🚶</span>
-              <span>Marcheur</span>
-              {hasMarcheur && <Check className="h-3 w-3" />}
+              <span>{hasMarcheur ? "Marcheur ✔" : "Marcheur"}</span>
             </button>
           </div>
         </div>

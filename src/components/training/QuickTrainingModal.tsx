@@ -79,6 +79,7 @@ export interface PrefillData {
   rider?: TrainingRider | null;
   duration?: number | null;
   intensity?: number | null;
+  feeling?: number | null;
   duree_planifiee?: number | null;
 }
 
@@ -95,6 +96,7 @@ interface Props {
   competitions?: { id: string; event_name: string; date: string }[] | null;
   riderLog?: { forme: string | null; douleurs: string[] | null; douleur_intensite: string | null } | null;
   prefill?: PrefillData | null;
+  editSessionId?: string | null;
   initialMode?: "log" | "plan";
   defaultWorkType?: TrainingType | null;
   defaultNote?: string | null;
@@ -102,7 +104,7 @@ interface Props {
 
 export default function QuickTrainingModal({
   open, onClose, horseId, horseName, onSaved, onSavedWithDetails,
-  todayPlanned, rehabProtocol, horseMode, competitions, riderLog, prefill, initialMode,
+  todayPlanned, rehabProtocol, horseMode, competitions, riderLog, prefill, editSessionId, initialMode,
   defaultWorkType, defaultNote,
 }: Props) {
   const supabase = createClient();
@@ -168,6 +170,10 @@ export default function QuickTrainingModal({
       const idx = INTENSITY_OPTIONS.reduce((best, opt, i) =>
         Math.abs(opt.value - prefill.intensity!) < Math.abs(INTENSITY_OPTIONS[best].value - prefill.intensity!) ? i : best, 0);
       setIntensityIdx(idx);
+    }
+    if (prefill.feeling != null) {
+      const idx = FEELING_OPTIONS.findIndex(f => f.value === prefill.feeling);
+      if (idx >= 0) setFeelingIdx(idx);
     }
   }, [open, prefill]);
 
@@ -332,14 +338,17 @@ export default function QuickTrainingModal({
       return;
     }
 
-    const { data: insertedSession, error } = await supabase.from("training_sessions").insert(payload as Partial<TrainingSession>).select("id").single();
+    // TRAV-27 #1 — UPDATE si editSessionId, sinon INSERT
+    const { data: insertedSession, error } = editSessionId
+      ? await supabase.from("training_sessions").update(payload as Partial<TrainingSession>).eq("id", editSessionId).select("id").single()
+      : await supabase.from("training_sessions").insert(payload as Partial<TrainingSession>).select("id").single();
     if (error) {
-      toast.error("Erreur lors de l'enregistrement");
+      toast.error(editSessionId ? "Erreur lors de la modification" : "Erreur lors de l'enregistrement");
       setLoading(false);
       return;
     }
 
-    toast.success("Séance enregistrée !");
+    toast.success(editSessionId ? "Séance modifiée !" : "Séance enregistrée !");
     trackEvent({
       event_name: "training_created",
       event_category: "training",
@@ -441,7 +450,9 @@ export default function QuickTrainingModal({
       onClose={handleClose}
       title={mode === "plan"
         ? (horseName ? `Planifier — ${horseName}` : "Planifier une séance")
-        : (horseName ? `Enregistrer — ${horseName}` : "Enregistrer une séance")}
+        : editSessionId
+          ? (horseName ? `Modifier — ${horseName}` : "Modifier la séance")
+          : (horseName ? `Enregistrer — ${horseName}` : "Enregistrer une séance")}
     >
       {/* Message coach post-séance */}
       {showCoachMsg && (

@@ -17,7 +17,7 @@ import { ChevronLeft, ChevronRight, Plus, Check, X, Pencil, Copy, Sparkles } fro
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import type { TrainingSession, TrainingPlannedSession, TrainingType } from "@/lib/supabase/types";
+import type { TrainingSession, TrainingPlannedSession, TrainingType, TrainingRider } from "@/lib/supabase/types";
 import { TRAINING_TYPE_LABELS, TRAINING_EMOJIS } from "@/lib/utils";
 import Modal from "@/components/ui/Modal";
 import QuickTrainingModal, { DISCIPLINE_ITEMS, INTENSITY_OPTIONS, RIDER_OPTIONS } from "./QuickTrainingModal";
@@ -73,15 +73,6 @@ function getDayState(isCurrentDay: boolean, isPast: boolean, hasSessions: boolea
   return "REPOS";
 }
 
-function getCompletionColor(pct: number | null, weekOffset: number): string {
-  if (pct === null) return "text-gray-400";
-  if (weekOffset !== 0) return pct >= 80 ? "text-success" : pct >= 50 ? "text-orange" : "text-danger";
-  const dow = new Date().getDay();
-  if (dow >= 1 && dow <= 3) return "text-gray-500";
-  if (dow === 4 || dow === 5) return pct < 50 ? "text-orange" : "text-success";
-  return pct < 80 ? "text-danger" : "text-success";
-}
-
 const DAY_LABELS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 
 export default function VueSemaine({ horseId, sessions, plannedSessions, healthRecords, horseMode }: Props) {
@@ -104,6 +95,7 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
     intensity_target: "",
   });
   const [logPrefill, setLogPrefill] = useState<PrefillData | null>(null);
+  const [editSessionId, setEditSessionId] = useState<string | null>(null);
   const [durationOther, setDurationOther] = useState(false);
   const [savingPlan, setSavingPlan] = useState(false);
   const [copyingPrev, setCopyingPrev] = useState(false);
@@ -198,10 +190,6 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
   });
   const weekMainSessionsList = weekSessionsList.filter((s) => !s.est_complement && s.type !== "marcheur" && s.type !== "paddock");
   const weekMinutes = weekMainSessionsList.reduce((acc, s) => acc + s.duration_min, 0);
-  const completionDenom = weekMainSessionsList.length + weekPlannedList.length;
-  const completion = completionDenom > 0
-    ? Math.round((weekMainSessionsList.length / completionDenom) * 100)
-    : null;
 
   const prevWeekStart = subWeeks(weekStart, 1);
   const prevWeekEnd = subWeeks(weekEnd, 1);
@@ -240,9 +228,20 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
     setShowPlanModal(true);
   };
 
-  const openLogModal = (dateStr: string, fromPlanned?: TrainingPlannedSession) => {
+  const openLogModal = (dateStr: string, fromPlanned?: TrainingPlannedSession, fromSession?: TrainingSession) => {
     setSelectedDate(dateStr);
-    if (fromPlanned) {
+    if (fromSession) {
+      // TRAV-27 #1 — Mode edit : préremplir avec les données de la session existante
+      setEditSessionId(fromSession.id);
+      setLogPrefill({
+        type: fromSession.type as TrainingType,
+        rider: fromSession.rider as TrainingRider | null,
+        duration: fromSession.duration_min ?? null,
+        intensity: fromSession.intensity ?? null,
+        feeling: fromSession.feeling ?? null,
+      });
+    } else if (fromPlanned) {
+      setEditSessionId(null);
       setLogPrefill({
         type: fromPlanned.type,
         rider: fromPlanned.qui_sen_occupe ?? null,
@@ -251,6 +250,7 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
         duree_planifiee: fromPlanned.duration_min_target ?? null,
       });
     } else {
+      setEditSessionId(null);
       setLogPrefill(null);
     }
     setShowLogModal(true);
@@ -600,6 +600,11 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
             const mainItem = hasLoggedSession ? dayMainSessions[0] : (activePlanned[0] ?? null);
             const mainType = mainItem?.type;
             const typeEmoji = mainType ? (TRAINING_EMOJIS[mainType] ?? null) : null;
+            // TRAV-27 #4 — Emoji rider dans le strip
+            const mainRider = hasLoggedSession
+              ? (dayMainSessions[0] as TrainingSession)?.rider
+              : (activePlanned[0] as TrainingPlannedSession)?.qui_sen_occupe;
+            const riderEmoji = mainRider === "coach" ? "🎓" : mainRider === "owner_with_coach" ? "⭐🎓" : null;
 
             // Hiérarchie visuelle 7 états (P0 1.2 + P2 3.1)
             let cellBorder: string;
@@ -660,22 +665,24 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
                   {format(day, "d")}
                 </span>
 
-                {/* Icône type de séance (P1 2.3 — remplace les pastilles rôle + badges texte) */}
-                <div className="h-7 flex items-center justify-center">
-                  {typeEmoji && (
-                    <span className="text-[20px] leading-none">{typeEmoji}</span>
+                {/* Icône type de séance + emoji rider */}
+                <div className="flex flex-col items-center gap-0">
+                  <div className="h-7 flex items-center justify-center">
+                    {typeEmoji && (
+                      <span className="text-[20px] leading-none">{typeEmoji}</span>
+                    )}
+                  </div>
+                  {riderEmoji && (
+                    <span className="text-[9px] leading-none">{riderEmoji}</span>
                   )}
                 </div>
 
                 {/* Tags verts si paddock/marcheur seul (repos actif) */}
                 {hasComplementOnly && (
-                  <div className="flex flex-col gap-0.5 w-full px-0.5">
+                  <div className="flex flex-col items-center gap-0.5">
                     {dayComplements.slice(0, 2).map((c) => (
-                      <span
-                        key={c.id}
-                        className="text-[7px] font-bold text-green-700 bg-green-50 border border-green-300 rounded px-1 py-0.5 text-center leading-none"
-                      >
-                        {c.type === "paddock" ? "🌾 PADD" : "⚙️ MARCH"}
+                      <span key={c.id} className="text-[16px] leading-none">
+                        {c.type === "paddock" ? "🌾" : "⚙️"}
                       </span>
                     ))}
                   </div>
@@ -729,11 +736,6 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
               {weekMinutes >= 60
                 ? `${Math.floor(weekMinutes / 60)}h${weekMinutes % 60 > 0 ? `${weekMinutes % 60}min` : ""}`
                 : `${weekMinutes}min`}
-            </span>
-          )}
-          {completion !== null && (
-            <span className={`font-semibold ${getCompletionColor(completion, weekOffset)}`}>
-              {completion}% du programme
             </span>
           )}
           {weekPlannedList.length > 0 && (
@@ -913,8 +915,10 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <span className="text-sm font-bold text-gray-800">{TRAINING_TYPE_LABELS[s.type] || s.type}</span>
                   <span className="text-xs text-gray-500">{s.duration_min}min</span>
-                  {s.coach_present && (
-                    <span className="text-2xs bg-blue-50 text-blue-600 font-semibold px-1.5 py-0.5 rounded-full">Coach</span>
+                  {s.rider && s.rider !== "owner" && (
+                    <span className="text-xs leading-none">
+                      {s.rider === "coach" ? "🎓" : s.rider === "owner_with_coach" ? "⭐🎓" : ""}
+                    </span>
                   )}
                 </div>
                 {s.objectif && <p className="text-2xs text-gray-500 truncate mt-0.5">{s.objectif}</p>}
@@ -936,7 +940,7 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
               {/* Décision B : 2 boutons ✏️/✗ toujours visibles sur enregistrées — 44×44px min */}
               <div className="flex gap-1 flex-shrink-0 ml-1">
                 <button
-                  onClick={() => openLogModal(s.date, undefined)}
+                  onClick={() => openLogModal(s.date, undefined, s)}
                   title="Modifier"
                   className="w-[44px] h-[44px] flex items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 transition-colors"
                 >
@@ -1223,10 +1227,11 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
       {/* Log session modal */}
       <QuickTrainingModal
         open={showLogModal && !!selectedDate}
-        onClose={() => { setShowLogModal(false); setLogPrefill(null); }}
+        onClose={() => { setShowLogModal(false); setLogPrefill(null); setEditSessionId(null); }}
         horseId={horseId}
-        onSaved={() => { setShowLogModal(false); setLogPrefill(null); startTransition(() => router.refresh()); }}
-        onSavedWithDetails={handleSessionSaved}
+        onSaved={() => { setShowLogModal(false); setLogPrefill(null); setEditSessionId(null); startTransition(() => router.refresh()); }}
+        onSavedWithDetails={editSessionId ? undefined : handleSessionSaved}
+        editSessionId={editSessionId}
         prefill={logPrefill}
       />
 

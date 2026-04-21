@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-const BASE = "http://localhost:3000";
+// baseURL est configuré dans playwright.config.ts
 const TEST_EMAIL = `test+${Date.now()}@gmail.com`;
 const TEST_PASSWORD = "testpassword123";
 const TEST_NAME = "Test User";
@@ -9,7 +9,7 @@ const TEST_NAME = "Test User";
 
 test.describe("Inscription", () => {
   test("formulaire step 1 → step 2 avec données valides", async ({ page }) => {
-    await page.goto(`${BASE}/register`);
+    await page.goto(`/register`);
     await page.fill('input[type="text"]', TEST_NAME);
     await page.fill('input[type="email"]', TEST_EMAIL);
     await page.fill('input[type="password"]', TEST_PASSWORD);
@@ -18,7 +18,7 @@ test.describe("Inscription", () => {
   });
 
   test("mot de passe trop court → reste sur step 1", async ({ page }) => {
-    await page.goto(`${BASE}/register`);
+    await page.goto(`/register`);
     await page.fill('input[type="text"]', TEST_NAME);
     await page.fill('input[type="email"]', TEST_EMAIL);
     await page.fill('input[type="password"]', "court");
@@ -29,7 +29,7 @@ test.describe("Inscription", () => {
   });
 
   test("bouton 'Créer mon compte' désactivé sans consent", async ({ page }) => {
-    await page.goto(`${BASE}/register`);
+    await page.goto(`/register`);
     await page.fill('input[type="text"]', TEST_NAME);
     await page.fill('input[type="email"]', TEST_EMAIL);
     await page.fill('input[type="password"]', TEST_PASSWORD);
@@ -39,7 +39,7 @@ test.describe("Inscription", () => {
   });
 
   test("retour step 1 depuis step 2", async ({ page }) => {
-    await page.goto(`${BASE}/register`);
+    await page.goto(`/register`);
     await page.fill('input[type="text"]', TEST_NAME);
     await page.fill('input[type="email"]', TEST_EMAIL);
     await page.fill('input[type="password"]', TEST_PASSWORD);
@@ -53,7 +53,7 @@ test.describe("Inscription", () => {
 
 test.describe("Connexion", () => {
   test("credentials invalides → message d'erreur", async ({ page }) => {
-    await page.goto(`${BASE}/login`);
+    await page.goto(`/login`);
     await page.fill('input[type="email"]', "inconnu@test.com");
     await page.fill('input[type="password"]', "mauvaismdp");
     await page.click('button[type="submit"]');
@@ -61,13 +61,13 @@ test.describe("Connexion", () => {
   });
 
   test("utilisateur non connecté redirigé vers /login", async ({ page }) => {
-    await page.goto(`${BASE}/dashboard`);
+    await page.goto(`/dashboard`);
     await expect(page).toHaveURL(/login/);
   });
 
   test("utilisateur connecté redirigé depuis /login vers /dashboard", async ({ page, context }) => {
     // Injecter une session valide via storage state (à configurer dans playwright.config.ts)
-    await page.goto(`${BASE}/login`);
+    await page.goto(`/login`);
     // Si déjà connecté, doit être redirigé
     // Ce test nécessite un fixture de session — à compléter
   });

@@ -19,8 +19,19 @@ async function globalSetup(config: FullConfig) {
   await page.fill('input[type="password"]', process.env.TEST_PASSWORD || "");
   await page.click('button[type="submit"]');
 
-  // Attendre la redirection vers /dashboard
-  await page.waitForURL("**/dashboard", { timeout: 15000 });
+  // Debug : attendre un peu et voir où on est
+  await page.waitForTimeout(5000);
+  const currentUrl = page.url();
+  console.log(`[global-setup] After login, URL: ${currentUrl}`);
+
+  // Si toujours sur /login, le login a échoué
+  if (currentUrl.includes("/login")) {
+    const bodyText = await page.textContent("body");
+    console.log(`[global-setup] Login may have failed. Page text: ${bodyText?.slice(0, 200)}`);
+  }
+
+  // Attendre la redirection (dashboard ou onboarding)
+  await page.waitForURL(/\/(dashboard|onboarding)/, { timeout: 30000 });
 
   // Sauvegarder le storage state
   await page.context().storageState({ path: AUTH_FILE });

@@ -11,26 +11,26 @@ import { test, expect } from "@playwright/test";
  *   npx playwright codegen --save-storage=e2e/auth.json http://localhost:3000/login
  */
 
-const BASE = "http://localhost:3000";
+// baseURL est configuré dans playwright.config.ts
 
 // ─── P4 : CRÉATION CHEVAL ──────────────────────────────────────────────────
 
 test.describe("Création de cheval", () => {
   test("formulaire vide → bouton désactivé", async ({ page }) => {
-    await page.goto(`${BASE}/horses/new`);
+    await page.goto(`/horses/new`);
     const submitBtn = page.getByRole("button", { name: /continuer|créer/i });
     await expect(submitBtn).toBeDisabled();
   });
 
   test("nom requis pour continuer", async ({ page }) => {
-    await page.goto(`${BASE}/horses/new`);
+    await page.goto(`/horses/new`);
     // Champs optionnels remplis mais pas le nom
     const submitBtn = page.getByRole("button", { name: /continuer/i });
     await expect(submitBtn).toBeDisabled();
   });
 
   test("création d'un cheval complet → redirection fiche cheval", async ({ page }) => {
-    await page.goto(`${BASE}/horses/new`);
+    await page.goto(`/horses/new`);
     await page.fill('input[placeholder*="nom"]', "Tornado Test");
     // Sélectionner un mode de vie
     await page.getByText("Équilibre").click();
@@ -44,7 +44,7 @@ test.describe("Création de cheval", () => {
 
 test.describe("Fiche cheval", () => {
   test("cheval inexistant → 404", async ({ page }) => {
-    await page.goto(`${BASE}/horses/00000000-0000-0000-0000-000000000000`);
+    await page.goto(`/horses/00000000-0000-0000-0000-000000000000`);
     await expect(page).toHaveURL(/404|not-found/);
   });
 
@@ -68,17 +68,17 @@ test.describe("Fiche cheval", () => {
 
 test.describe("Navigation dashboard", () => {
   test("dashboard charge correctement", async ({ page }) => {
-    await page.goto(`${BASE}/dashboard`);
+    await page.goto(`/dashboard`);
     await expect(page.getByText(/tableau de bord|mes chevaux/i)).toBeVisible({ timeout: 8000 });
   });
 
   test("sidebar contient lien Accès partagés", async ({ page }) => {
-    await page.goto(`${BASE}/dashboard`);
+    await page.goto(`/dashboard`);
     await expect(page.getByRole("link", { name: /accès partagés/i })).toBeVisible();
   });
 
   test("page /partages charge sans erreur", async ({ page }) => {
-    await page.goto(`${BASE}/partages`);
+    await page.goto(`/partages`);
     await expect(page.getByText(/accès partagés/i)).toBeVisible({ timeout: 5000 });
   });
 });

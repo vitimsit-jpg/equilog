@@ -157,7 +157,7 @@ export default async function HorsePage({ params }: Props) {
   try {
     if (latestInsight?.content) parsedInsight = JSON.parse(latestInsight.content);
   } catch (e) {
-    console.error("Failed to parse AI insight:", e);
+    // AI insight parse failed — non-critical, use empty object
   }
 
   const isStarter = plan === "starter";

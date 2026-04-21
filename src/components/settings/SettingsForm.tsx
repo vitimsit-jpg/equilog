@@ -129,6 +129,7 @@ export default function SettingsForm({ user }: Props) {
                 </div>
               </div>
               <button
+                type="button"
                 onClick={() => setProfileModalOpen(true)}
                 className="text-xs font-semibold text-gray-400 hover:text-black underline whitespace-nowrap transition-colors"
               >
@@ -235,6 +236,7 @@ export default function SettingsForm({ user }: Props) {
                     <Badge variant="orange">Actuel</Badge>
                   ) : !isStarter ? (
                     <button
+                      type="button"
                       onClick={() => handleUpgrade(p.plan)}
                       disabled={upgrading === p.plan}
                       className="text-xs font-semibold text-orange hover:underline disabled:opacity-50"
@@ -258,6 +260,7 @@ export default function SettingsForm({ user }: Props) {
         {user?.stripe_subscription_id && (
           <div className="mt-4 pt-4 border-t border-gray-100">
             <button
+              type="button"
               onClick={handlePortal}
               disabled={portalLoading}
               className="text-sm font-semibold text-gray-600 hover:text-black underline disabled:opacity-50"

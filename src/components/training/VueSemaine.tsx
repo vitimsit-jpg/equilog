@@ -315,7 +315,7 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
       .update({ linked_session_id: data.id, statut_planification: "realisee" })
       .eq("id", planned.id);
     if (linkError) {
-      console.error("[P0 1.1] linked_session_id update failed:", linkError.message);
+      toast.error("Erreur de liaison séance planifiée");
     }
 
     setConfirmToast({ sessionId: data.id, type: planned.type, dateKey, intensity, feeling: 3 });

@@ -124,8 +124,7 @@ export default function NewHorsePage() {
       }, { onConflict: "horse_id,user_id" });
 
       if (error) {
-        // Non-blocking: log but still redirect — the horse was created
-        console.error("horse_user_roles upsert error:", error.message);
+        // Non-blocking: horse was created, role upsert can fail silently
       }
 
       toast.success(`${createdHorseName} ajouté !`);

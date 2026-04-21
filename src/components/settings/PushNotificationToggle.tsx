@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Bell, BellOff } from "lucide-react";
+import toast from "react-hot-toast";
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -64,7 +65,7 @@ export default function PushNotificationToggle() {
 
       setSubscribed(true);
     } catch (err) {
-      console.error("Push subscribe error:", err);
+      toast.error("Erreur lors de l'activation des notifications");
     }
     setLoading(false);
   };
@@ -84,7 +85,7 @@ export default function PushNotificationToggle() {
       }
       setSubscribed(false);
     } catch (err) {
-      console.error("Push unsubscribe error:", err);
+      toast.error("Erreur lors de la désactivation des notifications");
     }
     setLoading(false);
   };

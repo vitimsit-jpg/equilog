@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { FileDown } from "lucide-react";
+import toast from "react-hot-toast";
 
 interface Props {
   horseId: string;
@@ -231,7 +232,7 @@ export default function ExportPDFButton({ horseId, horseName }: Props) {
 
       doc.save(`bilan-annuel-${horseName.toLowerCase().replace(/\s+/g, "-")}-${new Date().getFullYear()}.pdf`);
     } catch (e) {
-      console.error("PDF error:", e);
+      toast.error("Erreur lors de la génération du PDF");
     }
     setLoading(false);
   };

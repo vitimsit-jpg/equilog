@@ -518,7 +518,7 @@ export default function HorseEditModal({ horse, compact = false }: Props) {
           <div className="bg-white rounded-2xl w-full max-w-sm p-6 space-y-4 shadow-xl">
             <div className="flex items-start justify-between gap-3">
               <p className="font-bold text-black">Le mode de vie & Horse Index</p>
-              <button onClick={() => setShowModeInfo(false)} className="text-gray-400 hover:text-black flex-shrink-0">
+              <button type="button" onClick={() => setShowModeInfo(false)} className="text-gray-400 hover:text-black flex-shrink-0">
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -540,6 +540,7 @@ export default function HorseEditModal({ horse, compact = false }: Props) {
               </div>
             </div>
             <button
+              type="button"
               onClick={() => setShowModeInfo(false)}
               className="w-full btn-primary text-sm"
             >

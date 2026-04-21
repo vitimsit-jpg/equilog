@@ -9,7 +9,8 @@ import CompetitionForm from "./CompetitionForm";
 import CompetitionCard from "./CompetitionCard";
 import { useRouter } from "next/navigation";
 import EmptyState from "@/components/ui/EmptyState";
-// TRAV-28-09 — Recharts retiré (courbe masquée, remplacée par timeline)
+// TRAV-28-11/12/13 — Recharts pour blocs stats par discipline
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { format, parseISO, differenceInDays, isAfter, startOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
 import { DISCIPLINE_LABELS } from "@/lib/utils";
@@ -26,6 +27,10 @@ export default function CompetitionsDashboard({ competitions, horse }: Props) {
   // TRAV-28-14 — Filtres historique
   const [filterDisc, setFilterDisc] = useState<string>("Tous");
   const [filterSaison, setFilterSaison] = useState<string>("Tout");
+  // TRAV-28-11/12/13 — Filtres niveau par bloc stats
+  const [cceLevel, setCceLevel] = useState<string>("Tous");
+  const [csoLevel, setCsoLevel] = useState<string>("Tous");
+  const [dressageReprise, setDressageReprise] = useState<string>("Toutes");
 
   const today = startOfDay(new Date());
 
@@ -191,6 +196,146 @@ export default function CompetitionsDashboard({ competitions, horse }: Props) {
           </div>
         );
       })}
+
+      {/* TRAV-28-11 — Bloc stats CCE */}
+      {(() => {
+        const cceClasse = classe.filter((c) => c.discipline === "CCE" && c.result_rank && c.total_riders);
+        if (cceClasse.length < 2) return null;
+        const cceLevels = Array.from(new Set(cceClasse.map((c) => c.level).filter(Boolean)));
+        const cceFiltered = cceLevel === "Tous" ? cceClasse : cceClasse.filter((c) => c.level === cceLevel);
+        const cceChartData = [...cceFiltered].sort((a, b) => a.date.localeCompare(b.date)).map((c) => ({
+          date: format(parseISO(c.date), "dd/MM/yy"),
+          dressage: c.score_dressage ?? undefined,
+          penCSO: c.cce_cso_barres != null && c.cce_cso_refus != null
+            ? (c.cce_cso_barres + c.cce_cso_refus) * 4
+            : c.penalites_cso ?? undefined,
+          penCross: c.penalites_cross ?? undefined,
+          hasLegacy: c.cce_cso_barres == null && c.penalites_cso != null,
+          event: c.event_name,
+        }));
+        return (
+          <div className="card">
+            <h3 className="font-bold text-black text-sm mb-1">Analyse CCE <span className="text-gray-400 font-normal">({cceFiltered.length})</span></h3>
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {["Tous", ...cceLevels].map((l) => (
+                <button key={l} type="button" onClick={() => setCceLevel(l)}
+                  className={`px-2.5 py-1 rounded-full text-2xs font-semibold transition-all ${cceLevel === l ? "bg-[#1565C0] text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}
+                >{l}</button>
+              ))}
+            </div>
+            {cceFiltered.length < 2 ? (
+              <p className="text-xs text-gray-400 text-center py-4">Pas assez de données pour ce niveau</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={180}>
+                <LineChart data={cceChartData} margin={{ top: 4, right: 4, left: -10, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F0" vertical={false} />
+                  <XAxis dataKey="date" tick={{ fontSize: 9, fill: "#9CA3AF" }} tickLine={false} axisLine={false} />
+                  <YAxis yAxisId="left" domain={[50, 80]} tick={{ fontSize: 9, fill: "#9CA3AF" }} tickLine={false} axisLine={false} tickFormatter={(v) => `${v}%`} />
+                  <YAxis yAxisId="right" orientation="right" domain={[0, 20]} tick={{ fontSize: 9, fill: "#9CA3AF" }} tickLine={false} axisLine={false} />
+                  <Tooltip contentStyle={{ background: "#1A1A1A", border: "none", borderRadius: 8, fontSize: 11, color: "white" }} />
+                  <Legend iconSize={8} wrapperStyle={{ fontSize: 10 }} />
+                  <Line yAxisId="left" type="monotone" dataKey="dressage" name="Dressage %" stroke="#388E3C" strokeWidth={2} dot={{ r: 3 }} connectNulls />
+                  <Line yAxisId="right" type="monotone" dataKey="penCSO" name="Pén. CSO" stroke="#D94F00" strokeWidth={2} dot={{ r: 3 }} connectNulls />
+                  <Line yAxisId="right" type="monotone" dataKey="penCross" name="Pén. Cross" stroke="#8E7CC3" strokeWidth={2} dot={{ r: 3 }} connectNulls />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* TRAV-28-12 — Bloc stats CSO */}
+      {(() => {
+        const csoClasse = classe.filter((c) => c.discipline === "CSO" && c.result_rank && c.total_riders);
+        if (csoClasse.length < 2) return null;
+        const csoLevels = Array.from(new Set(csoClasse.map((c) => c.level).filter(Boolean)));
+        const csoFiltered = csoLevel === "Tous" ? csoClasse : csoClasse.filter((c) => c.level === csoLevel);
+        const csoChartData = [...csoFiltered].sort((a, b) => a.date.localeCompare(b.date)).map((c) => ({
+          date: format(parseISO(c.date), "dd/MM/yy"),
+          barres: c.cso_barres ?? undefined,
+          refus: c.cso_refus ?? undefined,
+          topPct: c.result_rank && c.total_riders ? Math.round((1 - c.result_rank / c.total_riders) * 100) : undefined,
+          hasLegacy: c.cso_barres == null,
+          event: c.event_name,
+        }));
+        const sansFaute = csoFiltered.filter((c) => c.cso_barres != null && c.cso_barres === 0 && c.cso_refus === 0).length;
+        const withBarresData = csoFiltered.filter((c) => c.cso_barres != null).length;
+        return (
+          <div className="card">
+            <h3 className="font-bold text-black text-sm mb-1">Analyse CSO <span className="text-gray-400 font-normal">({csoFiltered.length})</span></h3>
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {["Tous", ...csoLevels].map((l) => (
+                <button key={l} type="button" onClick={() => setCsoLevel(l)}
+                  className={`px-2.5 py-1 rounded-full text-2xs font-semibold transition-all ${csoLevel === l ? "bg-[#D94F00] text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}
+                >{l}</button>
+              ))}
+            </div>
+            {withBarresData > 0 && sansFaute > 0 && (
+              <p className="text-xs font-semibold text-green-600 mb-2">{sansFaute} sans-faute sur {withBarresData} concours</p>
+            )}
+            {csoFiltered.length < 2 ? (
+              <p className="text-xs text-gray-400 text-center py-4">Pas assez de données pour ce niveau</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={180}>
+                <LineChart data={csoChartData} margin={{ top: 4, right: 4, left: -10, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F0" vertical={false} />
+                  <XAxis dataKey="date" tick={{ fontSize: 9, fill: "#9CA3AF" }} tickLine={false} axisLine={false} />
+                  <YAxis yAxisId="left" domain={[0, "auto"]} tick={{ fontSize: 9, fill: "#9CA3AF" }} tickLine={false} axisLine={false} />
+                  <YAxis yAxisId="right" orientation="right" domain={[0, 100]} tick={{ fontSize: 9, fill: "#9CA3AF" }} tickLine={false} axisLine={false} tickFormatter={(v) => `${v}%`} />
+                  <Tooltip contentStyle={{ background: "#1A1A1A", border: "none", borderRadius: 8, fontSize: 11, color: "white" }} />
+                  <Legend iconSize={8} wrapperStyle={{ fontSize: 10 }} />
+                  <Line yAxisId="left" type="monotone" dataKey="barres" name="Barres" stroke="#D94F00" strokeWidth={2} dot={{ r: 3 }} connectNulls />
+                  <Line yAxisId="left" type="monotone" dataKey="refus" name="Refus" stroke="#E8440A" strokeWidth={2} strokeDasharray="4 4" dot={{ r: 3 }} connectNulls />
+                  <Line yAxisId="right" type="monotone" dataKey="topPct" name="Top %" stroke="#1565C0" strokeWidth={2} dot={{ r: 3 }} connectNulls />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* TRAV-28-13 — Bloc stats Dressage */}
+      {(() => {
+        const dresClasse = classe.filter((c) => c.discipline === "Dressage" && c.dressage_note_pct != null);
+        if (dresClasse.length < 2) return null;
+        const reprises = Array.from(new Set(dresClasse.map((c) => c.dressage_reprise).filter(Boolean) as string[]));
+        const dresFiltered = dressageReprise === "Toutes" ? dresClasse : dresClasse.filter((c) => c.dressage_reprise === dressageReprise);
+        const dresChartData = [...dresFiltered].sort((a, b) => a.date.localeCompare(b.date)).map((c) => ({
+          date: format(parseISO(c.date), "dd/MM/yy"),
+          note: c.dressage_note_pct ?? undefined,
+          reprise: c.dressage_reprise || "?",
+          event: c.event_name,
+        }));
+        const preMigration = classe.filter((c) => c.discipline === "Dressage" && c.dressage_note_pct == null).length;
+        return (
+          <div className="card">
+            <h3 className="font-bold text-black text-sm mb-1">Analyse Dressage <span className="text-gray-400 font-normal">({dresFiltered.length})</span></h3>
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {["Toutes", ...reprises].map((r) => (
+                <button key={r} type="button" onClick={() => setDressageReprise(r)}
+                  className={`px-2.5 py-1 rounded-full text-2xs font-semibold transition-all ${dressageReprise === r ? "bg-[#388E3C] text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}
+                >{r}</button>
+              ))}
+            </div>
+            {dresFiltered.length < 2 ? (
+              <p className="text-xs text-gray-400 text-center py-4">Pas assez de données pour cette reprise</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={180}>
+                <LineChart data={dresChartData} margin={{ top: 4, right: 4, left: -10, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F0" vertical={false} />
+                  <XAxis dataKey="date" tick={{ fontSize: 9, fill: "#9CA3AF" }} tickLine={false} axisLine={false} />
+                  <YAxis domain={[50, 80]} tick={{ fontSize: 9, fill: "#9CA3AF" }} tickLine={false} axisLine={false} tickFormatter={(v) => `${v}%`} />
+                  <Tooltip contentStyle={{ background: "#1A1A1A", border: "none", borderRadius: 8, fontSize: 11, color: "white" }} formatter={(v) => [`${v}%`, "Note"]} />
+                  <Line type="monotone" dataKey="note" name="Note %" stroke="#388E3C" strokeWidth={2} dot={{ r: 4, fill: "#388E3C" }} connectNulls />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+            {preMigration > 0 && (
+              <p className="text-2xs text-gray-400 text-center mt-2">{preMigration} concours Dressage antérieurs non inclus (données incomplètes)</p>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Empty state */}
       {competitions.length === 0 && (

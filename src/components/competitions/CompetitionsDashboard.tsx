@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { createClient } from "@/lib/supabase/client";
 import type { Competition, Horse } from "@/lib/supabase/types";
 import { Plus, Trophy, Calendar } from "lucide-react";
 import Button from "@/components/ui/Button";
@@ -31,6 +32,25 @@ export default function CompetitionsDashboard({ competitions, horse }: Props) {
   const [cceLevel, setCceLevel] = useState<string>("Tous");
   const [csoLevel, setCsoLevel] = useState<string>("Tous");
   const [dressageReprise, setDressageReprise] = useState<string>("Toutes");
+  // TRAV-28-15 — Budget par concours
+  const [budgetByCompetition, setBudgetByCompetition] = useState<Record<string, number>>({});
+  const supabase = createClient();
+  const fetchBudgets = useCallback(async () => {
+    const compIds = competitions.map((c) => c.id);
+    if (compIds.length === 0) return;
+    const { data } = await supabase
+      .from("budget_entries")
+      .select("linked_competition_id, amount")
+      .in("linked_competition_id", compIds);
+    if (data) {
+      const map: Record<string, number> = {};
+      for (const b of data) {
+        if (b.linked_competition_id) map[b.linked_competition_id] = b.amount;
+      }
+      setBudgetByCompetition(map);
+    }
+  }, [competitions, supabase]);
+  useEffect(() => { fetchBudgets(); }, [fetchBudgets]);
 
   const today = startOfDay(new Date());
 
@@ -381,7 +401,7 @@ export default function CompetitionsDashboard({ competitions, horse }: Props) {
                         {isOverdue ? `J+${Math.abs(daysLeft)}` : `J-${daysLeft}`}
                       </span>
                     </div>
-                    <CompetitionCard competition={c} horseId={horse.id} />
+                    <CompetitionCard competition={c} horseId={horse.id} budgetAmount={budgetByCompetition[c.id]} />
                   </div>
                 );
               })

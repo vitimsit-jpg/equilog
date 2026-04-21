@@ -121,9 +121,20 @@ export default function CompetitionForm({ horseId, onSaved, onCancel, defaultVal
     // TRAV-28-06 — Dressage détail
     dressage_reprise: defaultValues?.dressage_reprise || "",
     dressage_note_pct: defaultValues?.dressage_note_pct ? String(defaultValues.dressage_note_pct) : "",
+    // TRAV-28-15 — Budget concours
+    budget_engagement: "",
+    budget_transport: "",
+    budget_box: "",
+    budget_coaching: "",
+    budget_divers: "",
+    budget_divers_detail: "",
   });
   const showResultFields = statutParticipation === "classe";
   const showPartants = statutParticipation !== "hors_concours";
+
+  // TRAV-28-15 — Budget total auto-calculé
+  const budgetTotal = [form.budget_engagement, form.budget_transport, form.budget_box, form.budget_coaching, form.budget_divers]
+    .reduce((sum, v) => sum + (parseFloat(v) || 0), 0);
 
   // Auto-update status when date changes
   const handleDateChange = (newDate: string) => {
@@ -195,16 +206,47 @@ export default function CompetitionForm({ horseId, onSaved, onCancel, defaultVal
       (payload as Record<string, unknown>).penalites_cso = ((parseInt(form.cce_cso_barres) || 0) + (parseInt(form.cce_cso_refus) || 0)) * 4;
     }
 
-    const { error } = defaultValues?.id
-      ? await supabase.from("competitions").update(payload).eq("id", defaultValues.id)
-      : await supabase.from("competitions").insert(payload);
+    let competitionId = defaultValues?.id || null;
 
-    if (error) toast.error("Erreur lors de l'enregistrement");
-    else {
-      toast.success("Concours enregistré !");
-      if (!defaultValues?.id) trackEvent({ event_name: "competition_created", event_category: "competition", properties: { discipline: form.discipline, level: form.level, status } });
-      onSaved();
+    if (defaultValues?.id) {
+      const { error: updateErr } = await supabase.from("competitions").update(payload).eq("id", defaultValues.id);
+      if (updateErr) { toast.error("Erreur lors de l'enregistrement"); setLoading(false); return; }
+    } else {
+      const { data: inserted, error: insertErr } = await supabase.from("competitions").insert(payload).select("id").single();
+      if (insertErr || !inserted) { toast.error("Erreur lors de l'enregistrement"); setLoading(false); return; }
+      competitionId = inserted.id;
+      trackEvent({ event_name: "competition_created", event_category: "competition", properties: { discipline: form.discipline, level: form.level, status } });
     }
+
+    // TRAV-28-15 — Liaison budget : créer/mettre à jour la dépense liée
+    if (competitionId && budgetTotal > 0) {
+      const budgetPayload = {
+        horse_id: horseId,
+        date: form.date,
+        category: "concours" as const,
+        amount: budgetTotal,
+        description: `${form.event_name}${form.level ? ` — ${form.discipline} ${form.level}` : ""}`,
+        linked_competition_id: competitionId,
+      };
+      // Chercher une dépense existante liée à ce concours
+      const { data: existing } = await supabase
+        .from("budget_entries")
+        .select("id")
+        .eq("linked_competition_id", competitionId)
+        .limit(1);
+
+      if (existing && existing.length > 0) {
+        await supabase.from("budget_entries").update(budgetPayload).eq("id", existing[0].id);
+      } else {
+        await supabase.from("budget_entries").insert(budgetPayload);
+      }
+    } else if (competitionId && budgetTotal === 0) {
+      // Si budget vidé → supprimer la dépense liée
+      await supabase.from("budget_entries").delete().eq("linked_competition_id", competitionId);
+    }
+
+    toast.success("Concours enregistré !");
+    onSaved();
     setLoading(false);
   };
 
@@ -521,6 +563,25 @@ export default function CompetitionForm({ horseId, onSaved, onCancel, defaultVal
           )}
         </div>
       )}
+
+      {/* TRAV-28-15 — Section Budget (tous statuts) */}
+      <div className="space-y-3 pt-1 border-t border-gray-100">
+        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Budget</p>
+        <div className="grid grid-cols-2 gap-3">
+          <Input label="Engagement (€)" type="number" value={form.budget_engagement} onChange={(e) => setForm({ ...form, budget_engagement: e.target.value })} placeholder="0" min="0" step="0.01" />
+          <Input label="Transport (€)" type="number" value={form.budget_transport} onChange={(e) => setForm({ ...form, budget_transport: e.target.value })} placeholder="0" min="0" step="0.01" />
+          <Input label="Box / Pension (€)" type="number" value={form.budget_box} onChange={(e) => setForm({ ...form, budget_box: e.target.value })} placeholder="0" min="0" step="0.01" />
+          <Input label="Coaching (€)" type="number" value={form.budget_coaching} onChange={(e) => setForm({ ...form, budget_coaching: e.target.value })} placeholder="0" min="0" step="0.01" />
+          <Input label="Frais divers (€)" type="number" value={form.budget_divers} onChange={(e) => setForm({ ...form, budget_divers: e.target.value })} placeholder="0" min="0" step="0.01" />
+          <Input label="Détail divers" value={form.budget_divers_detail} onChange={(e) => setForm({ ...form, budget_divers_detail: e.target.value })} placeholder="Maréchal, vétérinaire..." />
+        </div>
+        {budgetTotal > 0 && (
+          <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-gray-50 border border-gray-200">
+            <span className="text-xs font-semibold text-gray-500">Total</span>
+            <span className="text-sm font-black text-black">{budgetTotal.toFixed(2)} €</span>
+          </div>
+        )}
+      </div>
 
       <div className="flex gap-3 pt-1">
         <Button type="button" variant="secondary" onClick={onCancel} className="flex-1">Annuler</Button>

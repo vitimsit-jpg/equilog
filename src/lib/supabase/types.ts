@@ -343,6 +343,7 @@ export type BudgetEntry = {
   recurrence_frequency: RecurrenceFrequency | null;
   recurring_template_id: string | null;
   media_urls: string[] | null;
+  linked_competition_id: string | null;
   created_at: string;
 }
 

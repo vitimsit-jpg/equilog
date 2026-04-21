@@ -15,9 +15,10 @@ import CompetitionForm from "./CompetitionForm";
 interface Props {
   competition: Competition;
   horseId: string;
+  budgetAmount?: number | null;
 }
 
-export default function CompetitionCard({ competition: c, horseId }: Props) {
+export default function CompetitionCard({ competition: c, horseId, budgetAmount }: Props) {
   const supabase = createClient();
   const router = useRouter();
   const [editOpen, setEditOpen] = useState(false);
@@ -25,6 +26,8 @@ export default function CompetitionCard({ competition: c, horseId }: Props) {
 
   const handleDelete = async () => {
     if (!confirm("Supprimer ce concours ?")) return;
+    // TRAV-28-15 — Supprimer la dépense budget liée avant le concours
+    await supabase.from("budget_entries").delete().eq("linked_competition_id", c.id);
     const { error } = await supabase.from("competitions").delete().eq("id", c.id);
     if (error) { toast.error("Erreur lors de la suppression"); return; }
     toast.success("Concours supprimé");
@@ -112,6 +115,11 @@ export default function CompetitionCard({ competition: c, horseId }: Props) {
           </div>
         </div>
       </div>
+
+      {/* TRAV-28-15 — Coût concours */}
+      {budgetAmount != null && budgetAmount > 0 && (
+        <div className="px-3 pb-2 text-2xs text-gray-400">Coût : {budgetAmount.toFixed(0)} €</div>
+      )}
 
       {editOpen && (
         <Modal open={true} onClose={() => setEditOpen(false)} title="Modifier le concours" size="lg">

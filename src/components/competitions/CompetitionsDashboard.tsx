@@ -9,7 +9,7 @@ import CompetitionForm from "./CompetitionForm";
 import CompetitionCard from "./CompetitionCard";
 import { useRouter } from "next/navigation";
 import EmptyState from "@/components/ui/EmptyState";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+// TRAV-28-09 — Recharts retiré (courbe masquée, remplacée par timeline)
 import { format, parseISO, differenceInDays, isAfter, startOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
 import { DISCIPLINE_LABELS } from "@/lib/utils";
@@ -24,31 +24,22 @@ export default function CompetitionsDashboard({ competitions, horse }: Props) {
   const router = useRouter();
   const [addOpen, setAddOpen] = useState(false);
 
-  const withRank = competitions.filter((c) => c.result_rank && c.total_riders);
-
-  // Chart data: percentile goes UP when rank improves
-  const chartData = withRank
-    .filter((c) => c.status === "passe" || !c.status)
-    .slice()
-    .reverse()
-    .map((c) => ({
-      date: format(parseISO(c.date), "dd MMM", { locale: fr }),
-      percentile: Math.round(((c.total_riders! - c.result_rank!) / c.total_riders!) * 100),
-      event: c.event_name,
-    }));
-
   const today = startOfDay(new Date());
 
-  // Status-based split: a_venir stays in "prochains" even if date passed (until user adds result)
+  // TRAV-28-07 — Concours disputés = tous les passés (tous statuts participation)
+  const allPast = competitions.filter((c) => c.status === "passe" || (!c.status && !isAfter(startOfDay(parseISO(c.date)), today)));
+  // Classés uniquement pour les métriques de performance
+  const classe = allPast.filter((c) => !c.statut_participation || c.statut_participation === "classe");
+  const withRank = classe.filter((c) => c.result_rank && c.total_riders);
+
+  // Status-based split
   const upcoming = competitions
     .filter((c) => c.status === "a_venir" || (!c.status && isAfter(startOfDay(parseISO(c.date)), today)))
     .sort((a, b) => a.date.localeCompare(b.date));
 
-  const past = competitions
-    .filter((c) => c.status === "passe" || (!c.status && !isAfter(startOfDay(parseISO(c.date)), today)))
-    .sort((a, b) => b.date.localeCompare(a.date));
+  const past = allPast.sort((a, b) => b.date.localeCompare(a.date));
 
-  // Stats
+  // Stats — classés uniquement
   const victories = withRank.filter((c) => c.result_rank === 1).length;
   const podiums = withRank.filter((c) => c.result_rank! <= 3).length;
 
@@ -63,43 +54,56 @@ export default function CompetitionsDashboard({ competitions, horse }: Props) {
     ? Math.round(100 - ((bestResult.total_riders! - bestResult.result_rank!) / bestResult.total_riders!) * 100)
     : null;
 
-  // Progression: compare last 2 ranked competitions
-  const sortedWithRank = [...withRank].sort((a, b) => a.date.localeCompare(b.date));
-  const lastTwo = sortedWithRank.slice(-2);
-  const progressionLabel = lastTwo.length >= 2
-    ? (() => {
-        const prev = ((lastTwo[0].total_riders! - lastTwo[0].result_rank!) / lastTwo[0].total_riders!) * 100;
-        const curr = ((lastTwo[1].total_riders! - lastTwo[1].result_rank!) / lastTwo[1].total_riders!) * 100;
-        return curr > prev ? "📈 En progression" : "Stable";
-      })()
-    : null;
+  // TRAV-28-07 — Progression par discipline : 3 derniers vs 3 précédents (min 6 classés)
+  const progressionByDiscipline: { discipline: string; label: string }[] = [];
+  const disciplines = Array.from(new Set(withRank.map((c) => c.discipline)));
+  for (const disc of disciplines) {
+    const discRanked = withRank.filter((c) => c.discipline === disc).sort((a, b) => a.date.localeCompare(b.date));
+    if (discRanked.length >= 6) {
+      const last3 = discRanked.slice(-3);
+      const prev3 = discRanked.slice(-6, -3);
+      const avgLast = last3.reduce((s, c) => s + ((c.total_riders! - c.result_rank!) / c.total_riders!) * 100, 0) / 3;
+      const avgPrev = prev3.reduce((s, c) => s + ((c.total_riders! - c.result_rank!) / c.total_riders!) * 100, 0) / 3;
+      progressionByDiscipline.push({
+        discipline: DISCIPLINE_LABELS[disc] || disc,
+        label: avgLast > avgPrev ? "En progression" : "Stable",
+      });
+    }
+  }
 
-  // Niveau atteint: most recent competition's level + discipline
-  const latestComp = competitions.length > 0 ? competitions[0] : null;
-  const niveauAtteint = latestComp
-    ? `${latestComp.level} ${DISCIPLINE_LABELS[latestComp.discipline] || latestComp.discipline}`
-    : null;
+  // TRAV-28-07 — Niveau atteint : plus haut niveau par discipline (classés uniquement)
+  const niveauParDiscipline: string[] = [];
+  for (const disc of disciplines) {
+    const discClasse = classe.filter((c) => c.discipline === disc && c.level);
+    if (discClasse.length > 0) {
+      // Le plus récent classé dans cette discipline
+      const latest = discClasse.sort((a, b) => b.date.localeCompare(a.date))[0];
+      niveauParDiscipline.push(`${latest.level} ${DISCIPLINE_LABELS[disc] || disc}`);
+    }
+  }
 
   return (
     <div className="space-y-4">
 
-      {/* Stats */}
+      {/* TRAV-28-07 — Métriques reformulées (classés uniquement sauf Disputés) */}
       <div className="grid grid-cols-2 gap-3">
-        {/* Concours disputés — always */}
+        {/* Concours disputés — tous statuts participation */}
         <div className="stat-card">
-          <span className="text-2xl font-black text-black">{competitions.length}</span>
+          <span className="text-2xl font-black text-black">{allPast.length}</span>
           <span className="section-title mt-1">Concours disputés</span>
         </div>
 
-        {/* Niveau atteint — always if competitions exist */}
-        {niveauAtteint && (
+        {/* Niveau atteint — par discipline, classés uniquement */}
+        {niveauParDiscipline.length > 0 && (
           <div className="stat-card">
-            <span className="text-sm font-black text-black leading-tight">{niveauAtteint}</span>
+            {niveauParDiscipline.map((n, i) => (
+              <span key={i} className="text-sm font-black text-black leading-tight block">{n}</span>
+            ))}
             <span className="section-title mt-1">Niveau atteint</span>
           </div>
         )}
 
-        {/* Meilleur classement — only if ranked competitions */}
+        {/* Meilleur classement — Top %, classés uniquement */}
         {bestTopPct !== null && (
           <div className="stat-card">
             <span className="text-2xl font-black text-orange">Top {bestTopPct}%</span>
@@ -107,15 +111,15 @@ export default function CompetitionsDashboard({ competitions, horse }: Props) {
           </div>
         )}
 
-        {/* Progression — only if 2+ ranked */}
-        {progressionLabel && (
-          <div className="stat-card">
-            <span className="text-sm font-bold text-black">{progressionLabel}</span>
-            <span className="section-title mt-1">Progression</span>
+        {/* Progression — par discipline, min 6 classés */}
+        {progressionByDiscipline.map((p, i) => (
+          <div key={i} className="stat-card">
+            <span className="text-sm font-bold text-black">{p.label === "En progression" ? "📈" : "➡️"} {p.label}</span>
+            <span className="section-title mt-1">Progression {p.discipline}</span>
           </div>
-        )}
+        ))}
 
-        {/* Victoires — hidden when 0 */}
+        {/* Victoires — masqué si 0 */}
         {victories > 0 && (
           <div className="stat-card border-2 border-yellow-200 bg-yellow-50">
             <span className="text-2xl font-black text-black">{victories} 🥇</span>
@@ -123,7 +127,7 @@ export default function CompetitionsDashboard({ competitions, horse }: Props) {
           </div>
         )}
 
-        {/* Podiums — hidden when 0 */}
+        {/* Podiums — masqué si 0 */}
         {podiums > 0 && (
           <div className="stat-card border-2 border-amber-200 bg-amber-50">
             <span className="text-2xl font-black text-black">{podiums} 🏆</span>
@@ -139,32 +143,51 @@ export default function CompetitionsDashboard({ competitions, horse }: Props) {
         </Button>
       </div>
 
-      {/* Progress chart — Top % Y-axis */}
-      {chartData.length >= 2 && (
-        <div className="card">
-          <h3 className="font-bold text-black text-sm mb-4">Courbe de progression</h3>
-          <ResponsiveContainer width="100%" height={140}>
-            <LineChart data={chartData} margin={{ top: 4, right: 4, left: -10, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F0" vertical={false} />
-              <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#9CA3AF" }} tickLine={false} axisLine={false} />
-              <YAxis
-                domain={[0, 100]}
-                tick={{ fontSize: 10, fill: "#9CA3AF" }}
-                tickLine={false}
-                axisLine={false}
-                ticks={[0, 50, 100]}
-                tickFormatter={(v) => `Top ${100 - v}%`}
-              />
-              <Tooltip
-                contentStyle={{ background: "#1A1A1A", border: "none", borderRadius: 8, fontSize: 12 }}
-                formatter={(value) => [`Top ${100 - (Number(value) || 0)}%`, "Classement"]}
-              />
-              <Line type="monotone" dataKey="percentile" stroke="#E8440A" strokeWidth={2} dot={{ r: 4, fill: "#E8440A" }} />
-            </LineChart>
-          </ResponsiveContainer>
-          <p className="text-xs text-gray-400 text-center mt-1">Plus la courbe monte, meilleur est votre classement relatif</p>
-        </div>
-      )}
+      {/* TRAV-28-10 — Timeline de progression par discipline */}
+      {disciplines.map((disc) => {
+        const discClasse = classe
+          .filter((c) => c.discipline === disc && c.level)
+          .sort((a, b) => a.date.localeCompare(b.date));
+        // Points = premier concours classé à chaque nouveau niveau
+        const seenLevels = new Set<string>();
+        const points = discClasse.filter((c) => {
+          if (seenLevels.has(c.level)) return false;
+          seenLevels.add(c.level);
+          return true;
+        });
+        if (points.length === 0) return null;
+        const color = disc === "CCE" ? "#1565C0" : disc === "CSO" ? "#D94F00" : disc === "Dressage" ? "#388E3C" : "#888";
+        return (
+          <div key={disc} className="card">
+            <h3 className="font-bold text-black text-sm mb-3">
+              Progression {DISCIPLINE_LABELS[disc] || disc}
+            </h3>
+            <div className="overflow-x-auto -mx-2 px-2">
+              <div className="flex items-center gap-0 min-w-max">
+                {points.map((p, i) => (
+                  <div key={p.id} className="flex items-center">
+                    <div className="flex flex-col items-center gap-1 w-28">
+                      <div
+                        className="w-4 h-4 rounded-full border-2 flex-shrink-0"
+                        style={{ borderColor: color, backgroundColor: i === points.length - 1 ? color : "white" }}
+                      />
+                      <span className="text-xs font-bold text-gray-800 text-center leading-tight">{p.level}</span>
+                      <span className="text-2xs text-gray-400 text-center">{format(parseISO(p.date), "MMM yyyy", { locale: fr })}</span>
+                      {p.location && <span className="text-2xs text-gray-400 text-center">{p.location}</span>}
+                    </div>
+                    {i < points.length - 1 && (
+                      <div className="w-8 h-0.5 flex-shrink-0 -mt-6" style={{ backgroundColor: color, opacity: 0.3 }} />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+            {points.length === 1 && (
+              <p className="text-xs text-gray-400 mt-3 text-center">Continuez à concourir pour voir votre progression !</p>
+            )}
+          </div>
+        );
+      })}
 
       {/* Empty state */}
       {competitions.length === 0 && (

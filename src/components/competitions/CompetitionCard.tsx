@@ -24,7 +24,8 @@ export default function CompetitionCard({ competition: c, horseId }: Props) {
   const [editOpen, setEditOpen] = useState(false);
 
   const isDatePast = !isAfter(startOfDay(parseISO(c.date)), startOfDay(new Date()));
-  const showResultButton = c.status === "a_venir" && isDatePast;
+  // TRAV-28-08 — Bouton masqué (feature trop complexe à ce stade)
+  const showResultButton = false; // c.status === "a_venir" && isDatePast;
 
   const handleDelete = async () => {
     if (!confirm("Supprimer ce concours ?")) return;
@@ -62,7 +63,24 @@ export default function CompetitionCard({ competition: c, horseId }: Props) {
         </div>
 
         <div className="flex items-center gap-2">
-          {c.result_rank && c.total_riders && (
+          {/* TRAV-28-03 — Badge statut participation */}
+          {c.statut_participation === "abandonne" && (
+            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-gray-100 text-gray-500">Abandonné</span>
+          )}
+          {c.statut_participation === "elimine" && (
+            <div className="text-right">
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-red-50 text-red-500">Éliminé</span>
+              {c.motif_elimination && c.motif_elimination !== "autre" && (
+                <div className="text-2xs text-red-400 mt-0.5">
+                  {c.motif_elimination === "refus_repetes" ? "Refus" : c.motif_elimination === "chute" ? "Chute" : "Hors temps"}
+                </div>
+              )}
+            </div>
+          )}
+          {c.statut_participation === "hors_concours" && (
+            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-gray-50 text-gray-400">HC</span>
+          )}
+          {(!c.statut_participation || c.statut_participation === "classe") && c.result_rank && c.total_riders && (
             <div className="text-right">
               <div className="text-xl font-black text-black">
                 {c.result_rank}<span className="text-sm text-gray-400">/{c.total_riders}</span>

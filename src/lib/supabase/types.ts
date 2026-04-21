@@ -294,6 +294,9 @@ export type Notification = {
   created_at: string;
 }
 
+export type StatutParticipation = "classe" | "abandonne" | "elimine" | "hors_concours";
+export type MotifElimination = "refus_repetes" | "chute" | "hors_temps" | "autre";
+
 export type Competition = {
   id: string;
   horse_id: string;
@@ -308,6 +311,19 @@ export type Competition = {
   location: string | null;
   media_urls: string[] | null;
   status: "a_venir" | "passe" | null;
+  // TRAV-28-03 — Statut de participation
+  statut_participation: StatutParticipation;
+  motif_elimination: MotifElimination | null;
+  // TRAV-28-04 — CSO détail
+  cso_barres: number | null;
+  cso_refus: number | null;
+  // TRAV-28-05 — CCE CSO détail
+  cce_cso_barres: number | null;
+  cce_cso_refus: number | null;
+  // TRAV-28-06 — Dressage détail
+  dressage_reprise: string | null;
+  dressage_note_pct: number | null;
+  // Legacy
   score_dressage: number | null;
   penalites_cso: number | null;
   penalites_cross: number | null;

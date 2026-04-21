@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { Plus, Dumbbell, Heart, X, User } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import QuickTrainingModal from "@/components/training/QuickTrainingModal";
@@ -135,8 +136,7 @@ export default function DashboardQuickAdd({ horses, userId, riderLog }: Props) {
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 border-gray-100 bg-gray-50 hover:border-orange hover:bg-orange-light transition-all text-left"
               >
                 {horse.avatar_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={horse.avatar_url} alt={horse.name} className="w-10 h-10 rounded-xl object-cover flex-shrink-0" />
+                  <Image src={horse.avatar_url} alt={horse.name} width={40} height={40} className="w-10 h-10 rounded-xl object-cover flex-shrink-0" />
                 ) : (
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center flex-shrink-0">
                     <span className="text-white font-black text-base">{horse.name[0]}</span>

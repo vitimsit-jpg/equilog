@@ -691,8 +691,8 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
                 {/* Tiret repos complet */}
                 {isRest && (
                   <div className="flex flex-col items-center gap-0.5">
-                    <span className="text-base font-bold text-gray-300 leading-none">—</span>
-                    <span className="text-[7px] text-gray-300 uppercase">repos</span>
+                    <span className="text-base font-bold text-gray-400 leading-none">—</span>
+                    <span className="text-[7px] text-gray-400 uppercase">repos</span>
                   </div>
                 )}
 
@@ -843,7 +843,7 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
         {/* Day content — REPOS empty (seulement si aucun complément non plus) */}
         {hasEverAnyActivity && !hasAnything && selectedDayMainSessions.length === 0 && selectedDayComplements.length === 0 && (
           <div className="text-center py-6">
-            <p className="text-sm text-gray-300 mb-3">
+            <p className="text-sm text-gray-400 mb-3">
               {horseMode === "ICr" ? "Journée libre — rien de prévu" : "Repos — rien de prévu"}
             </p>
             <button
@@ -954,7 +954,7 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
                     softDeleteToast("training_sessions", s.id, `Séance ${TRAINING_TYPE_LABELS[s.type] || s.type}`);
                   }}
                   title="Supprimer"
-                  className="w-[44px] h-[44px] flex items-center justify-center rounded-lg text-gray-300 hover:bg-red-50 hover:text-danger transition-colors"
+                  className="w-[44px] h-[44px] flex items-center justify-center rounded-lg text-gray-400 hover:bg-red-50 hover:text-danger transition-colors"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -1003,7 +1003,7 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
                 <span className="text-sm font-bold text-black">{TRAINING_TYPE_LABELS[confirmToast.type] || confirmToast.type}</span>
                 <span className="text-2xs bg-green-100 text-green-700 font-semibold px-1.5 py-0.5 rounded-full">Confirmée</span>
               </div>
-              <button onClick={dismissConfirmToast} className="text-gray-300 hover:text-gray-500">
+              <button onClick={dismissConfirmToast} className="text-gray-400 hover:text-gray-500">
                 <X className="h-4 w-4" />
               </button>
             </div>

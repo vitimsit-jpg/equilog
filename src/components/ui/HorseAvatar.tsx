@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 
 interface Props {
   name: string;
@@ -17,6 +18,8 @@ const SIZE_CLASSES = {
   lg: "w-10 h-10 text-base",
 };
 
+const SIZE_PX = { xs: 24, sm: 32, md: 36, lg: 40 };
+
 export default function HorseAvatar({ name, photoUrl, size = "md", className = "", rounded = "xl" }: Props) {
   const [error, setError] = useState(false);
   const sizeClass = SIZE_CLASSES[size];
@@ -25,12 +28,14 @@ export default function HorseAvatar({ name, photoUrl, size = "md", className = "
 
   if (photoUrl && !error) {
     return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
+      <Image
         src={photoUrl}
         alt={name}
+        width={SIZE_PX[size]}
+        height={SIZE_PX[size]}
         className={`${base} object-cover`}
         onError={() => setError(true)}
+        unoptimized={!photoUrl.includes("supabase.co")}
       />
     );
   }

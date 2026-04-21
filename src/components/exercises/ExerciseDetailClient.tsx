@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Heart, Clock, Target, Tag, ChevronRight, X, Check } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import toast from "react-hot-toast";
+import Image from "next/image";
 import type { Exercise, TrainingType } from "@/lib/supabase/types";
 import QuickTrainingModal from "@/components/training/QuickTrainingModal";
 import { CATEGORY_CONFIG } from "./ExerciseLibraryClient";
@@ -295,8 +296,7 @@ export default function ExerciseDetailClient({ exercise, isFavorite, userId, hor
                   className="w-full flex items-center gap-3 px-3 py-3 rounded-xl bg-gray-50 active:bg-gray-100 transition-colors text-left"
                 >
                   {horse.avatar_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={horse.avatar_url} alt={horse.name} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+                    <Image src={horse.avatar_url} alt={horse.name} width={40} height={40} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
                   ) : (
                     <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
                       <span className="text-sm font-bold text-gray-500">{horse.name[0]}</span>

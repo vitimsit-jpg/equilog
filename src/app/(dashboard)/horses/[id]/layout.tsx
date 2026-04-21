@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowLeft, Users } from "lucide-react";
 import CoachChat from "@/components/coaching/CoachChat";
 import type { Horse } from "@/lib/supabase/types";
@@ -95,11 +96,12 @@ export default async function HorseLayout({ children, params }: Props) {
         {/* Photo zone */}
         <div className="relative h-56 md:h-72">
           {avatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <Image
               src={avatarUrl}
               alt={horse.name}
-              className="w-full h-full object-cover"
+              fill
+              className="object-cover"
+              priority
             />
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-[#1A1A1A] to-[#2D1A0E]" />

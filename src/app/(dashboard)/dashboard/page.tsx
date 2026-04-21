@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import {
   Plus,
   Heart,
@@ -665,21 +666,21 @@ export default async function DashboardPage({
               <div className="stat-card items-center text-center">
                 <span className="text-xl font-black text-black">{weekSessionCount}</span>
                 <span className="text-2xs text-gray-400">séances</span>
-                <span className="text-2xs text-gray-300">cette semaine</span>
+                <span className="text-2xs text-gray-400">cette semaine</span>
               </div>
               <div className="stat-card items-center text-center">
                 <span className={`text-xl font-black ${horsesActiveThisWeek === horseCount ? "text-success" : "text-black"}`}>
                   {horsesActiveThisWeek}/{horseCount}
                 </span>
                 <span className="text-2xs text-gray-400">actifs</span>
-                <span className="text-2xs text-gray-300">cette semaine</span>
+                <span className="text-2xs text-gray-400">cette semaine</span>
               </div>
               <div className="stat-card items-center text-center">
                 <span className={`text-xl font-black ${totalOverdue > 0 ? "text-danger" : "text-success"}`}>
                   {totalOverdue}
                 </span>
                 <span className="text-2xs text-gray-400">soin{totalOverdue !== 1 ? "s" : ""}</span>
-                <span className="text-2xs text-gray-300">en retard</span>
+                <span className="text-2xs text-gray-400">en retard</span>
               </div>
             </div>
           );
@@ -705,11 +706,11 @@ export default async function DashboardPage({
                   className="relative w-24 h-24 rounded-2xl overflow-hidden flex-shrink-0 bg-gray-100"
                 >
                   {avatarUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                    <Image
                       src={avatarUrl}
                       alt={horse.name}
-                      className="w-full h-full object-cover"
+                      fill
+                      className="object-cover"
                     />
                   ) : (
                     <div className="w-full h-full bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center">
@@ -1296,7 +1297,7 @@ export default async function DashboardPage({
                 className="flex items-center justify-between py-1.5 border-b border-gray-50 last:border-0"
               >
                 <div className="flex items-center gap-3">
-                  <span className="text-xs font-bold text-gray-300 w-4">{idx + 1}</span>
+                  <span className="text-xs font-bold text-gray-400 w-4">{idx + 1}</span>
                   <HorseAvatar
                     name={horse.name}
                     photoUrl={horse.avatar_url}
@@ -1313,7 +1314,7 @@ export default async function DashboardPage({
                     {score}
                   </p>
                 ) : (
-                  <p className="text-sm text-gray-300 font-bold">—</p>
+                  <p className="text-sm text-gray-400 font-bold">—</p>
                 )}
               </div>
             );
@@ -1375,8 +1376,7 @@ export default async function DashboardPage({
             <div key={horse.id} className="flex items-center gap-3 p-3">
               <div className="w-8 h-8 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
                 {horse.avatar_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={horse.avatar_url} alt={horse.name} className="w-full h-full object-cover" />
+                  <Image src={horse.avatar_url} alt={horse.name} fill className="object-cover" />
                 ) : (
                   <div className="w-full h-full bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center">
                     <span className="text-white font-black text-xs">{horse.name[0]}</span>

@@ -10,6 +10,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import Link from "next/link";
 import {
   startOfWeek,
@@ -212,10 +213,11 @@ export default function HorsePlanningCards({ horses, weekSessions, weekPlannedSe
             <div className="flex items-center justify-between mb-2.5">
               <div className="flex items-center gap-2.5">
                 {horse.avatar_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
+                  <Image
                     src={horse.avatar_url}
                     alt={horse.name}
+                    width={40}
+                    height={40}
                     className="w-10 h-10 rounded-full object-cover flex-shrink-0"
                   />
                 ) : (

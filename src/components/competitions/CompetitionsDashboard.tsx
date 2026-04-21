@@ -23,6 +23,9 @@ interface Props {
 export default function CompetitionsDashboard({ competitions, horse }: Props) {
   const router = useRouter();
   const [addOpen, setAddOpen] = useState(false);
+  // TRAV-28-14 — Filtres historique
+  const [filterDisc, setFilterDisc] = useState<string>("Tous");
+  const [filterSaison, setFilterSaison] = useState<string>("Tout");
 
   const today = startOfDay(new Date());
 
@@ -240,18 +243,57 @@ export default function CompetitionsDashboard({ competitions, horse }: Props) {
             )}
           </div>
 
-          {/* Section Historique */}
-          {past.length > 0 && (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Trophy className="h-3.5 w-3.5 text-gray-400" />
-                <span className="text-xs font-bold text-gray-400 uppercase tracking-wide">Historique ({past.length})</span>
+          {/* TRAV-28-14 — Section Historique avec filtres */}
+          {past.length > 0 && (() => {
+            const availableDiscs = Array.from(new Set(past.map((c) => c.discipline)));
+            const availableSaisons = Array.from(new Set(past.map((c) => c.date.slice(0, 4)))).sort().reverse();
+            const filtered = past
+              .filter((c) => filterDisc === "Tous" || c.discipline === filterDisc)
+              .filter((c) => filterSaison === "Tout" || c.date.startsWith(filterSaison));
+            return (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Trophy className="h-3.5 w-3.5 text-gray-400" />
+                  <span className="text-xs font-bold text-gray-400 uppercase tracking-wide">Historique ({filtered.length})</span>
+                </div>
+                {/* Filtres */}
+                <div className="flex flex-wrap gap-1.5">
+                  {["Tous", ...availableDiscs].map((d) => (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => setFilterDisc(d)}
+                      className={`px-2.5 py-1 rounded-full text-2xs font-semibold transition-all ${
+                        filterDisc === d ? "bg-black text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                      }`}
+                    >
+                      {d === "Tous" ? "Tous" : DISCIPLINE_LABELS[d] || d}
+                    </button>
+                  ))}
+                  <span className="w-px h-5 bg-gray-200 mx-1 self-center" />
+                  {["Tout", ...availableSaisons].map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => setFilterSaison(s)}
+                      className={`px-2.5 py-1 rounded-full text-2xs font-semibold transition-all ${
+                        filterSaison === s ? "bg-black text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                      }`}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+                {filtered.length === 0 ? (
+                  <p className="text-xs text-gray-400 text-center py-4">Aucun concours pour ces filtres</p>
+                ) : (
+                  filtered.map((c) => (
+                    <CompetitionCard key={c.id} competition={c} horseId={horse.id} />
+                  ))
+                )}
               </div>
-              {past.map((c) => (
-                <CompetitionCard key={c.id} competition={c} horseId={horse.id} />
-              ))}
-            </div>
-          )}
+            );
+          })()}
         </div>
       )}
 

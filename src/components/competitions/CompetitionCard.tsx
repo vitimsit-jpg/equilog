@@ -4,14 +4,13 @@ import { useState } from "react";
 import type { Competition } from "@/lib/supabase/types";
 import { formatDate, DISCIPLINE_LABELS } from "@/lib/utils";
 import Badge from "@/components/ui/Badge";
-import { Trophy, MapPin, Edit2, Trash2, PlusCircle } from "lucide-react";
+import { Trophy, MapPin, Edit2, Trash2 } from "lucide-react";
 import MediaGallery from "@/components/media/MediaGallery";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import Modal from "@/components/ui/Modal";
 import CompetitionForm from "./CompetitionForm";
-import { isAfter, startOfDay, parseISO } from "date-fns";
 
 interface Props {
   competition: Competition;
@@ -23,9 +22,6 @@ export default function CompetitionCard({ competition: c, horseId }: Props) {
   const router = useRouter();
   const [editOpen, setEditOpen] = useState(false);
 
-  const isDatePast = !isAfter(startOfDay(parseISO(c.date)), startOfDay(new Date()));
-  // TRAV-28-08 — Bouton masqué (feature trop complexe à ce stade)
-  const showResultButton = false; // c.status === "a_venir" && isDatePast;
 
   const handleDelete = async () => {
     if (!confirm("Supprimer ce concours ?")) return;
@@ -96,20 +92,14 @@ export default function CompetitionCard({ competition: c, horseId }: Props) {
       <div className="mt-3 pt-3 border-t border-gray-50 space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <MediaGallery
-              entityType="competition"
-              entityId={c.id}
-              horseId={horseId}
-              initialMediaUrls={c.media_urls ?? []}
-            />
-            {showResultButton && (
-              <button
-                onClick={() => setEditOpen(true)}
-                className="flex items-center gap-1.5 text-2xs font-semibold px-3 py-1.5 rounded-full bg-orange-light text-orange hover:bg-orange hover:text-white transition-all"
-              >
-                <PlusCircle className="h-3 w-3" />
-                Ajouter mon résultat →
-              </button>
+            {/* TRAV-28-02 — Médias masqués si vide */}
+            {c.media_urls && c.media_urls.length > 0 && (
+              <MediaGallery
+                entityType="competition"
+                entityId={c.id}
+                horseId={horseId}
+                initialMediaUrls={c.media_urls}
+              />
             )}
           </div>
           <div className="flex gap-1">

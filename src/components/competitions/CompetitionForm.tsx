@@ -112,6 +112,15 @@ export default function CompetitionForm({ horseId, onSaved, onCancel, defaultVal
     score_dressage: defaultValues?.score_dressage ? String(defaultValues.score_dressage) : "",
     penalites_cso: defaultValues?.penalites_cso ? String(defaultValues.penalites_cso) : "",
     penalites_cross: defaultValues?.penalites_cross ? String(defaultValues.penalites_cross) : "",
+    // TRAV-28-04 — CSO détail
+    cso_barres: defaultValues?.cso_barres ? String(defaultValues.cso_barres) : "0",
+    cso_refus: defaultValues?.cso_refus ? String(defaultValues.cso_refus) : "0",
+    // TRAV-28-05 — CCE CSO détail
+    cce_cso_barres: defaultValues?.cce_cso_barres ? String(defaultValues.cce_cso_barres) : "0",
+    cce_cso_refus: defaultValues?.cce_cso_refus ? String(defaultValues.cce_cso_refus) : "0",
+    // TRAV-28-06 — Dressage détail
+    dressage_reprise: defaultValues?.dressage_reprise || "",
+    dressage_note_pct: defaultValues?.dressage_note_pct ? String(defaultValues.dressage_note_pct) : "",
   });
   const showResultFields = statutParticipation === "classe";
   const showPartants = statutParticipation !== "hors_concours";
@@ -156,7 +165,25 @@ export default function CompetitionForm({ horseId, onSaved, onCancel, defaultVal
       score_dressage: isPasse && isClasse && form.discipline === "CCE" && form.score_dressage ? parseFloat(form.score_dressage) : null,
       penalites_cso: isPasse && isClasse && form.discipline === "CCE" && form.penalites_cso !== "" ? parseFloat(form.penalites_cso) : null,
       penalites_cross: isPasse && isClasse && form.discipline === "CCE" && form.penalites_cross !== "" ? parseFloat(form.penalites_cross) : null,
+      // TRAV-28-04 — CSO détail (score = (barres + refus) × 4)
+      cso_barres: isPasse && isClasse && form.discipline === "CSO" ? parseInt(form.cso_barres) || 0 : 0,
+      cso_refus: isPasse && isClasse && form.discipline === "CSO" ? parseInt(form.cso_refus) || 0 : 0,
+      // TRAV-28-05 — CCE CSO détail
+      cce_cso_barres: isPasse && isClasse && form.discipline === "CCE" ? parseInt(form.cce_cso_barres) || 0 : 0,
+      cce_cso_refus: isPasse && isClasse && form.discipline === "CCE" ? parseInt(form.cce_cso_refus) || 0 : 0,
+      // TRAV-28-06 — Dressage détail
+      dressage_reprise: isPasse && isClasse && form.discipline === "Dressage" ? form.dressage_reprise || null : null,
+      dressage_note_pct: isPasse && isClasse && form.discipline === "Dressage" && form.dressage_note_pct ? parseFloat(form.dressage_note_pct) : null,
     };
+
+    // TRAV-28-04 — Recalculer score pour CSO pur
+    if (isPasse && isClasse && form.discipline === "CSO") {
+      (payload as Record<string, unknown>).score = ((parseInt(form.cso_barres) || 0) + (parseInt(form.cso_refus) || 0)) * 4;
+    }
+    // TRAV-28-05 — Recalculer penalites_cso pour CCE
+    if (isPasse && isClasse && form.discipline === "CCE") {
+      (payload as Record<string, unknown>).penalites_cso = ((parseInt(form.cce_cso_barres) || 0) + (parseInt(form.cce_cso_refus) || 0)) * 4;
+    }
 
     const { error } = defaultValues?.id
       ? await supabase.from("competitions").update(payload).eq("id", defaultValues.id)
@@ -324,7 +351,7 @@ export default function CompetitionForm({ horseId, onSaved, onCancel, defaultVal
           )}
 
           {showResultFields && (<>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <Input
                 label="Classement"
                 type="number"
@@ -341,17 +368,40 @@ export default function CompetitionForm({ horseId, onSaved, onCancel, defaultVal
                 placeholder="20"
                 min="1"
               />
-              <Input
-                label="Score / Points"
-                type="number"
-                value={form.score}
-                onChange={(e) => setForm({ ...form, score: e.target.value })}
-                placeholder="0.0"
-                step="0.01"
-              />
             </div>
 
-            {/* CCE scores conditionnels */}
+            {/* TRAV-28-04 — CSO : barres + refus séparés */}
+            {form.discipline === "CSO" && (
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-gray-500">Détail CSO</p>
+                <div className="grid grid-cols-3 gap-4">
+                  <Input
+                    label="Barres abattues"
+                    type="number"
+                    value={form.cso_barres}
+                    onChange={(e) => setForm({ ...form, cso_barres: e.target.value })}
+                    placeholder="0"
+                    min="0"
+                  />
+                  <Input
+                    label="Refus"
+                    type="number"
+                    value={form.cso_refus}
+                    onChange={(e) => setForm({ ...form, cso_refus: e.target.value })}
+                    placeholder="0"
+                    min="0"
+                  />
+                  <div>
+                    <label className="label">Total pén.</label>
+                    <div className="input bg-gray-50 text-gray-600 font-semibold">
+                      {((parseInt(form.cso_barres) || 0) + (parseInt(form.cso_refus) || 0)) * 4}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TRAV-28-05 — CCE : barres + refus CSO séparés */}
             {form.discipline === "CCE" && (
               <div className="space-y-2">
                 <p className="text-xs font-semibold text-gray-500">Détail CCE</p>
@@ -366,26 +416,85 @@ export default function CompetitionForm({ horseId, onSaved, onCancel, defaultVal
                     min="0"
                     max="100"
                   />
+                  <div className="col-span-2 grid grid-cols-3 gap-2">
+                    <Input
+                      label="Barres CSO"
+                      type="number"
+                      value={form.cce_cso_barres}
+                      onChange={(e) => setForm({ ...form, cce_cso_barres: e.target.value })}
+                      placeholder="0"
+                      min="0"
+                    />
+                    <Input
+                      label="Refus CSO"
+                      type="number"
+                      value={form.cce_cso_refus}
+                      onChange={(e) => setForm({ ...form, cce_cso_refus: e.target.value })}
+                      placeholder="0"
+                      min="0"
+                    />
+                    <div>
+                      <label className="label">Pén. CSO</label>
+                      <div className="input bg-gray-50 text-gray-600 font-semibold text-sm">
+                        {((parseInt(form.cce_cso_barres) || 0) + (parseInt(form.cce_cso_refus) || 0)) * 4}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <Input
+                  label="Pénalités cross (total)"
+                  type="number"
+                  value={form.penalites_cross}
+                  onChange={(e) => setForm({ ...form, penalites_cross: e.target.value })}
+                  placeholder="0"
+                  min="0"
+                  step="0.5"
+                />
+              </div>
+            )}
+
+            {/* TRAV-28-06 — Dressage : reprise + note % */}
+            {form.discipline === "Dressage" && (
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-gray-500">Détail Dressage</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="label">Reprise</label>
+                    <select
+                      value={form.dressage_reprise}
+                      onChange={(e) => setForm({ ...form, dressage_reprise: e.target.value })}
+                      className="input appearance-none w-full"
+                    >
+                      <option value="">Sélectionner</option>
+                      {["Intro A", "Intro B", "Club 1", "Club 2", "Club 3", "Amateur 1", "Amateur 2", "St Georges", "Intermédiaire 1", "Intermédiaire 2", "Grand Prix", "Autre"].map((r) => (
+                        <option key={r} value={r}>{r}</option>
+                      ))}
+                    </select>
+                  </div>
                   <Input
-                    label="Pénalités CSO"
+                    label="Note (%)"
                     type="number"
-                    value={form.penalites_cso}
-                    onChange={(e) => setForm({ ...form, penalites_cso: e.target.value })}
-                    placeholder="4"
+                    value={form.dressage_note_pct}
+                    onChange={(e) => setForm({ ...form, dressage_note_pct: e.target.value })}
+                    placeholder="68.5"
+                    step="0.01"
                     min="0"
-                    step="0.5"
-                  />
-                  <Input
-                    label="Pénalités cross"
-                    type="number"
-                    value={form.penalites_cross}
-                    onChange={(e) => setForm({ ...form, penalites_cross: e.target.value })}
-                    placeholder="0"
-                    min="0"
-                    step="0.5"
+                    max="100"
                   />
                 </div>
               </div>
+            )}
+
+            {/* Score générique pour les autres disciplines */}
+            {form.discipline !== "CSO" && form.discipline !== "CCE" && form.discipline !== "Dressage" && (
+              <Input
+                label="Score / Points"
+                type="number"
+                value={form.score}
+                onChange={(e) => setForm({ ...form, score: e.target.value })}
+                placeholder="0.0"
+                step="0.01"
+              />
             )}
           </>)}
 

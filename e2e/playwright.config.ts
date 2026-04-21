@@ -6,6 +6,7 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
   reporter: "html",
+  globalSetup: "./e2e/global-setup.ts",
 
   use: {
     baseURL: "http://localhost:3000",
@@ -14,25 +15,30 @@ export default defineConfig({
   },
 
   projects: [
-    // Tests sans authentification (auth flows, protection routes, API sécurité)
+    // Tests sans authentification (auth flows, protection routes)
     {
       name: "unauthenticated",
       use: { ...devices["Desktop Chrome"] },
       testMatch: ["**/01-auth.spec.ts", "**/03-sharing.spec.ts"],
     },
 
-    // Tests avec session utilisateur pro
-    // Générer avec : npx playwright codegen --save-storage=e2e/auth-pro.json http://localhost:3000/login
+    // Tests avec session utilisateur authentifié
     {
-      name: "authenticated-pro",
+      name: "authenticated",
       use: {
         ...devices["Desktop Chrome"],
         storageState: "e2e/auth-pro.json",
       },
-      testMatch: ["**/02-horse-crud.spec.ts", "**/04-paywall.spec.ts"],
+      testMatch: [
+        "**/02-horse-crud.spec.ts",
+        "**/04-paywall.spec.ts",
+        "**/05-training.spec.ts",
+        "**/06-competitions.spec.ts",
+        "**/07-health.spec.ts",
+      ],
     },
 
-    // Tests mobile (smoke tests uniquement)
+    // Tests mobile (smoke tests)
     {
       name: "mobile",
       use: { ...devices["iPhone 13"] },

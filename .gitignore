@@ -43,3 +43,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .supabase-cli
+
+# obsidian
+obsidian/.obsidian/workspace.json
+obsidian/.obsidian/workspace-mobile.json
+obsidian/.obsidian/plugins/
+obsidian/.obsidian/core-plugins-migration.json

@@ -86,7 +86,7 @@ test.describe("Protection des routes", () => {
 
   for (const route of protectedRoutes) {
     test(`${route} redirige vers /login si non connecté`, async ({ page }) => {
-      await page.goto(`${BASE}${route}`);
+      await page.goto(route);
       await expect(page).toHaveURL(/\/login/);
     });
   }
@@ -98,7 +98,7 @@ test.describe("Protection des routes", () => {
 
   for (const route of publicRoutes) {
     test(`${route} accessible sans connexion`, async ({ page }) => {
-      await page.goto(`${BASE}${route}`);
+      await page.goto(route);
       // La page doit charger (pas de redirect vers une autre route protégée)
       await expect(page).toHaveURL(new RegExp(route.replace("/", "\\/")));
     });

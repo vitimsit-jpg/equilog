@@ -81,20 +81,28 @@ test.describe("Partage — côté invité", () => {
 // ─── P9 : API SHARES ────────────────────────────────────────────────────────
 
 test.describe("API Shares — sécurité", () => {
-  test("POST /api/horses/[id]/shares sans auth → 401", async ({ request }) => {
+  // Le middleware Next.js redirige (307) les requêtes non-auth vers /login
+  // Playwright suit la redirection → on vérifie que le résultat n'est PAS un JSON valide avec des données
+  test("POST /api/horses/[id]/shares sans auth → bloqué", async ({ request }) => {
     const res = await request.post(`/api/horses/fake-id/shares`, {
       data: { email: "test@test.com", role: "coach" },
+      maxRedirects: 0,
     });
-    expect(res.status()).toBe(401);
+    // 307 redirect ou 401 — les deux sont acceptables
+    expect([307, 401]).toContain(res.status());
   });
 
-  test("DELETE /api/horses/[id]/shares/[shareId] sans auth → 401", async ({ request }) => {
-    const res = await request.delete(`/api/horses/fake-id/shares/fake-share-id`);
-    expect(res.status()).toBe(401);
+  test("DELETE /api/horses/[id]/shares/[shareId] sans auth → bloqué", async ({ request }) => {
+    const res = await request.delete(`/api/horses/fake-id/shares/fake-share-id`, {
+      maxRedirects: 0,
+    });
+    expect([307, 401]).toContain(res.status());
   });
 
-  test("GET /api/shares/received sans auth → 401", async ({ request }) => {
-    const res = await request.get(`/api/shares/received`);
-    expect(res.status()).toBe(401);
+  test("GET /api/shares/received sans auth → bloqué", async ({ request }) => {
+    const res = await request.get(`/api/shares/received`, {
+      maxRedirects: 0,
+    });
+    expect([307, 401]).toContain(res.status());
   });
 });

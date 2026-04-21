@@ -230,8 +230,8 @@ export default function CompetitionsDashboard({ competitions, horse }: Props) {
                 <LineChart data={cceChartData} margin={{ top: 4, right: 4, left: -10, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F0" vertical={false} />
                   <XAxis dataKey="date" tick={{ fontSize: 9, fill: "#9CA3AF" }} tickLine={false} axisLine={false} />
-                  <YAxis yAxisId="left" domain={[50, 80]} tick={{ fontSize: 9, fill: "#9CA3AF" }} tickLine={false} axisLine={false} tickFormatter={(v) => `${v}%`} />
-                  <YAxis yAxisId="right" orientation="right" domain={[0, 20]} tick={{ fontSize: 9, fill: "#9CA3AF" }} tickLine={false} axisLine={false} />
+                  <YAxis yAxisId="left" domain={["dataMin - 5", "dataMax + 5"]} tick={{ fontSize: 9, fill: "#9CA3AF" }} tickLine={false} axisLine={false} tickFormatter={(v) => `${v}%`} />
+                  <YAxis yAxisId="right" orientation="right" domain={[0, "dataMax + 4"]} tick={{ fontSize: 9, fill: "#9CA3AF" }} tickLine={false} axisLine={false} />
                   <Tooltip contentStyle={{ background: "#1A1A1A", border: "none", borderRadius: 8, fontSize: 11, color: "white" }} />
                   <Legend iconSize={8} wrapperStyle={{ fontSize: 10 }} />
                   <Line yAxisId="left" type="monotone" dataKey="dressage" name="Dressage %" stroke="#388E3C" strokeWidth={2} dot={{ r: 3 }} connectNulls />
@@ -324,7 +324,7 @@ export default function CompetitionsDashboard({ competitions, horse }: Props) {
                 <LineChart data={dresChartData} margin={{ top: 4, right: 4, left: -10, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F0" vertical={false} />
                   <XAxis dataKey="date" tick={{ fontSize: 9, fill: "#9CA3AF" }} tickLine={false} axisLine={false} />
-                  <YAxis domain={[50, 80]} tick={{ fontSize: 9, fill: "#9CA3AF" }} tickLine={false} axisLine={false} tickFormatter={(v) => `${v}%`} />
+                  <YAxis domain={["dataMin - 3", "dataMax + 3"]} tick={{ fontSize: 9, fill: "#9CA3AF" }} tickLine={false} axisLine={false} tickFormatter={(v) => `${v}%`} />
                   <Tooltip contentStyle={{ background: "#1A1A1A", border: "none", borderRadius: 8, fontSize: 11, color: "white" }} formatter={(v) => [`${v}%`, "Note"]} />
                   <Line type="monotone" dataKey="note" name="Note %" stroke="#388E3C" strokeWidth={2} dot={{ r: 4, fill: "#388E3C" }} connectNulls />
                 </LineChart>

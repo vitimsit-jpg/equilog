@@ -59,7 +59,7 @@ export default function CompetitionsDashboard({ competitions, horse }: Props) {
 
   // TRAV-28-07 — Progression par discipline : 3 derniers vs 3 précédents (min 6 classés)
   const progressionByDiscipline: { discipline: string; label: string }[] = [];
-  const disciplines = Array.from(new Set(withRank.map((c) => c.discipline)));
+  const disciplines = Array.from(new Set(classe.map((c) => c.discipline)));
   for (const disc of disciplines) {
     const discRanked = withRank.filter((c) => c.discipline === disc).sort((a, b) => a.date.localeCompare(b.date));
     if (discRanked.length >= 6) {

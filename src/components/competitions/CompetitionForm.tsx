@@ -135,7 +135,17 @@ export default function CompetitionForm({ horseId, onSaved, onCancel, defaultVal
   const levelGroups = LEVELS_BY_DISCIPLINE[form.discipline] ?? GENERIC_LEVELS;
 
   const handleDisciplineChange = (discipline: string) => {
-    setForm({ ...form, discipline: discipline as Competition["discipline"], level: "" });
+    setForm({
+      ...form,
+      discipline: discipline as Competition["discipline"],
+      level: "",
+      // Reset discipline-specific fields to avoid stale data leakage
+      cso_barres: "0", cso_refus: "0",
+      cce_cso_barres: "0", cce_cso_refus: "0",
+      score_dressage: "", penalites_cso: "", penalites_cross: "",
+      dressage_reprise: "", dressage_note_pct: "",
+      score: "",
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

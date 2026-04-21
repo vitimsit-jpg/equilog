@@ -311,8 +311,8 @@ export type Competition = {
   location: string | null;
   media_urls: string[] | null;
   status: "a_venir" | "passe" | null;
-  // TRAV-28-03 — Statut de participation
-  statut_participation: StatutParticipation;
+  // TRAV-28-03 — Statut de participation (null pour données pré-migration)
+  statut_participation: StatutParticipation | null;
   motif_elimination: MotifElimination | null;
   // TRAV-28-04 — CSO détail
   cso_barres: number | null;

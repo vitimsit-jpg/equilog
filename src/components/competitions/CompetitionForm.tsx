@@ -164,6 +164,12 @@ export default function CompetitionForm({ horseId, onSaved, onCancel, defaultVal
     if (!form.event_name.trim()) { toast.error("Le nom du concours est requis"); return; }
     // TRAV-28-01 — Niveau obligatoire uniquement si statut "Passé"
     if (status === "passe" && !form.level) { toast.error("Veuillez sélectionner un niveau pour enregistrer ce concours."); return; }
+    // AUDIT HIGH-6 — Validation numérique
+    if (form.result_rank && parseInt(form.result_rank) < 1) { toast.error("Le classement doit être au minimum 1"); return; }
+    if (form.total_riders && parseInt(form.total_riders) < 1) { toast.error("Le nombre de partants doit être au minimum 1"); return; }
+    if (form.result_rank && form.total_riders && parseInt(form.result_rank) > parseInt(form.total_riders)) { toast.error("Le classement ne peut pas dépasser le nombre de partants"); return; }
+    if (form.dressage_note_pct && (parseFloat(form.dressage_note_pct) < 0 || parseFloat(form.dressage_note_pct) > 100)) { toast.error("La note dressage doit être entre 0 et 100%"); return; }
+    if (budgetTotal < 0) { toast.error("Le budget ne peut pas être négatif"); return; }
     setLoading(true);
 
     const isPasse = status === "passe";

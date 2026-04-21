@@ -19,7 +19,6 @@ import { DISCIPLINE_LABELS } from "@/lib/utils";
 interface Props {
   competitions: Competition[];
   horse: Horse;
-  linkedSessionCompetitionIds?: Set<string>;
 }
 
 export default function CompetitionsDashboard({ competitions, horse }: Props) {

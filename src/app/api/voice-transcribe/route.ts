@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -16,6 +17,11 @@ const EMPTY_RESULT = {
 };
 
 export async function POST(request: NextRequest) {
+  // AUDIT CRIT-1 — Auth obligatoire (protège contre l'abus API Claude)
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const { transcript } = await request.json();
   if (!transcript || typeof transcript !== "string") {
     return NextResponse.json({ error: "Missing transcript" }, { status: 400 });

@@ -35,14 +35,27 @@ export default defineConfig({
         "**/05-training.spec.ts",
         "**/06-competitions.spec.ts",
         "**/07-health.spec.ts",
+        "**/08-full-training-flow.spec.ts",
+        "**/09-full-competition-flow.spec.ts",
+        "**/10-deletion-flows.spec.ts",
       ],
     },
 
-    // Tests mobile (smoke tests)
+    // Tests mobile (smoke tests) — sans auth
     {
       name: "mobile",
       use: { ...devices["iPhone 13"] },
       testMatch: ["**/01-auth.spec.ts"],
+    },
+
+    // Tests mobile authentifiés
+    {
+      name: "mobile-auth",
+      use: {
+        ...devices["iPhone 13"],
+        storageState: "e2e/auth-pro.json",
+      },
+      testMatch: ["**/11-mobile-responsive.spec.ts"],
     },
   ],
 

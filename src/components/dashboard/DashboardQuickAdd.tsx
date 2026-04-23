@@ -67,6 +67,7 @@ export default function DashboardQuickAdd({ horses, userId, riderLog }: Props) {
     <>
       <button
         onClick={() => setMenuOpen(true)}
+        aria-label="Ajouter une séance ou un soin"
         className="w-9 h-9 rounded-xl bg-orange flex items-center justify-center shadow-sm hover:bg-orange/90 transition-colors flex-shrink-0"
       >
         <Plus className="h-5 w-5 text-white" />

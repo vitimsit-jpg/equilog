@@ -38,6 +38,10 @@ export default defineConfig({
         "**/08-full-training-flow.spec.ts",
         "**/09-full-competition-flow.spec.ts",
         "**/10-deletion-flows.spec.ts",
+        "**/12-delete-horse.spec.ts",
+        "**/13-visual-regression.spec.ts",
+        "**/14-offline-pwa.spec.ts",
+        "**/15-accessibility-axe.spec.ts",
       ],
     },
 

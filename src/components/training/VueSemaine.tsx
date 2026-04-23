@@ -880,21 +880,21 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
               <div className="flex gap-1 flex-shrink-0">
                 <button
                   onClick={() => handleConfirmSession(p, selectedDateKey)}
-                  title="Fait ✓"
+                  title="Fait ✓" aria-label="Valider la séance"
                   className="w-[44px] h-[44px] flex items-center justify-center rounded-lg bg-green-100 text-green-700 hover:bg-green-200 transition-colors"
                 >
                   <Check className="h-5 w-5" />
                 </button>
                 <button
                   onClick={() => openLogModal(selectedDateKey, p)}
-                  title="Modifier"
+                  title="Modifier" aria-label="Modifier"
                   className="w-[44px] h-[44px] flex items-center justify-center rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors"
                 >
                   <Pencil className="h-4 w-4" />
                 </button>
                 <button
                   onClick={() => skipPlanned(p.id, p.type)}
-                  title="Supprimer"
+                  title="Supprimer" aria-label="Supprimer"
                   className="w-[44px] h-[44px] flex items-center justify-center rounded-lg bg-gray-100 text-gray-400 hover:bg-red-50 hover:text-danger transition-colors"
                 >
                   <X className="h-4 w-4" />
@@ -941,7 +941,7 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
               <div className="flex gap-1 flex-shrink-0 ml-1">
                 <button
                   onClick={() => openLogModal(s.date, undefined, s)}
-                  title="Modifier"
+                  title="Modifier" aria-label="Modifier"
                   className="w-[44px] h-[44px] flex items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 transition-colors"
                 >
                   <Pencil className="h-4 w-4" />
@@ -953,7 +953,7 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
                     startTransition(() => router.refresh());
                     softDeleteToast("training_sessions", s.id, `Séance ${TRAINING_TYPE_LABELS[s.type] || s.type}`);
                   }}
-                  title="Supprimer"
+                  title="Supprimer" aria-label="Supprimer"
                   className="w-[44px] h-[44px] flex items-center justify-center rounded-lg text-gray-400 hover:bg-red-50 hover:text-danger transition-colors"
                 >
                   <X className="h-4 w-4" />

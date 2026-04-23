@@ -11,19 +11,23 @@ export default function PostHogProvider({ children }: { children: React.ReactNod
     const key = process.env.NEXT_PUBLIC_POSTHOG_KEY;
     if (!key || typeof window === "undefined") return;
 
-    import("posthog-js").then(({ default: posthog }) => {
-      if (!posthog.__loaded) {
-        posthog.init(key, {
-          api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://eu.i.posthog.com",
-          person_profiles: "identified_only",
-          capture_pageview: false, // manual below
-          capture_pageleave: true,
-          ip: false, // anonymize IP — RGPD
-          persistence: "memory", // no cookie — RGPD compliant without banner
-          autocapture: false,
-        });
-      }
-    });
+    // Différer le chargement de 3s pour ne pas bloquer le LCP
+    const timer = setTimeout(() => {
+      import("posthog-js").then(({ default: posthog }) => {
+        if (!posthog.__loaded) {
+          posthog.init(key, {
+            api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://eu.i.posthog.com",
+            person_profiles: "identified_only",
+            capture_pageview: false, // manual below
+            capture_pageleave: true,
+            ip: false, // anonymize IP — RGPD
+            persistence: "memory", // no cookie — RGPD compliant without banner
+            autocapture: false,
+          });
+        }
+      });
+    }, 3000);
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {

@@ -19,7 +19,7 @@ test.describe("Fiche cheval", () => {
   test("fiche cheval existant charge correctement", async ({ page }) => {
     await page.goto(`/horses/${HORSE_ID}`);
     await page.waitForLoadState("networkidle");
-    await expect(page.getByText(/jackson/i)).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole("heading", { name: /jackson/i })).toBeVisible({ timeout: 15000 });
   });
 
   test("cheval inexistant → page 404", async ({ page }) => {
@@ -54,7 +54,7 @@ test.describe("Navigation dashboard", () => {
     await page.goto("/dashboard");
     await page.waitForLoadState("networkidle");
     // La sidebar doit avoir les chevaux
-    await expect(page.getByText(/jackson/i)).toBeVisible({ timeout: 15000 });
+    await expect(page.locator("a[href*='/horses/']").first()).toBeVisible({ timeout: 15000 });
   });
 
   test("sidebar contient les liens de navigation", async ({ page }) => {

@@ -62,7 +62,7 @@ export default function LoginPage() {
 
         <div className="card shadow-card-hover">
           <h1 className="text-xl font-bold text-black mb-1">Bon retour</h1>
-          <p className="text-sm text-gray-400 mb-6">Connectez-vous à votre espace.</p>
+          <p className="text-sm text-gray-600 mb-6">Connectez-vous à votre espace.</p>
 
           <form onSubmit={handleLogin} className="space-y-4">
             <Input
@@ -87,7 +87,7 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          <p className="text-center text-sm text-gray-400 mt-5">
+          <p className="text-center text-sm text-gray-600 mt-5">
             Pas encore de compte ?{" "}
             <Link href="/register" className="text-orange font-semibold hover:underline">
               Créer un compte

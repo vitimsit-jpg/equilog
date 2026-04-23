@@ -26,7 +26,9 @@ export default function RootLayout({
     <html lang="fr" suppressHydrationWarning>
       <body className="antialiased" suppressHydrationWarning>
         <PostHogProvider>
-        {children}
+        <main id="main-content">
+          {children}
+        </main>
         </PostHogProvider>
         <Toaster
           position="top-right"

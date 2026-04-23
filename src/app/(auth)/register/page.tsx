@@ -180,7 +180,7 @@ function RegisterForm() {
             >
               {consentTerms
                 ? <CheckCircle2 className="h-5 w-5 text-orange flex-shrink-0 mt-0.5" />
-                : <Circle className="h-5 w-5 text-gray-300 flex-shrink-0 mt-0.5" />
+                : <Circle className="h-5 w-5 text-gray-400 flex-shrink-0 mt-0.5" />
               }
               <span className="text-sm text-gray-600 leading-relaxed">
                 J&apos;accepte les{" "}

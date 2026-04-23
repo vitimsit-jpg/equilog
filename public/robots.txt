@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /
+Allow: /share/
+Allow: /classements
+Allow: /ecurie/
+Allow: /pricing
+
+Disallow: /api/
+Disallow: /dashboard
+Disallow: /horses/
+Disallow: /settings
+Disallow: /onboarding
+Disallow: /admin
+
+Sitemap: https://equilog-i3nr-vitimsit-jpgs-projects.vercel.app/sitemap.xml

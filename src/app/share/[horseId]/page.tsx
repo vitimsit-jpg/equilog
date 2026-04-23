@@ -104,7 +104,7 @@ export default async function PublicHorseProfilePage({ params }: Props) {
                   <p className="text-3xl font-black text-black">{currentScore.score}</p>
                   {currentScore.score_breakdown?.mode && (
                     <>
-                      <span className="text-gray-300 font-light text-xl">·</span>
+                      <span className="text-gray-400 font-light text-xl">·</span>
                       <span className="text-base font-mono font-bold text-orange">{currentScore.score_breakdown.mode}</span>
                     </>
                   )}
@@ -281,10 +281,10 @@ export default async function PublicHorseProfilePage({ params }: Props) {
               {last30Sessions.slice(0, 8).map((s) => (
                 <div key={s.id} className="flex items-center justify-between py-1">
                   <div className="flex items-center gap-2">
-                    <Calendar className="h-3 w-3 text-gray-300" />
+                    <Calendar className="h-3 w-3 text-gray-400" />
                     <span className="text-xs text-gray-600">{TRAINING_TYPE_LABELS[s.type] || s.type}</span>
                     <span className="text-xs text-gray-400">{s.duration_min}min</span>
-                    <span className="text-xs text-gray-300">{formatDate(s.date)}</span>
+                    <span className="text-xs text-gray-400">{formatDate(s.date)}</span>
                   </div>
                   <div className="flex gap-0.5">
                     {Array.from({ length: 5 }).map((_, i) => (

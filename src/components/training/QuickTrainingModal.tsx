@@ -81,6 +81,7 @@ export interface PrefillData {
   intensity?: number | null;
   feeling?: number | null;
   duree_planifiee?: number | null;
+  date?: string | null;
 }
 
 interface Props {
@@ -175,7 +176,12 @@ export default function QuickTrainingModal({
       const idx = FEELING_OPTIONS.findIndex(f => f.value === prefill.feeling);
       if (idx >= 0) setFeelingIdx(idx);
     }
-  }, [open, prefill]);
+    // Mode edit : garder la date originale de la séance
+    if (prefill.date && editSessionId) {
+      setDateMode("custom");
+      setCustomDate(prefill.date);
+    }
+  }, [open, prefill, editSessionId]);
 
   const effectiveDuration = showCustom && customDuration ? parseInt(customDuration) || 45 : duration;
   const effectiveDate = dateMode === "today"
@@ -622,7 +628,8 @@ export default function QuickTrainingModal({
             </button>
           )}
 
-          {/* Date */}
+          {/* Date — masqué en mode edit (la date ne change pas) */}
+          {!editSessionId && (
           <div>
             <p className="text-2xs font-bold uppercase tracking-widest text-gray-400 mb-2">Date {mode === "plan" ? "prévue" : ""}</p>
             {mode === "plan" ? (
@@ -664,6 +671,7 @@ export default function QuickTrainingModal({
               </>
             )}
           </div>
+          )}
 
           {/* Type de travail */}
           <div>

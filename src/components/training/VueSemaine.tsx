@@ -239,6 +239,7 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
         duration: fromSession.duration_min ?? null,
         intensity: fromSession.intensity ?? null,
         feeling: fromSession.feeling ?? null,
+        date: fromSession.date,
       });
     } else if (fromPlanned) {
       setEditSessionId(null);

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "react-hot-toast";
@@ -9,6 +9,15 @@ const inter = Inter({
   weight: ["400", "500", "600", "700", "800", "900"],
   display: "swap",
 });
+
+// Bug #1 Agathe : viewport-fit=cover + interactiveWidget="resizes-content"
+// Permet à iOS Safari de gérer correctement le clavier virtuel dans les modals
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  interactiveWidget: "resizes-content",
+};
 
 export const metadata: Metadata = {
   title: "Equistra — Le Strava du cheval",

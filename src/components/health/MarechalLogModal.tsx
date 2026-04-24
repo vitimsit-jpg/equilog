@@ -163,6 +163,25 @@ export default function MarechalLogModal({
     if (typeIntervention === "ferrure_ortho") setShowOptions(true);
   }, [typeIntervention]);
 
+  // Bug #1 Agathe : lock scroll en préservant la position (iOS Safari keyboard fix)
+  useEffect(() => {
+    if (!open) return;
+    const scrollY = window.scrollY;
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.left = "0";
+    document.body.style.right = "0";
+    document.body.style.width = "100%";
+    return () => {
+      document.body.style.position = "";
+      document.body.style.top = "";
+      document.body.style.left = "";
+      document.body.style.right = "";
+      document.body.style.width = "";
+      window.scrollTo(0, scrollY);
+    };
+  }, [open]);
+
   const prefillFromProfile = (p: MarechalProfile) => {
     if (p.type_intervention) setTypeIntervention(p.type_intervention);
     if (p.repartition_fers) setRepartitionFers(p.repartition_fers as RepartitionFers);

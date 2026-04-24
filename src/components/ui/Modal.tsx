@@ -17,13 +17,24 @@ interface ModalProps {
 export default function Modal({ open, onClose, title, children, className, size = "md" }: ModalProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
 
+  // Bug #1 Agathe : lock scroll en préservant la position (pattern iOS Safari)
+  // Sans ce pattern, focus sur input → clavier mobile → body shrinks → scroll to top
   useEffect(() => {
-    if (open) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => { document.body.style.overflow = ""; };
+    if (!open) return;
+    const scrollY = window.scrollY;
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.left = "0";
+    document.body.style.right = "0";
+    document.body.style.width = "100%";
+    return () => {
+      document.body.style.position = "";
+      document.body.style.top = "";
+      document.body.style.left = "";
+      document.body.style.right = "";
+      document.body.style.width = "";
+      window.scrollTo(0, scrollY);
+    };
   }, [open]);
 
   useEffect(() => {

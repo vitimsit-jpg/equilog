@@ -190,8 +190,10 @@ export default function CompetitionsDashboard({ competitions, horse }: Props) {
               Progression {DISCIPLINE_LABELS[disc] || disc}
             </h3>
             <div className="relative pl-6">
-              {/* Ligne verticale de connexion */}
-              <div className="absolute left-[7px] top-2 bottom-2 w-0.5" style={{ backgroundColor: color, opacity: 0.2 }} />
+              {/* Ligne verticale de connexion — seulement si 2+ points */}
+              {points.length > 1 && (
+                <div className="absolute left-[7px] top-2 bottom-2 w-0.5" style={{ backgroundColor: color, opacity: 0.2 }} />
+              )}
               <div className="space-y-3">
                 {points.map((p, i) => (
                   <div key={p.id} className="relative flex items-start gap-3">

@@ -89,7 +89,11 @@ export function getSessionColor(type: string): string {
   return SESSION_TYPE_COLORS[type] ?? "#888888";
 }
 
-/** Liste des items pour le formulaire (grille de sélection) */
+/** Liste des items pour le formulaire (grille de sélection).
+ * Exclus :
+ * - marcheur / paddock : ce sont des compléments (boutons séparés, pas des types principaux)
+ * - repos : affiché dans le strip/dashboard mais pas sélectionnable en tant que "séance"
+ */
 export const DISCIPLINE_GRID_ITEMS = Object.values(SESSION_TYPE_CONFIG)
-  .filter((c) => c.key !== "marcheur" && c.key !== "paddock")
+  .filter((c) => c.key !== "marcheur" && c.key !== "paddock" && c.key !== "repos")
   .map((c) => ({ type: c.key, emoji: c.emoji, label: c.label }));

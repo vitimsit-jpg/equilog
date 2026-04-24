@@ -65,23 +65,6 @@ function getTabConfig(mode: HorseIndexMode | null): { overviewLabel: string; sho
   }
 }
 
-// Mode badge
-function ModeBadge({ mode }: { mode: HorseIndexMode | null }) {
-  if (!mode) return null;
-  const labels: Record<HorseIndexMode, { label: string; color: string }> = {
-    IC:  { label: "Compétition intensive", color: "bg-orange-light text-orange" },
-    ICr: { label: "Croissance",   color: "bg-blue-100 text-blue-700" },
-    IE:  { label: "Équilibre",    color: "bg-green-100 text-green-700" },
-    IP:  { label: "Rééducation",  color: "bg-amber-100 text-amber-700" },
-    IR:  { label: "Convalescence",color: "bg-red-100 text-red-700" },
-    IS:  { label: "Retraite",     color: "bg-gray-100 text-gray-600" },
-  };
-  const info = labels[mode];
-  if (!info) return null;
-  return (
-    <span className={`text-2xs font-semibold px-2 py-0.5 rounded-full ${info.color}`}>{info.label}</span>
-  );
-}
 
 // Workload targets per mode (sessions / 7 days)
 const WORKLOAD_CFG: Record<HorseIndexMode, { min: number; target: number; max: number }> = {

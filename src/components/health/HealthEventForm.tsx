@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import toast from "react-hot-toast";
 import Input from "@/components/ui/Input";
@@ -122,7 +122,11 @@ export default function HealthEventForm({ horseId, onSaved, onCancel, defaultVal
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleTypeChange = async (type: HealthType) => {
+  // Guard contre race conditions : ignore les réponses obsolètes si user change de type entre-temps
+  const latestTypeRef = useRef<HealthType>(form.type);
+
+  const handleTypeChange = (type: HealthType) => {
+    latestTypeRef.current = type;
     const interval = defaultIntervals[type];
     const nextDate = interval
       ? format(addDays(new Date(form.date), interval), "yyyy-MM-dd")
@@ -130,22 +134,25 @@ export default function HealthEventForm({ horseId, onSaved, onCancel, defaultVal
     setForm((prev) => ({ ...prev, type, next_date: nextDate, vaccin_subtype: vaccinSubtypes[0].value }));
 
     if (!isNew) return;
-    // Bug #2 Agathe : fetch praticien depuis DB pour le nouveau type
-    const { data } = await supabase
-      .from("health_records")
-      .select("vet_name, practitioner_phone")
-      .eq("horse_id", horseId)
-      .eq("type", type)
-      .not("vet_name", "is", null)
-      .order("date", { ascending: false })
-      .limit(1);
-    const latest = data?.[0];
-    if (latest?.vet_name) {
-      setForm((prev) => ({ ...prev, vet_name: latest.vet_name || "", practitioner_phone: latest.practitioner_phone || "" }));
-    } else {
-      const pract = loadPractitioner(type, horseId);
-      setForm((prev) => ({ ...prev, vet_name: pract.vet_name, practitioner_phone: pract.practitioner_phone }));
-    }
+    // Bug #2 Agathe : fetch praticien depuis DB pour le nouveau type (fire-and-forget + guard)
+    void (async () => {
+      const { data } = await supabase
+        .from("health_records")
+        .select("vet_name, practitioner_phone")
+        .eq("horse_id", horseId)
+        .eq("type", type)
+        .not("vet_name", "is", null)
+        .order("date", { ascending: false })
+        .limit(1);
+      if (latestTypeRef.current !== type) return; // stale response
+      const latest = data?.[0];
+      if (latest?.vet_name) {
+        setForm((prev) => ({ ...prev, vet_name: latest.vet_name || "", practitioner_phone: latest.practitioner_phone || "" }));
+      } else {
+        const pract = loadPractitioner(type, horseId);
+        setForm((prev) => ({ ...prev, vet_name: pract.vet_name, practitioner_phone: pract.practitioner_phone }));
+      }
+    })();
   };
 
   const handleVaccinSubtypeChange = (subtype: string) => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import toast from "react-hot-toast";
 import { format, addDays } from "date-fns";
@@ -71,24 +71,31 @@ export default function QuickHealthModal({ open, onClose, horseId, onSaved, defa
 
   const effectiveDate = dateOption === "today" ? todayStr : dateOption === "yesterday" ? yesterdayStr : customDate;
 
-  const handleTypeSelect = async (type: HealthType) => {
+  // Guard contre race conditions si clicks rapides entre types
+  const latestTypeRef = useRef<HealthType | null>(null);
+
+  const handleTypeSelect = (type: HealthType) => {
+    latestTypeRef.current = type;
     setSelectedType(type);
-    // Bug #2 Agathe : fetch praticien depuis DB (source de vérité)
-    const { data } = await supabase
-      .from("health_records")
-      .select("vet_name")
-      .eq("horse_id", horseId)
-      .eq("type", type)
-      .not("vet_name", "is", null)
-      .order("date", { ascending: false })
-      .limit(1);
-    const latest = data?.[0];
-    if (latest?.vet_name) {
-      setVetName(latest.vet_name);
-    } else {
-      const pract = loadPractitioner(type, horseId);
-      if (pract.vet_name) setVetName(pract.vet_name);
-    }
+    // Bug #2 Agathe : fetch praticien depuis DB (fire-and-forget + guard)
+    void (async () => {
+      const { data } = await supabase
+        .from("health_records")
+        .select("vet_name")
+        .eq("horse_id", horseId)
+        .eq("type", type)
+        .not("vet_name", "is", null)
+        .order("date", { ascending: false })
+        .limit(1);
+      if (latestTypeRef.current !== type) return; // stale response
+      const latest = data?.[0];
+      if (latest?.vet_name) {
+        setVetName(latest.vet_name);
+      } else {
+        const pract = loadPractitioner(type, horseId);
+        if (pract.vet_name) setVetName(pract.vet_name);
+      }
+    })();
   };
 
   const uploadFiles = async (): Promise<string[]> => {

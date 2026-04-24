@@ -16,25 +16,27 @@ export interface SessionTypeConfig {
 
 // ── Mapping complet officiel (validé par Agathe le 16/04/2026) ──────────────
 
+// Bug #7 Agathe — emojis alignés sur TRAV-17 (mapping officiel)
 export const SESSION_TYPE_CONFIG: Record<string, SessionTypeConfig> = {
-  dressage:               { key: "dressage",               emoji: "🎯", label: "Dressage",             abbreviation: "DRESS", color: "#3D85C8", maxDurationMinutes: 240 },
+  dressage:               { key: "dressage",               emoji: "🎩", label: "Dressage",             abbreviation: "DRESS", color: "#3D85C8", maxDurationMinutes: 240 },
   plat:                   { key: "plat",                   emoji: "🏇", label: "Plat",                 abbreviation: "PLAT",  color: "#3D85C8", maxDurationMinutes: 240 },
   stretching:             { key: "stretching",             emoji: "🤸", label: "Stretching & récup",   abbreviation: "STRCH", color: "#8E7CC3", maxDurationMinutes: 120 },
-  barres_sol:             { key: "barres_sol",             emoji: "📏", label: "Barres au sol",         abbreviation: "BS",    color: "#8E7CC3", maxDurationMinutes: 240 },
-  cavalettis:             { key: "cavalettis",             emoji: "🔲", label: "Cavalettis",            abbreviation: "CAV",   color: "#8E7CC3", maxDurationMinutes: 240 },
-  meca_obstacles:         { key: "meca_obstacles",         emoji: "🚧", label: "Méca obstacles",        abbreviation: "MECA",  color: "#E69138", maxDurationMinutes: 240 },
-  obstacles_enchainement: { key: "obstacles_enchainement", emoji: "🏁", label: "Obstacles enchaînés",   abbreviation: "OBS",   color: "#E69138", maxDurationMinutes: 240 },
-  cross_entrainement:     { key: "cross_entrainement",     emoji: "🌲", label: "Cross entraînement",    abbreviation: "CROSS", color: "#9C4A7A", maxDurationMinutes: 240 },
-  longe:                  { key: "longe",                  emoji: "🌀", label: "Longe",                 abbreviation: "LONGE", color: "#45818E", maxDurationMinutes: 120 },
-  longues_renes:          { key: "longues_renes",          emoji: "🪢", label: "Longues rênes",         abbreviation: "LR",    color: "#45818E", maxDurationMinutes: 120 },
-  travail_a_pied:         { key: "travail_a_pied",         emoji: "🦶", label: "Travail à pied",        abbreviation: "TAP",   color: "#45818E", maxDurationMinutes: 120 },
-  balade:                 { key: "balade",                 emoji: "🌿", label: "Balade",                abbreviation: "BAL",   color: "#45818E", maxDurationMinutes: 480 },
-  trotting:               { key: "trotting",               emoji: "🏃", label: "Trot",                  abbreviation: "TROTT", color: "#45818E", maxDurationMinutes: 240 },
+  barres_sol:             { key: "barres_sol",             emoji: "➖", label: "Barres au sol",         abbreviation: "BS",    color: "#8E7CC3", maxDurationMinutes: 240 },
+  cavalettis:             { key: "cavalettis",             emoji: "🪵", label: "Cavalettis",            abbreviation: "CAV",   color: "#8E7CC3", maxDurationMinutes: 240 },
+  meca_obstacles:         { key: "meca_obstacles",         emoji: "🧱", label: "Méca obstacles",        abbreviation: "MECA",  color: "#E69138", maxDurationMinutes: 240 },
+  obstacles_enchainement: { key: "obstacles_enchainement", emoji: "🔁", label: "Obstacles enchaînés",   abbreviation: "OBS",   color: "#E69138", maxDurationMinutes: 240 },
+  cross_entrainement:     { key: "cross_entrainement",     emoji: "🌿", label: "Cross entraînement",    abbreviation: "CROSS", color: "#9C4A7A", maxDurationMinutes: 240 },
+  longe:                  { key: "longe",                  emoji: "⭕", label: "Longe",                 abbreviation: "LONGE", color: "#45818E", maxDurationMinutes: 120 },
+  longues_renes:          { key: "longues_renes",          emoji: "🧵", label: "Longues rênes",         abbreviation: "LR",    color: "#45818E", maxDurationMinutes: 120 },
+  travail_a_pied:         { key: "travail_a_pied",         emoji: "🤝", label: "Travail à pied",        abbreviation: "TAP",   color: "#45818E", maxDurationMinutes: 120 },
+  balade:                 { key: "balade",                 emoji: "🌲", label: "Balade",                abbreviation: "BAL",   color: "#45818E", maxDurationMinutes: 480 },
+  trotting:               { key: "trotting",               emoji: "📏", label: "Trotting poles",        abbreviation: "TROTT", color: "#45818E", maxDurationMinutes: 240 },
   galop:                  { key: "galop",                  emoji: "💨", label: "Galop",                 abbreviation: "GALOP", color: "#4CAF50", maxDurationMinutes: 240 },
-  marcheur:               { key: "marcheur",               emoji: "⚙️", label: "Marcheur",              abbreviation: "MARCH", color: "#888888", maxDurationMinutes: 180 },
-  paddock:                { key: "paddock",                emoji: "🌾", label: "Paddock",               abbreviation: "PADD",  color: "#4CAF50", maxDurationMinutes: 480 },
+  marcheur:               { key: "marcheur",               emoji: "🔄", label: "Marcheur",              abbreviation: "MARCH", color: "#888888", maxDurationMinutes: 180 },
+  paddock:                { key: "paddock",                emoji: "🟩", label: "Paddock",               abbreviation: "PADD",  color: "#4CAF50", maxDurationMinutes: 480 },
   concours:               { key: "concours",               emoji: "🏆", label: "Concours",              abbreviation: "CONC",  color: "#D94F00", maxDurationMinutes: 720 },
-  autre:                  { key: "autre",                  emoji: "✳️", label: "Autre",                  abbreviation: "AUTRE", color: "#888888", maxDurationMinutes: 240 },
+  repos:                  { key: "repos",                  emoji: "💤", label: "Repos",                 abbreviation: "REPOS", color: "#888888", maxDurationMinutes: 1440 },
+  autre:                  { key: "autre",                  emoji: "📝", label: "Autre",                  abbreviation: "AUTRE", color: "#888888", maxDurationMinutes: 240 },
 };
 
 // ── Extractions individuelles (pour rétro-compatibilité) ────────────────────
@@ -59,9 +61,8 @@ export const SESSION_TYPE_COLORS: Record<string, string> = Object.fromEntries(
 const LEGACY_EMOJIS: Record<string, string> = {
   saut: "🏇",
   endurance: "🏅",
-  cso: "🏁",
-  cross: "🌲",
-  repos: "😴",
+  cso: "🔁",
+  cross: "🌿",
 };
 
 const LEGACY_LABELS: Record<string, string> = {
@@ -69,7 +70,6 @@ const LEGACY_LABELS: Record<string, string> = {
   endurance: "Endurance",
   cso: "CSO",
   cross: "Cross",
-  repos: "Repos",
 };
 
 // ── Fonctions helpers ───────────────────────────────────────────────────────

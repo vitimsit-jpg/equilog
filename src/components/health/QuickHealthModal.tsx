@@ -71,10 +71,24 @@ export default function QuickHealthModal({ open, onClose, horseId, onSaved, defa
 
   const effectiveDate = dateOption === "today" ? todayStr : dateOption === "yesterday" ? yesterdayStr : customDate;
 
-  const handleTypeSelect = (type: HealthType) => {
+  const handleTypeSelect = async (type: HealthType) => {
     setSelectedType(type);
-    const pract = loadPractitioner(type, horseId);
-    if (pract.vet_name) setVetName(pract.vet_name);
+    // Bug #2 Agathe : fetch praticien depuis DB (source de vérité)
+    const { data } = await supabase
+      .from("health_records")
+      .select("vet_name")
+      .eq("horse_id", horseId)
+      .eq("type", type)
+      .not("vet_name", "is", null)
+      .order("date", { ascending: false })
+      .limit(1);
+    const latest = data?.[0];
+    if (latest?.vet_name) {
+      setVetName(latest.vet_name);
+    } else {
+      const pract = loadPractitioner(type, horseId);
+      if (pract.vet_name) setVetName(pract.vet_name);
+    }
   };
 
   const uploadFiles = async (): Promise<string[]> => {

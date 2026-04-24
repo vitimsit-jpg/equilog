@@ -601,10 +601,9 @@ export default function TrainingTabs({ horseId, horseName, horseBirthYear, sessi
 
   return (
     <div className="space-y-4 pb-28 md:pb-0">
-      {/* Bloc 1 — En-tête contextuel : mode + prochain concours */}
+      {/* Bloc 1 — En-tête contextuel : prochain concours uniquement (Agathe bug #8) */}
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 flex-1 min-w-0">
-          <ModeBadge mode={horseMode} />
           {nextCompetition && daysUntilCompetition !== null && (
             <div className="flex items-center gap-1.5 px-2.5 py-1 bg-beige rounded-full min-w-0">
               <Trophy className="h-3 w-3 text-orange flex-shrink-0" />

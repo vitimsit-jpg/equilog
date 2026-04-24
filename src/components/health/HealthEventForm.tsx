@@ -89,23 +89,63 @@ export default function HealthEventForm({ horseId, onSaved, onCancel, defaultVal
   });
   const [addToBudget, setAddToBudget] = useState(true);
 
-  // Hydrate practitioner from localStorage on mount (client only)
+  // Bug #2 Agathe : hydrate praticien depuis DB (source de vérité, pas localStorage)
   useEffect(() => {
     if (!isNew) return;
-    const pract = loadPractitioner(form.type, horseId);
-    if (pract.vet_name && !form.vet_name) {
-      setForm((prev) => ({ ...prev, vet_name: pract.vet_name, practitioner_phone: pract.practitioner_phone }));
-    }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("health_records")
+        .select("vet_name, practitioner_phone")
+        .eq("horse_id", horseId)
+        .eq("type", form.type)
+        .not("vet_name", "is", null)
+        .order("date", { ascending: false })
+        .limit(1);
+      if (cancelled) return;
+      const latest = data?.[0];
+      if (latest?.vet_name) {
+        setForm((prev) => prev.vet_name ? prev : {
+          ...prev,
+          vet_name: latest.vet_name || "",
+          practitioner_phone: latest.practitioner_phone || "",
+        });
+      } else {
+        // Fallback localStorage (rétrocompat)
+        const pract = loadPractitioner(form.type, horseId);
+        if (pract.vet_name) {
+          setForm((prev) => prev.vet_name ? prev : { ...prev, vet_name: pract.vet_name, practitioner_phone: pract.practitioner_phone });
+        }
+      }
+    })();
+    return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleTypeChange = (type: HealthType) => {
+  const handleTypeChange = async (type: HealthType) => {
     const interval = defaultIntervals[type];
     const nextDate = interval
       ? format(addDays(new Date(form.date), interval), "yyyy-MM-dd")
       : "";
-    const pract = isNew ? loadPractitioner(type, horseId) : { vet_name: form.vet_name, practitioner_phone: form.practitioner_phone };
-    setForm({ ...form, type, next_date: nextDate, vaccin_subtype: vaccinSubtypes[0].value, vet_name: pract.vet_name, practitioner_phone: pract.practitioner_phone });
+    setForm((prev) => ({ ...prev, type, next_date: nextDate, vaccin_subtype: vaccinSubtypes[0].value }));
+
+    if (!isNew) return;
+    // Bug #2 Agathe : fetch praticien depuis DB pour le nouveau type
+    const { data } = await supabase
+      .from("health_records")
+      .select("vet_name, practitioner_phone")
+      .eq("horse_id", horseId)
+      .eq("type", type)
+      .not("vet_name", "is", null)
+      .order("date", { ascending: false })
+      .limit(1);
+    const latest = data?.[0];
+    if (latest?.vet_name) {
+      setForm((prev) => ({ ...prev, vet_name: latest.vet_name || "", practitioner_phone: latest.practitioner_phone || "" }));
+    } else {
+      const pract = loadPractitioner(type, horseId);
+      setForm((prev) => ({ ...prev, vet_name: pract.vet_name, practitioner_phone: pract.practitioner_phone }));
+    }
   };
 
   const handleVaccinSubtypeChange = (subtype: string) => {

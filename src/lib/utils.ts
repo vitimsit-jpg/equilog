@@ -91,11 +91,11 @@ export const TRAINING_TYPE_LABELS: Record<string, string> = {
 
 export const TRAINING_EMOJIS: Record<string, string> = {
   ...SESSION_TYPE_EMOJIS,
-  repos: "😴",
+  // Legacy keys (données historiques)
   saut: "🏇",
   endurance: "🏅",
-  cso: "🏁",
-  cross: "🌲",
+  cso: "🔁",
+  cross: "🌿",
 };
 
 export const BUDGET_CATEGORY_LABELS: Record<string, string> = {

@@ -170,7 +170,7 @@ export default function CompetitionsDashboard({ competitions, horse }: Props) {
         </Button>
       </div>
 
-      {/* TRAV-28-10 — Timeline de progression par discipline */}
+      {/* Bug #10 Agathe — Timeline VERTICALE (évite conflit swipe navigation onglets) */}
       {disciplines.map((disc) => {
         const discClasse = classe
           .filter((c) => c.discipline === disc && c.level)
@@ -189,22 +189,28 @@ export default function CompetitionsDashboard({ competitions, horse }: Props) {
             <h3 className="font-bold text-black text-sm mb-3">
               Progression {DISCIPLINE_LABELS[disc] || disc}
             </h3>
-            <div className="overflow-x-auto -mx-2 px-2">
-              <div className="flex items-center gap-0 min-w-max">
+            <div className="relative pl-6">
+              {/* Ligne verticale de connexion */}
+              <div className="absolute left-[7px] top-2 bottom-2 w-0.5" style={{ backgroundColor: color, opacity: 0.2 }} />
+              <div className="space-y-3">
                 {points.map((p, i) => (
-                  <div key={p.id} className="flex items-center">
-                    <div className="flex flex-col items-center gap-1 w-28">
-                      <div
-                        className="w-4 h-4 rounded-full border-2 flex-shrink-0"
-                        style={{ borderColor: color, backgroundColor: i === points.length - 1 ? color : "white" }}
-                      />
-                      <span className="text-xs font-bold text-gray-800 text-center leading-tight">{p.level}</span>
-                      <span className="text-2xs text-gray-400 text-center">{format(parseISO(p.date), "MMM yyyy", { locale: fr })}</span>
-                      {p.location && <span className="text-2xs text-gray-400 text-center">{p.location}</span>}
+                  <div key={p.id} className="relative flex items-start gap-3">
+                    {/* Point de la timeline (positionné en absolu sur la ligne) */}
+                    <div
+                      className="absolute -left-6 top-1 w-4 h-4 rounded-full border-2 flex-shrink-0"
+                      style={{ borderColor: color, backgroundColor: i === points.length - 1 ? color : "white" }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-baseline gap-2 flex-wrap">
+                        <span className="text-sm font-bold text-gray-800">{p.level}</span>
+                        <span className="text-2xs text-gray-400">{format(parseISO(p.date), "MMM yyyy", { locale: fr })}</span>
+                      </div>
+                      {(p.location || p.event_name) && (
+                        <p className="text-2xs text-gray-400 truncate">
+                          {[p.event_name, p.location].filter(Boolean).join(" · ")}
+                        </p>
+                      )}
                     </div>
-                    {i < points.length - 1 && (
-                      <div className="w-8 h-0.5 flex-shrink-0 -mt-6" style={{ backgroundColor: color, opacity: 0.3 }} />
-                    )}
                   </div>
                 ))}
               </div>

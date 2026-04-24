@@ -150,12 +150,12 @@ export default function HealthEventForm({ horseId, onSaved, onCancel, defaultVal
     } else {
       const res = await supabase.from("health_records").insert(payload).select("id").single();
       err = res.error;
-      if (res.data) healthId = res.data.id;
+      if (res.data?.id) healthId = res.data.id;
     }
 
-    if (err) {
+    if (err || !healthId) {
       console.error("[HealthEvent] INSERT/UPDATE failed:", err);
-      toast.error(`Erreur : ${err.message || "champ manquant"}`);
+      toast.error(`Erreur : ${err?.message || "ID soin introuvable"}`);
       setLoading(false);
       return;
     }

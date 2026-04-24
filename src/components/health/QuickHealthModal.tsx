@@ -112,15 +112,15 @@ export default function QuickHealthModal({ open, onClose, horseId, onSaved, defa
       media_urls: mediaUrls.length > 0 ? mediaUrls : null,
     }).select("id").single();
 
-    if (error) {
+    if (error || !inserted?.id) {
       console.error("[QuickHealth] INSERT failed:", error);
-      toast.error(`Erreur : ${error.message || "champ manquant"}`);
+      toast.error(`Erreur : ${error?.message || "ID soin introuvable"}`);
       setLoading(false);
       return;
     }
 
     if (vetName) savePractitioner(selectedType, horseId, vetName);
-    if (addToBudget && cost && parseFloat(cost) > 0 && inserted) {
+    if (addToBudget && cost && parseFloat(cost) > 0) {
       const categoryMap: Record<string, string> = {
         veterinaire: "soins", vaccin: "soins", osteo: "soins",
         dentiste: "soins", masseuse: "soins", ferrage: "maréchalerie",

@@ -295,13 +295,13 @@ export default function MarechalLogModal({
     setLoading(true);
     const payload = buildPayload(true);
     const { data: inserted, error } = await supabase.from("health_records").insert(payload as Partial<HealthRecord>).select("id").single();
-    if (error) {
+    if (error || !inserted?.id) {
       console.error("[MarechalLog] INSERT failed:", error);
-      toast.error(`Erreur : ${error.message || "champ manquant"}`);
+      toast.error(`Erreur : ${error?.message || "ID soin introuvable"}`);
       setLoading(false);
       return;
     }
-    if (addToBudget && payload.cost && payload.cost > 0 && inserted) {
+    if (addToBudget && payload.cost && payload.cost > 0) {
       const desc = ["Parage / Maréchal", payload.vet_name].filter(Boolean).join(" — ");
       await supabase.from("budget_entries").insert({
         horse_id: horseId, date: payload.date, category: "maréchalerie",
@@ -329,7 +329,7 @@ export default function MarechalLogModal({
     } else {
       const res = await supabase.from("health_records").insert(payload as Partial<HealthRecord>).select("id").single();
       err = res.error;
-      if (res.data) healthId = res.data.id;
+      if (res.data?.id) healthId = res.data.id;
     }
 
     if (err) {
@@ -338,13 +338,35 @@ export default function MarechalLogModal({
       setLoading(false);
       return;
     }
-    if (!defaultValues?.id && addToBudget && payload.cost && payload.cost > 0 && healthId) {
+
+    // Bug #6 Agathe : liaison budget upsert (INSERT ET UPDATE)
+    if (healthId) {
       const desc = ["Parage / Maréchal", payload.vet_name].filter(Boolean).join(" — ");
-      await supabase.from("budget_entries").insert({
-        horse_id: horseId, date: payload.date, category: "maréchalerie",
-        amount: payload.cost, description: desc || null,
+      const budgetPayload = {
+        horse_id: horseId,
+        date: payload.date || format(new Date(), "yyyy-MM-dd"),
+        category: "maréchalerie" as const,
+        amount: payload.cost ?? 0,
+        description: desc || null,
         linked_health_record_id: healthId,
-      });
+      };
+      // Chercher une ligne budget existante liée à ce soin
+      const { data: existingBudget } = await supabase
+        .from("budget_entries")
+        .select("id")
+        .eq("linked_health_record_id", healthId)
+        .limit(1);
+
+      if (addToBudget && payload.cost && payload.cost > 0) {
+        if (existingBudget && existingBudget.length > 0) {
+          await supabase.from("budget_entries").update(budgetPayload).eq("id", existingBudget[0].id);
+        } else {
+          await supabase.from("budget_entries").insert(budgetPayload);
+        }
+      } else if (existingBudget && existingBudget.length > 0) {
+        // Cost vidé ou décoché → supprimer
+        await supabase.from("budget_entries").delete().eq("id", existingBudget[0].id);
+      }
     }
     toast.success(defaultValues?.id ? "Soin mis à jour" : "Passage enregistré !");
     onSaved(); router.refresh();

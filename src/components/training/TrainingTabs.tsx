@@ -541,7 +541,8 @@ export default function TrainingTabs({ horseId, horseName, horseBirthYear, sessi
   const todayStr = format(new Date(), "yyyy-MM-dd");
   const todayPlanned = plannedSessions.find((p) => p.date === todayStr && p.status === "planned") ?? null;
   // P0 1.3 — Notification uniquement sur onglet Programme, pas sur tous les onglets
-  const showReminder = !reminderDismissed && !!todayPlanned && new Date().getHours() >= 18 && activeTab === "semaine";
+  // showReminder: en mode standard le Programme est toujours visible, donc on affiche la bannière si séance prévue aujourd'hui non enregistrée
+  const showReminder = !reminderDismissed && !!todayPlanned && new Date().getHours() >= 18 && (activeTab === "semaine" || (horseMode !== "IR" && horseMode !== "ICr" && horseMode !== "IS" && horseMode !== "IP"));
 
   const daysUntilCompetition = nextCompetition
     ? differenceInDays(startOfDay(parseISO(nextCompetition.date)), startOfDay(new Date()))
@@ -553,6 +554,8 @@ export default function TrainingTabs({ horseId, horseName, horseBirthYear, sessi
   const isIPMode = horseMode === "IP";
   const isEducationMode = horseMode === "ICr";
   const isMovementMode = horseMode === "IS";
+  // Bug #9 Agathe : mode standard (IC, IE, non-coach) = scroll vertical continu sans onglets
+  const isStandardMode = !isRehabMode && !isEducationMode && !isMovementMode && !isIPMode && ridesHorse;
 
   // P3-11 — Badge "À vérifier" : séances planifiées passées non loggées
   const todayMidnight = new Date(); todayMidnight.setHours(0, 0, 0, 0);
@@ -625,50 +628,82 @@ export default function TrainingTabs({ horseId, horseName, horseBirthYear, sessi
         </Link>
       )}
 
-      {/* Tab bar */}
-      <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all ${
-              activeTab === tab.id ? "bg-white text-black shadow-sm" : "text-gray-400 hover:text-gray-600"
-            }`}
-          >
-            {tab.icon}
-            <span>{tab.label}</span>
-            {tab.badge !== undefined && (
-              <span className="bg-orange text-white text-2xs font-bold rounded-full min-w-[14px] h-3.5 flex items-center justify-center px-0.5 leading-none flex-shrink-0">
-                {tab.badge}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
+      {/* Tab bar — masquée en mode standard (scroll vertical continu) */}
+      {!isStandardMode && (
+        <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all ${
+                activeTab === tab.id ? "bg-white text-black shadow-sm" : "text-gray-400 hover:text-gray-600"
+              }`}
+            >
+              {tab.icon}
+              <span>{tab.label}</span>
+              {tab.badge !== undefined && (
+                <span className="bg-orange text-white text-2xs font-bold rounded-full min-w-[14px] h-3.5 flex items-center justify-center px-0.5 leading-none flex-shrink-0">
+                  {tab.badge}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
 
-      {/* Tab content — mode spécifiques */}
-      {activeTab === "education" && (
+      {/* Bug #9 Agathe — Mode standard: scroll vertical continu (Programme → Overview → Historique) */}
+      {isStandardMode && (
+        <>
+          {/* Bloc 2: Programme (VueSemaine — strip + cartes jour) */}
+          {showPlanTab && (
+            <VueSemaine
+              horseId={horseId}
+              sessions={sessions}
+              plannedSessions={plannedSessions}
+              healthRecords={healthRecords}
+              horseMode={horseMode}
+            />
+          )}
+
+          {/* Blocs 3-6: Stats, KPIs, graphiques */}
+          <TrainingDashboard
+            sessions={sessions}
+            horseId={horseId}
+            horseName={horseName}
+            latestInsight={latestInsight}
+            hideAddButton
+            todayPlanned={todayPlanned}
+          />
+          <TrainingPlanCard horseId={horseId} latestPlan={latestPlan} />
+
+          {/* Bloc 7: Historique */}
+          <HistoriqueSeances sessions={sessions} horseId={horseId} horseMode={horseMode} />
+        </>
+      )}
+
+      {/* Tab content — mode spécifiques (masqué en mode standard) */}
+      {!isStandardMode && activeTab === "education" && (
         <EducationTab horseId={horseId} horseName={horseName} birthYear={horseBirthYear} />
       )}
 
-      {activeTab === "mouvement" && (
+      {!isStandardMode && activeTab === "mouvement" && (
         <MovementTab horseId={horseId} horseName={horseName} />
       )}
 
-      {activeTab === "carriere" && (
+      {!isStandardMode && activeTab === "carriere" && (
         <CareerArchiveTab horseId={horseId} horseName={horseName} />
       )}
 
-      {activeTab === "convalescence" && (
+      {!isStandardMode && activeTab === "convalescence" && (
         <ConvalescenceTab horseId={horseId} horseName={horseName} />
       )}
 
-      {activeTab === "journal" && (
+      {!isStandardMode && activeTab === "journal" && (
         <RecoveryJournalTab horseId={horseId} horseName={horseName} />
       )}
 
       {/* Tab content */}
-      {activeTab === "overview" && (
+      {!isStandardMode && activeTab === "overview" && (
         <div className="space-y-4">
           {/* P0 — Vue gérant (non-cavalier) : pas de métriques de performance */}
           {!ridesHorse ? (
@@ -771,7 +806,7 @@ export default function TrainingTabs({ horseId, horseName, horseBirthYear, sessi
         </div>
       )}
 
-      {activeTab === "semaine" && showPlanTab && (
+      {!isStandardMode && activeTab === "semaine" && showPlanTab && (
         <VueSemaine
           horseId={horseId}
           sessions={sessions}
@@ -781,7 +816,7 @@ export default function TrainingTabs({ horseId, horseName, horseBirthYear, sessi
         />
       )}
 
-      {activeTab === "historique" && (
+      {!isStandardMode && activeTab === "historique" && (
         <HistoriqueSeances sessions={sessions} horseId={horseId} horseMode={horseMode} />
       )}
 

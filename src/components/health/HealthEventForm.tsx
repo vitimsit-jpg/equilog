@@ -141,27 +141,66 @@ export default function HealthEventForm({ horseId, onSaved, onCancel, defaultVal
       notes: form.notes || null,
     };
 
-    const { error } = defaultValues?.id
-      ? await supabase.from("health_records").update(payload).eq("id", defaultValues.id)
-      : await supabase.from("health_records").insert(payload);
-
-    if (error) toast.error("Erreur lors de l'enregistrement");
-    else {
-      savePractitioner(form.type, horseId, form.vet_name, form.practitioner_phone);
-      if (!defaultValues?.id && addToBudget && payload.cost && payload.cost > 0) {
-        const desc = [HEALTH_TYPE_LABELS[form.type], form.vet_name].filter(Boolean).join(" — ");
-        await supabase.from("budget_entries").insert({
-          horse_id: horseId,
-          date: payload.date,
-          category: "soins",
-          amount: payload.cost,
-          description: desc || null,
-        });
-      }
-      toast.success("Soin enregistré !");
-      if (!defaultValues?.id) trackEvent({ event_name: "health_record_created", event_category: "health", properties: { type: form.type } });
-      onSaved();
+    // Bug #6 Agathe : upsert health_record puis upsert budget_entry lié
+    let healthId = defaultValues?.id || null;
+    let err;
+    if (defaultValues?.id) {
+      const res = await supabase.from("health_records").update(payload).eq("id", defaultValues.id);
+      err = res.error;
+    } else {
+      const res = await supabase.from("health_records").insert(payload).select("id").single();
+      err = res.error;
+      if (res.data) healthId = res.data.id;
     }
+
+    if (err) {
+      console.error("[HealthEvent] INSERT/UPDATE failed:", err);
+      toast.error(`Erreur : ${err.message || "champ manquant"}`);
+      setLoading(false);
+      return;
+    }
+
+    savePractitioner(form.type, horseId, form.vet_name, form.practitioner_phone);
+
+    // Bug #6 Agathe : liaison automatique soin → budget (create + update)
+    if (healthId) {
+      const categoryMap: Record<string, string> = {
+        veterinaire: "soins", vaccin: "soins", osteo: "soins",
+        dentiste: "soins", masseuse: "soins", ferrage: "maréchalerie",
+      };
+      const budgetPayload = {
+        horse_id: horseId,
+        date: payload.date,
+        category: (categoryMap[form.type] || "soins") as "soins" | "maréchalerie",
+        amount: payload.cost ?? 0,
+        description: [HEALTH_TYPE_LABELS[form.type], form.vet_name].filter(Boolean).join(" — ") || null,
+        linked_health_record_id: healthId,
+      };
+
+      // Chercher une ligne budget existante liée à ce soin
+      const { data: existing } = await supabase
+        .from("budget_entries")
+        .select("id")
+        .eq("linked_health_record_id", healthId)
+        .limit(1);
+
+      if (addToBudget && payload.cost && payload.cost > 0) {
+        if (existing && existing.length > 0) {
+          // Mettre à jour la ligne existante
+          await supabase.from("budget_entries").update(budgetPayload).eq("id", existing[0].id);
+        } else {
+          // Créer une nouvelle ligne
+          await supabase.from("budget_entries").insert(budgetPayload);
+        }
+      } else if (existing && existing.length > 0) {
+        // Cost vidé ou checkbox décochée → supprimer la ligne budget
+        await supabase.from("budget_entries").delete().eq("id", existing[0].id);
+      }
+    }
+
+    toast.success("Soin enregistré !");
+    if (!defaultValues?.id) trackEvent({ event_name: "health_record_created", event_category: "health", properties: { type: form.type } });
+    onSaved();
     setLoading(false);
   };
 
@@ -250,7 +289,7 @@ export default function HealthEventForm({ horseId, onSaved, onCancel, defaultVal
         />
       </div>
 
-      {isNew && form.cost && parseFloat(form.cost) > 0 && (
+      {form.cost && parseFloat(form.cost) > 0 && (
         <label className="flex items-center gap-2.5 cursor-pointer select-none">
           <input
             type="checkbox"

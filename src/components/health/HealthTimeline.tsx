@@ -41,6 +41,8 @@ export default function HealthTimeline({ records }: HealthTimelineProps) {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Supprimer cet événement ?")) return;
+    // Bug #6 Agathe : supprimer la ligne budget liée avant
+    await supabase.from("budget_entries").delete().eq("linked_health_record_id", id);
     const { error } = await supabase.from("health_records").delete().eq("id", id);
     if (error) toast.error("Erreur lors de la suppression");
     else {

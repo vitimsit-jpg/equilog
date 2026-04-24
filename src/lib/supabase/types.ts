@@ -344,6 +344,7 @@ export type BudgetEntry = {
   recurring_template_id: string | null;
   media_urls: string[] | null;
   linked_competition_id: string | null;
+  linked_health_record_id: string | null;
   created_at: string;
 }
 

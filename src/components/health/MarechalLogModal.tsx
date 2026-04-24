@@ -294,18 +294,19 @@ export default function MarechalLogModal({
   const handleQuickSave = async () => {
     setLoading(true);
     const payload = buildPayload(true);
-    const { error } = await supabase.from("health_records").insert(payload as Partial<HealthRecord>);
+    const { data: inserted, error } = await supabase.from("health_records").insert(payload as Partial<HealthRecord>).select("id").single();
     if (error) {
       console.error("[MarechalLog] INSERT failed:", error);
       toast.error(`Erreur : ${error.message || "champ manquant"}`);
       setLoading(false);
       return;
     }
-    if (addToBudget && payload.cost && payload.cost > 0) {
+    if (addToBudget && payload.cost && payload.cost > 0 && inserted) {
       const desc = ["Parage / Maréchal", payload.vet_name].filter(Boolean).join(" — ");
       await supabase.from("budget_entries").insert({
         horse_id: horseId, date: payload.date, category: "maréchalerie",
         amount: payload.cost, description: desc || null,
+        linked_health_record_id: inserted.id,
       });
     }
     toast.success("Passage enregistré !");
@@ -321,12 +322,14 @@ export default function MarechalLogModal({
     const payload = buildPayload(false);
 
     let err;
+    let healthId = defaultValues?.id || null;
     if (defaultValues?.id) {
       const res = await supabase.from("health_records").update(payload as Partial<HealthRecord>).eq("id", defaultValues.id);
       err = res.error;
     } else {
-      const res = await supabase.from("health_records").insert(payload as Partial<HealthRecord>);
+      const res = await supabase.from("health_records").insert(payload as Partial<HealthRecord>).select("id").single();
       err = res.error;
+      if (res.data) healthId = res.data.id;
     }
 
     if (err) {
@@ -335,11 +338,12 @@ export default function MarechalLogModal({
       setLoading(false);
       return;
     }
-    if (!defaultValues?.id && addToBudget && payload.cost && payload.cost > 0) {
+    if (!defaultValues?.id && addToBudget && payload.cost && payload.cost > 0 && healthId) {
       const desc = ["Parage / Maréchal", payload.vet_name].filter(Boolean).join(" — ");
       await supabase.from("budget_entries").insert({
         horse_id: horseId, date: payload.date, category: "maréchalerie",
         amount: payload.cost, description: desc || null,
+        linked_health_record_id: healthId,
       });
     }
     toast.success(defaultValues?.id ? "Soin mis à jour" : "Passage enregistré !");

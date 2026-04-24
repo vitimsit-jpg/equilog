@@ -98,7 +98,8 @@ export default function QuickHealthModal({ open, onClose, horseId, onSaved, defa
     const interval = DEFAULT_INTERVALS[selectedType];
     const nextDate = interval ? format(addDays(new Date(effectiveDate), interval), "yyyy-MM-dd") : null;
     const mediaUrls = await uploadFiles();
-    const { error } = await supabase.from("health_records").insert({
+    // Bug #6 Agathe : insert health_record + budget_entry lié
+    const { data: inserted, error } = await supabase.from("health_records").insert({
       horse_id: horseId,
       type: selectedType,
       date: effectiveDate,
@@ -109,24 +110,34 @@ export default function QuickHealthModal({ open, onClose, horseId, onSaved, defa
       cost: cost ? parseFloat(cost) : null,
       notes: notes || null,
       media_urls: mediaUrls.length > 0 ? mediaUrls : null,
-    });
-    if (error) { toast.error("Erreur lors de l'enregistrement"); }
-    else {
-      if (vetName) savePractitioner(selectedType, horseId, vetName);
-      if (addToBudget && cost && parseFloat(cost) > 0) {
-        const desc = [HEALTH_TYPE_LABELS[selectedType], vetName].filter(Boolean).join(" — ");
-        await supabase.from("budget_entries").insert({
-          horse_id: horseId,
-          date: effectiveDate,
-          category: "soins",
-          amount: parseFloat(cost),
-          description: desc || null,
-        });
-      }
-      toast.success("Soin enregistré !");
-      trackEvent({ event_name: "health_record_created", event_category: "health", properties: { type: selectedType, mode: "quick" } });
-      reset(); onSaved();
+    }).select("id").single();
+
+    if (error) {
+      console.error("[QuickHealth] INSERT failed:", error);
+      toast.error(`Erreur : ${error.message || "champ manquant"}`);
+      setLoading(false);
+      return;
     }
+
+    if (vetName) savePractitioner(selectedType, horseId, vetName);
+    if (addToBudget && cost && parseFloat(cost) > 0 && inserted) {
+      const categoryMap: Record<string, string> = {
+        veterinaire: "soins", vaccin: "soins", osteo: "soins",
+        dentiste: "soins", masseuse: "soins", ferrage: "maréchalerie",
+      };
+      const desc = [HEALTH_TYPE_LABELS[selectedType], vetName].filter(Boolean).join(" — ");
+      await supabase.from("budget_entries").insert({
+        horse_id: horseId,
+        date: effectiveDate,
+        category: (categoryMap[selectedType] || "soins") as "soins" | "maréchalerie",
+        amount: parseFloat(cost),
+        description: desc || null,
+        linked_health_record_id: inserted.id,
+      });
+    }
+    toast.success("Soin enregistré !");
+    trackEvent({ event_name: "health_record_created", event_category: "health", properties: { type: selectedType, mode: "quick" } });
+    reset(); onSaved();
     setLoading(false);
   };
 

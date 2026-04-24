@@ -14,6 +14,18 @@ const EMPTY_STATE_TIPS: Partial<Record<string, string>> = {
 };
 import { Plus, Pencil, Phone, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 import { formatDate, daysUntil } from "@/lib/utils";
+import { differenceInDays, parseISO } from "date-fns";
+
+// Bug #3 Agathe: fallback MAX_DAYS_BY_TYPE quand next_date absent
+const MAX_DAYS_BY_TYPE: Record<string, number> = {
+  ferrage: 35,
+  vaccin: 365,
+  vermifuge: 90,
+  dentiste: 365,
+  osteo: 180,
+  veterinaire: 180,
+  masseuse: 90,
+};
 import type { HealthRecord, HealthType, HorseIndexMode, MarechalProfile } from "@/lib/supabase/types";
 import HealthEventModal from "@/components/health/HealthEventModal";
 import MarechalLogModal, { buildMarechalSummary } from "@/components/health/MarechalLogModal";
@@ -30,12 +42,21 @@ export interface CategoryConfig {
 
 type Status = "en_retard" | "a_venir" | "a_jour" | "a_planifier" | "non_renseigne";
 
-function getStatus(latest: HealthRecord | null): Status {
+function getStatus(latest: HealthRecord | null, type: string): Status {
   if (!latest) return "non_renseigne";
-  if (!latest.next_date) return "a_planifier";
-  const days = daysUntil(latest.next_date);
-  if (days < 0) return "en_retard";
-  if (days <= 30) return "a_venir";
+  // Priorité 1 : next_date explicite (ex: maréchal avec recurrence_semaines)
+  if (latest.next_date) {
+    const days = daysUntil(latest.next_date);
+    if (days < 0) return "en_retard";
+    if (days <= 30) return "a_venir";
+    return "a_jour";
+  }
+  // Priorité 2 : fallback sur MAX_DAYS_BY_TYPE (ex: ferrage = 35j)
+  const maxDays = MAX_DAYS_BY_TYPE[type];
+  if (!maxDays) return "a_planifier";
+  const daysSinceLast = differenceInDays(new Date(), parseISO(latest.date));
+  if (daysSinceLast > maxDays) return "en_retard";
+  if (daysSinceLast > maxDays - 30) return "a_venir";
   return "a_jour";
 }
 
@@ -111,7 +132,7 @@ export default function HealthCategoryCard({ config, records, horseId, marechalP
 
   const sorted = [...records].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   const latest = sorted[0] ?? null;
-  const status = getStatus(latest);
+  const status = getStatus(latest, config.type);
   const daysLeft = latest?.next_date ? daysUntil(latest.next_date) : null;
 
   const isUrgent = status === "en_retard" || status === "a_venir";
@@ -265,9 +286,13 @@ export default function HealthCategoryCard({ config, records, horseId, marechalP
         {expanded && sorted.length > 1 && (
           <div className="border-t border-gray-50 pt-2 space-y-1.5">
             {sorted.slice(1).map((r) => (
-              <div key={r.id} className="flex items-center justify-between">
-                <span className="text-xs text-gray-400">{formatDate(r.date)}</span>
-                {r.vet_name && <span className="text-xs text-gray-500">{r.vet_name}</span>}
+              <div key={r.id} className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                  {/* Bug #5 Agathe : badge "Effectué" figé, jamais "en retard" */}
+                  <span className="text-2xs font-medium text-green-600 bg-green-50 px-1.5 py-0.5 rounded-full flex-shrink-0">✓ Effectué</span>
+                  <span className="text-xs text-gray-400">{formatDate(r.date)}</span>
+                </div>
+                {r.vet_name && <span className="text-xs text-gray-500 truncate">{r.vet_name}</span>}
                 {r.cost != null && <span className="text-xs text-gray-400">{r.cost}€</span>}
               </div>
             ))}

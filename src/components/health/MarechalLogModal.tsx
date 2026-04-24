@@ -295,7 +295,12 @@ export default function MarechalLogModal({
     setLoading(true);
     const payload = buildPayload(true);
     const { error } = await supabase.from("health_records").insert(payload as Partial<HealthRecord>);
-    if (error) { toast.error("Erreur lors de l'enregistrement"); setLoading(false); return; }
+    if (error) {
+      console.error("[MarechalLog] INSERT failed:", error);
+      toast.error(`Erreur : ${error.message || "champ manquant"}`);
+      setLoading(false);
+      return;
+    }
     if (addToBudget && payload.cost && payload.cost > 0) {
       const desc = ["Parage / Maréchal", payload.vet_name].filter(Boolean).join(" — ");
       await supabase.from("budget_entries").insert({
@@ -324,7 +329,12 @@ export default function MarechalLogModal({
       err = res.error;
     }
 
-    if (err) { toast.error("Erreur lors de l'enregistrement"); setLoading(false); return; }
+    if (err) {
+      console.error("[MarechalLog] INSERT/UPDATE failed:", err);
+      toast.error(`Erreur : ${err.message || "champ manquant"}`);
+      setLoading(false);
+      return;
+    }
     if (!defaultValues?.id && addToBudget && payload.cost && payload.cost > 0) {
       const desc = ["Parage / Maréchal", payload.vet_name].filter(Boolean).join(" — ");
       await supabase.from("budget_entries").insert({

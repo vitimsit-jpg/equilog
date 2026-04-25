@@ -313,7 +313,9 @@ export default function MarechalLogModal({
   const handleQuickSave = async () => {
     setLoading(true);
     const payload = buildPayload(true);
+    console.log("[MarechalLog] handleQuickSave payload:", payload);
     const { data: inserted, error } = await supabase.from("health_records").insert(payload as Partial<HealthRecord>).select("id").single();
+    console.log("[MarechalLog] handleQuickSave result:", { inserted, error });
     if (error || !inserted?.id) {
       console.error("[MarechalLog] INSERT failed:", error);
       toast.error(`Erreur : ${error?.message || "ID soin introuvable"}`);
@@ -329,9 +331,11 @@ export default function MarechalLogModal({
       });
     }
     toast.success("Passage enregistré !");
-    onSaved(); router.refresh();
+    onSaved();
     handleClose();
     setLoading(false);
+    // Force un hard reload pour s'assurer que les server components sont refetchés
+    setTimeout(() => router.refresh(), 100);
   };
 
   // ── Full form save ─────────────────────────────────────────────────────────
@@ -339,21 +343,24 @@ export default function MarechalLogModal({
     if (!typeIntervention) { toast.error("Sélectionnez un type d'intervention"); return; }
     setLoading(true);
     const payload = buildPayload(false);
+    console.log("[MarechalLog] handleSave payload:", payload);
 
     let err;
     let healthId = defaultValues?.id || null;
     if (defaultValues?.id) {
       const res = await supabase.from("health_records").update(payload as Partial<HealthRecord>).eq("id", defaultValues.id);
       err = res.error;
+      console.log("[MarechalLog] handleSave UPDATE result:", res);
     } else {
       const res = await supabase.from("health_records").insert(payload as Partial<HealthRecord>).select("id").single();
       err = res.error;
+      console.log("[MarechalLog] handleSave INSERT result:", res);
       if (res.data?.id) healthId = res.data.id;
     }
 
-    if (err) {
-      console.error("[MarechalLog] INSERT/UPDATE failed:", err);
-      toast.error(`Erreur : ${err.message || "champ manquant"}`);
+    if (err || !healthId) {
+      console.error("[MarechalLog] INSERT/UPDATE failed:", err, "healthId:", healthId);
+      toast.error(`Erreur : ${err?.message || "ID soin introuvable"}`);
       setLoading(false);
       return;
     }
@@ -388,8 +395,9 @@ export default function MarechalLogModal({
       }
     }
     toast.success(defaultValues?.id ? "Soin mis à jour" : "Passage enregistré !");
-    onSaved(); router.refresh();
+    onSaved();
     setLoading(false);
+    setTimeout(() => router.refresh(), 100);
 
     if (!defaultValues?.id && NEEDS_PROFILE(typeIntervention)) {
       if (!profile) { setView("save_prompt"); return; }

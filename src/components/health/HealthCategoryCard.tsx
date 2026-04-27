@@ -112,9 +112,53 @@ interface Props {
   horseName?: string;
   horseMode?: HorseIndexMode | null;
   horseBirthYear?: number | null;
+  /** Layout compact 3 lignes — Direction C. Tap → page détail /health/[type]. */
+  compact?: boolean;
 }
 
-export default function HealthCategoryCard({ config, records, horseId, marechalProfile, horseName, horseMode, horseBirthYear }: Props) {
+// ── Direction C : couleurs status pour la barre gauche + bordure cercle icône ──
+const STATUS_COLORS: Record<Status, { bar: string; border: string; chip: string }> = {
+  a_jour:        { bar: "bg-green-500",  border: "border-green-500",  chip: "text-green-700 bg-green-50" },
+  a_venir:       { bar: "bg-orange",     border: "border-orange",     chip: "text-orange bg-orange-light" },
+  en_retard:     { bar: "bg-red-500",    border: "border-red-500",    chip: "text-red-600 bg-red-50" },
+  a_planifier:   { bar: "bg-gray-300",   border: "border-gray-300",   chip: "text-gray-500 bg-gray-100" },
+  non_renseigne: { bar: "bg-gray-200",   border: "border-gray-200",   chip: "text-gray-400 bg-gray-50" },
+};
+
+const VET_TYPES = new Set<HealthType>(["veterinaire"]);
+
+/** Ligne 3 contextuelle (ticket §4.2). null = ligne masquée. */
+function getContextualInfo(latest: HealthRecord | null, type: HealthType): string | null {
+  if (!latest) return null;
+  const ferrageDetail = (() => {
+    if (type !== "ferrage") return null;
+    const ti = latest.type_intervention;
+    const tiLabel = ti === "ferrure_ortho" ? "Ferrure ortho" : ti === "parage" ? "Parage" : ti === "ferrure" ? "Ferrure" : ti === "urgence" ? "Urgence" : ti === "deferrage" ? "Déferrage" : null;
+    const rep = latest.repartition_fers === "anterieurs" ? "2 devant" : latest.repartition_fers === "posterieurs" ? "2 derrière" : latest.repartition_fers === "4_fers" ? "4 fers" : null;
+    const mat = latest.matiere_fer === "acier" ? "acier" : latest.matiere_fer === "aluminium" ? "alu" : latest.matiere_fer === "duplo" ? "duplo" : latest.matiere_fer === "colle" ? "collé" : null;
+    const fers = [rep, mat].filter(Boolean).join(" ");
+    return [tiLabel, fers || null, latest.vet_name].filter(Boolean).join(" · ");
+  })();
+  if (ferrageDetail) return ferrageDetail;
+
+  switch (type) {
+    case "vaccin":
+      return [latest.product_name, latest.vet_name].filter(Boolean).join(" · ") || null;
+    case "vermifuge":
+      return latest.product_name ?? null;
+    case "dentiste":
+      return latest.notes?.split("\n")[0]?.slice(0, 80) ?? null;
+    case "osteo":
+    case "masseuse":
+      return null;
+    case "veterinaire":
+      return [latest.notes?.split("\n")[0]?.slice(0, 60), latest.vet_name].filter(Boolean).join(" · ") || null;
+    default:
+      return latest.notes?.split("\n")[0]?.slice(0, 80) ?? null;
+  }
+}
+
+export default function HealthCategoryCard({ config, records, horseId, marechalProfile, horseName, horseMode, horseBirthYear, compact = false }: Props) {
   const supabase = createClient();
   const router = useRouter();
   const [showAdd, setShowAdd] = useState(false);
@@ -145,6 +189,80 @@ export default function HealthCategoryCard({ config, records, horseId, marechalP
     horseBirthYear != null &&
     currentYear - horseBirthYear <= Math.floor(ICR_MARECHAL_RESTRICTION_MONTHS / 12);
 
+  // ── Mode compact (Direction C) — tap → page détail ──────────────────────────
+  if (compact) {
+    const colors = STATUS_COLORS[status];
+    const isVet = VET_TYPES.has(config.type);
+    // Override "Vétérinaire" : barre/icône bleues quel que soit le statut (cf. ticket §3.2)
+    const barClass = isVet ? "bg-blue-500" : colors.bar;
+    const borderClass = isVet ? "border-blue-500" : colors.border;
+    const contextLine = getContextualInfo(latest, config.type);
+
+    // Ligne "Prochain · date (Xj)" ou fallback "Dernier · date"
+    const fallbackMaxDays = MAX_DAYS_BY_TYPE[config.type];
+    const computedNextDate = latest && !latest.next_date && fallbackMaxDays
+      ? new Date(parseISO(latest.date).getTime() + fallbackMaxDays * 86_400_000).toISOString()
+      : null;
+    const displayNextDate = latest?.next_date ?? computedNextDate;
+    const displayDays = displayNextDate ? daysUntil(displayNextDate) : null;
+    const dateClass =
+      displayDays !== null && displayDays < 0 ? "text-red-600 font-semibold" :
+      displayDays !== null && displayDays <= 14 ? "text-orange font-semibold" :
+      "text-gray-600";
+
+    return (
+      <button
+        type="button"
+        onClick={() => router.push(`/horses/${horseId}/health/${config.type}`)}
+        className="w-full text-left bg-white border border-[#F5F5F5] rounded-xl flex items-stretch overflow-hidden hover:border-gray-200 transition-colors"
+      >
+        {/* Barre gauche 4px */}
+        <span aria-hidden className={`w-1 ${barClass} flex-shrink-0`} />
+
+        <div className="flex items-center gap-3 px-3 py-3 flex-1 min-w-0">
+          {/* Icône cercle 38×38 (Direction C : bordure 2px, fond blanc) */}
+          <div className={`w-[38px] h-[38px] rounded-full border-2 ${borderClass} bg-white flex items-center justify-center text-lg flex-shrink-0`}>
+            {config.emoji}
+          </div>
+
+          {/* 3 lignes */}
+          <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-sm font-bold text-black truncate">{config.label}</span>
+              {!config.hidePlanning && <StatusBadge status={status} daysLeft={daysLeft} />}
+            </div>
+            <p className="text-xs text-gray-600 truncate">
+              {latest && displayNextDate && !config.hidePlanning ? (
+                <>
+                  <span className="text-gray-400">Prochain · </span>
+                  <span className={dateClass}>
+                    {formatDate(displayNextDate)}
+                    {displayDays !== null && displayDays >= 0 && ` (${displayDays}j)`}
+                    {displayDays !== null && displayDays < 0 && ` (${Math.abs(displayDays)}j retard)`}
+                  </span>
+                </>
+              ) : latest ? (
+                <>
+                  <span className="text-gray-400">Dernier · </span>
+                  <span className="text-gray-600">{formatDate(latest.date)}</span>
+                </>
+              ) : (
+                <span className="text-gray-400 italic">Aucun soin enregistré</span>
+              )}
+            </p>
+            {contextLine && (
+              <p className="text-xs text-gray-500 truncate">{contextLine}</p>
+            )}
+          </div>
+
+          {/* Chevron */}
+          <span aria-hidden className="text-gray-300 text-lg flex-shrink-0">›</span>
+        </div>
+      </button>
+    );
+  }
+
+  // ── Mode default (legacy, expand inline) ─────────────────────────────────────
   return (
     <>
       <div className={`card p-4 flex flex-col gap-3 ${isUrgent ? "ring-1 ring-orange/20" : ""}`}>

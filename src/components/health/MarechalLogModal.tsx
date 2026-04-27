@@ -7,6 +7,7 @@ import { format, addDays } from "date-fns";
 import { ChevronDown, ChevronUp, X, Phone } from "lucide-react";
 import type { MarechalProfile, HealthRecord, InterventionType } from "@/lib/supabase/types";
 import { useRouter } from "next/navigation";
+import { awardHealthOrNutritionBadges } from "@/lib/badges/triggers";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type RepartitionFers = "anterieurs" | "posterieurs" | "4_fers";
@@ -331,6 +332,7 @@ export default function MarechalLogModal({
       });
     }
     toast.success("Passage enregistré !");
+    await awardHealthOrNutritionBadges(supabase, horseId);
     onSaved();
     handleClose();
     setLoading(false);
@@ -395,6 +397,7 @@ export default function MarechalLogModal({
       }
     }
     toast.success(defaultValues?.id ? "Soin mis à jour" : "Passage enregistré !");
+    if (!defaultValues?.id) await awardHealthOrNutritionBadges(supabase, horseId);
     onSaved();
     setLoading(false);
     setTimeout(() => router.refresh(), 100);

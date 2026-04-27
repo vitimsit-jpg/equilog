@@ -12,6 +12,7 @@ import { ChevronDown } from "lucide-react";
 import { DISCIPLINE_LABELS } from "@/lib/utils";
 import type { Competition, StatutParticipation, MotifElimination } from "@/lib/supabase/types";
 import { trackEvent } from "@/lib/trackEvent";
+import { awardCompetitionBadges } from "@/lib/badges/triggers";
 
 const COMPETITION_DISCIPLINES = ["CSO", "Dressage", "CCE", "Autre"];
 const disciplineOptions = COMPETITION_DISCIPLINES.map((v) => ({ value: v, label: DISCIPLINE_LABELS[v] ?? v }));
@@ -252,6 +253,7 @@ export default function CompetitionForm({ horseId, onSaved, onCancel, defaultVal
     }
 
     toast.success("Concours enregistré !");
+    await awardCompetitionBadges(supabase, horseId);
     onSaved();
     setLoading(false);
   };

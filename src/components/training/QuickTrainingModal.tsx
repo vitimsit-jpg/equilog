@@ -7,6 +7,7 @@ import { format, subDays, addDays } from "date-fns";
 import { fr } from "date-fns/locale";
 import type { TrainingType, TrainingRider, TrainingPlannedSession, TrainingSession, RehabProtocol, HorseIndexMode, HorseGrowthMilestone } from "@/lib/supabase/types";
 import { trackEvent } from "@/lib/trackEvent";
+import { awardTrainingBadges } from "@/lib/badges/triggers";
 import Modal from "@/components/ui/Modal";
 import VoiceButton from "./VoiceButton";
 import Button from "@/components/ui/Button";
@@ -360,6 +361,9 @@ export default function QuickTrainingModal({
       event_category: "training",
       properties: { type: effectiveType, mode: "quick", duration_min: effectiveDuration, rider: rider || "complement_only" },
     });
+
+    // Badges : premier_pas / polyvalent / duo_complet
+    if (!editSessionId) await awardTrainingBadges(supabase, horseId);
 
     // Helper: appeler le bon callback (avec ou sans détails)
     const notifySaved = () => {

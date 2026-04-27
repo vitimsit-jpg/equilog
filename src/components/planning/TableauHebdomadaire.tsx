@@ -33,6 +33,7 @@ import QuickTrainingModal, {
   RIDER_OPTIONS,
 } from "@/components/training/QuickTrainingModal";
 import Modal from "@/components/ui/Modal";
+import { awardTrainingBadges } from "@/lib/badges/triggers";
 import type {
   TrainingSession,
   TrainingPlannedSession,
@@ -910,6 +911,7 @@ export default function TableauHebdomadaire({
         notes: null,
       });
       if (error) { toast.error("Erreur"); return; }
+      await awardTrainingBadges(supabase, horse.id);
     } else {
       const { error } = await supabase.from("training_planned_sessions").insert({
         horse_id: horse.id,
@@ -964,6 +966,7 @@ export default function TableauHebdomadaire({
       return;
     }
 
+    await awardTrainingBadges(supabase, horse.id);
     toast.success("Séance cochée !");
     setCellSheet(null);
     router.refresh();

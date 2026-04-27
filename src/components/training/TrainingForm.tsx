@@ -12,6 +12,7 @@ import { TRAINING_TYPE_LABELS, INTENSITY_LABELS, FEELING_LABELS } from "@/lib/ut
 import type { TrainingSession, TrainingType } from "@/lib/supabase/types";
 import VoiceButton from "./VoiceButton";
 import { trackEvent } from "@/lib/trackEvent";
+import { awardTrainingBadges } from "@/lib/badges/triggers";
 import { AlertTriangle } from "lucide-react";
 
 const RECOVERY_TAGS = [
@@ -80,6 +81,7 @@ export default function TrainingForm({ horseId, onSaved, onCancel, defaultValues
       toast.success("Séance enregistrée !");
       if (!defaultValues?.id) {
         trackEvent({ event_name: "training_created", event_category: "training", properties: { type: form.type, intensity: parseInt(form.intensity), duration_min: parseInt(form.duration_min) } });
+        await awardTrainingBadges(supabase, horseId);
       } else {
         // Notify owner if a coach is editing
         fetch("/api/notify-coach-modification", {

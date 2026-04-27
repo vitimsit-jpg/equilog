@@ -274,7 +274,7 @@ export default function HealthOverview({ records, horseId, marechalProfile, hors
           <div className="space-y-4">
             <div>
               <p className="text-2xs font-bold text-gray-400 uppercase tracking-wider mb-2 px-0.5">Vétérinaire</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div className="flex flex-col gap-2">
                 {VET_CATEGORIES.map((cat) => (
                   <HealthCategoryCard
                     key={cat.type}
@@ -282,13 +282,14 @@ export default function HealthOverview({ records, horseId, marechalProfile, hors
                     records={records.filter((r) => r.type === cat.type)}
                     horseId={horseId}
                     horseMode={horseMode}
+                    compact
                   />
                 ))}
               </div>
             </div>
             <div>
               <p className="text-2xs font-bold text-gray-400 uppercase tracking-wider mb-2 px-0.5">Soins obligatoires</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div className="flex flex-col gap-2">
                 {MANDATORY_CATEGORIES.map((cat) => (
                   <HealthCategoryCard
                     key={cat.type}
@@ -299,13 +300,14 @@ export default function HealthOverview({ records, horseId, marechalProfile, hors
                     horseName={cat.type === "ferrage" ? horseName : undefined}
                     horseMode={horseMode}
                     horseBirthYear={cat.type === "ferrage" ? horseBirthYear : undefined}
+                    compact
                   />
                 ))}
               </div>
             </div>
             <div>
               <p className="text-2xs font-bold text-gray-400 uppercase tracking-wider mb-2 px-0.5">Soins de confort</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div className="flex flex-col gap-2">
                 {COMFORT_CATEGORIES.map((cat) => (
                   <HealthCategoryCard
                     key={cat.type}
@@ -313,6 +315,7 @@ export default function HealthOverview({ records, horseId, marechalProfile, hors
                     records={records.filter((r) => r.type === cat.type)}
                     horseId={horseId}
                     horseMode={horseMode}
+                    compact
                   />
                 ))}
               </div>
@@ -322,7 +325,7 @@ export default function HealthOverview({ records, horseId, marechalProfile, hors
             {(horseMode === "IS" || horseMode === "IR") && (
               <div>
                 <p className="text-2xs font-bold text-gray-400 uppercase tracking-wider mb-2 px-0.5">Soins thérapeutiques</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div className="flex flex-col gap-2">
                   {IS_THERAPEUTIC_CATEGORIES.map((cat) => (
                     <HealthCategoryCard
                       key={cat.type}
@@ -330,6 +333,7 @@ export default function HealthOverview({ records, horseId, marechalProfile, hors
                       records={records.filter((r) => r.type === cat.type)}
                       horseId={horseId}
                       horseMode={horseMode}
+                      compact
                     />
                   ))}
                   {horseMode === "IR" && IR_EXTRA_CATEGORIES.map((cat) => (
@@ -339,6 +343,7 @@ export default function HealthOverview({ records, horseId, marechalProfile, hors
                       records={records.filter((r) => r.type === cat.type)}
                       horseId={horseId}
                       horseMode={horseMode}
+                      compact
                     />
                   ))}
                 </div>

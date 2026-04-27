@@ -6,21 +6,19 @@ import toast from "react-hot-toast";
 import { format, addDays } from "date-fns";
 import type { HealthType } from "@/lib/supabase/types";
 import { trackEvent } from "@/lib/trackEvent";
+import { awardHealthOrNutritionBadges } from "@/lib/badges/triggers";
 import Modal from "@/components/ui/Modal";
 import HealthEventForm from "./HealthEventForm";
+import CareTypeSelector from "./CareTypeSelector";
 import Button from "@/components/ui/Button";
 import { Paperclip, X } from "lucide-react";
 import { HEALTH_TYPE_LABELS } from "@/lib/utils";
 
-const HEALTH_ITEMS: { type: HealthType; emoji: string; label: string }[] = [
-  { type: "vermifuge",   emoji: "📅", label: "Vermifuge" },
-  { type: "ferrage",     emoji: "🔨", label: "Parage" },
-  { type: "vaccin",      emoji: "💉", label: "Vaccin" },
-  { type: "dentiste",    emoji: "🦷", label: "Dentiste" },
-  { type: "osteo",       emoji: "🤝", label: "Ostéo" },
-  { type: "veterinaire", emoji: "🏥", label: "Vétérinaire" },
-  { type: "masseuse",    emoji: "🤲", label: "Masseuse" },
-  { type: "autre",       emoji: "📋", label: "Autre" },
+// Types proposés en quick-add (raccourci dashboard) — ordre figé.
+// Les soins thérapeutiques IS/IR ne sont pas exposés ici (réservés au formulaire complet via la fiche cheval).
+const QUICK_TYPES: HealthType[] = [
+  "vermifuge", "ferrage", "vaccin", "dentiste",
+  "osteo", "veterinaire", "masseuse", "autre",
 ];
 
 const DEFAULT_INTERVALS: Partial<Record<HealthType, number | null>> = {
@@ -158,6 +156,7 @@ export default function QuickHealthModal({ open, onClose, horseId, onSaved, defa
     }
     toast.success("Soin enregistré !");
     trackEvent({ event_name: "health_record_created", event_category: "health", properties: { type: selectedType, mode: "quick" } });
+    await awardHealthOrNutritionBadges(supabase, horseId);
     reset(); onSaved();
     setLoading(false);
   };
@@ -185,27 +184,12 @@ export default function QuickHealthModal({ open, onClose, horseId, onSaved, defa
       ) : (
         <div className="space-y-5">
 
-          {/* Type grid */}
-          <div>
-            <p className="text-2xs font-bold uppercase tracking-widest text-gray-400 mb-2">Type de soin</p>
-            <div className="grid grid-cols-3 gap-2">
-              {HEALTH_ITEMS.map((item) => (
-                <button
-                  key={item.type}
-                  type="button"
-                  onClick={() => handleTypeSelect(item.type)}
-                  className={`flex flex-col items-center gap-1 py-3 rounded-xl border-2 text-xs font-semibold transition-all min-h-[64px] ${
-                    selectedType === item.type
-                      ? "border-orange bg-orange-light text-orange"
-                      : "border-gray-100 bg-gray-50 text-gray-600 hover:border-gray-200"
-                  }`}
-                >
-                  <span className="text-lg">{item.emoji}</span>
-                  <span className="leading-tight text-center">{item.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
+          {/* Type grid (CareTypeSelector — restreint aux 8 types standards pour le quick-add) */}
+          <CareTypeSelector
+            selectedType={selectedType}
+            onChange={handleTypeSelect}
+            restrictTo={QUICK_TYPES}
+          />
 
           {/* Date */}
           <div>

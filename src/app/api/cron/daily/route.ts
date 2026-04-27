@@ -5,6 +5,7 @@ import { sendPushNotification } from "@/lib/webpush";
 import { createNotification } from "@/lib/notifications";
 import { HEALTH_TYPE_LABELS } from "@/lib/utils";
 import { addDays, addMonths, addYears, format as formatDate } from "date-fns";
+import { checkAndAwardBadge } from "@/lib/badges/award";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://equilog-i3nr-vitimsit-jpgs-projects.vercel.app";
 
@@ -29,7 +30,7 @@ export async function GET(request: NextRequest) {
   }
 
   const supabase = createAdminClient();
-  const results = { healthReminders: 0, scoreAlerts: 0, rehabCompleted: 0, recurringBudget: 0, autoAnnulated: 0, errors: 0 };
+  const results = { healthReminders: 0, scoreAlerts: 0, rehabCompleted: 0, recurringBudget: 0, autoAnnulated: 0, longueDureeBadges: 0, errors: 0 };
 
   const today = new Date();
   const todayStr = formatDate(today, "yyyy-MM-dd");
@@ -368,6 +369,24 @@ export async function GET(request: NextRequest) {
           results.errors++;
         }
       }
+    }
+  }
+
+  // ── 6. Badges Longue Durée — un_an / trois_ans / cinq_ans_ensemble ─────────
+  // Award basé sur l'âge depuis horse.created_at. Idempotent (UNIQUE upsert).
+  const { data: horsesForBadges } = await supabase.from("horses").select("id, user_id, created_at");
+  for (const h of horsesForBadges ?? []) {
+    if (!h.created_at || !h.user_id) continue;
+    const days = (today.getTime() - new Date(h.created_at).getTime()) / 86_400_000;
+    try {
+      if (days >= 365) {
+        await checkAndAwardBadge(supabase, h.id, h.user_id, "un_an_ensemble");
+        results.longueDureeBadges++;
+      }
+      if (days >= 1095) await checkAndAwardBadge(supabase, h.id, h.user_id, "trois_ans_ensemble");
+      if (days >= 1825) await checkAndAwardBadge(supabase, h.id, h.user_id, "cinq_ans_ensemble");
+    } catch {
+      results.errors++;
     }
   }
 

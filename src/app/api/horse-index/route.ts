@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { calculateHorseIndex } from "@/lib/horse-index/calculator";
+import { awardHorseIndexBadge } from "@/lib/badges/triggers";
 import { differenceInDays } from "date-fns";
 import type { HorseIndexMode, TrainingSession, HealthRecord, Competition, WearableData } from "@/lib/supabase/types";
 
@@ -139,6 +140,9 @@ export async function POST(request: NextRequest) {
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  // Badge horse_index_80 (idempotent, latence négligeable)
+  await awardHorseIndexBadge(supabase, horseId, breakdown.total);
 
   return NextResponse.json({ score: newScore });
 }

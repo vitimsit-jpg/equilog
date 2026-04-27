@@ -604,6 +604,14 @@ export type AIInsight = {
   created_at: string;
 }
 
+export type HorseBadge = {
+  id: string;
+  horse_id: string;
+  user_id: string;
+  badge_key: string;
+  earned_at: string;
+}
+
 export type RehabPhase = {
   index: number;
   name: string;
@@ -899,6 +907,7 @@ export type Database = {
       wearable_data: T<WearableData>;
       horse_scores: T<HorseScore>;
       ai_insights: T<AIInsight>;
+      horse_badges: T<HorseBadge>;
       listings: T<Listing>;
       horse_daily_logs: T<HorseDailyLog>;
       horse_history_events: T<HorseHistoryEvent>;

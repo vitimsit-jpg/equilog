@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 import type { NutritionRation } from "@/lib/supabase/types";
+import { awardHealthOrNutritionBadges } from "@/lib/badges/triggers";
 
 export async function POST(req: Request) {
   const supabase = createClient();
@@ -49,6 +50,9 @@ export async function POST(req: Request) {
     }, { onConflict: "horse_id" });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Badge duo_complet : 4 modules renseignés
+  await awardHealthOrNutritionBadges(supabase, horseId);
 
   // Log to history (snapshot of previous state)
   if (existing) {

@@ -22,6 +22,7 @@ import { TRAINING_TYPE_LABELS, TRAINING_EMOJIS } from "@/lib/utils";
 import Modal from "@/components/ui/Modal";
 import QuickTrainingModal, { DISCIPLINE_ITEMS, INTENSITY_OPTIONS, RIDER_OPTIONS } from "./QuickTrainingModal";
 import type { PrefillData } from "./QuickTrainingModal";
+import { awardTrainingBadges } from "@/lib/badges/triggers";
 
 const HEALTH_DOT: Record<string, string> = {
   vaccin: "bg-green-400",
@@ -320,6 +321,7 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
     }
 
     setConfirmToast({ sessionId: data.id, type: planned.type, dateKey, intensity, feeling: 3 });
+    await awardTrainingBadges(supabase, horseId);
     startTransition(() => router.refresh());
   };
 
@@ -479,7 +481,10 @@ export default function VueSemaine({ horseId, sessions, plannedSessions, healthR
         rider: null,
       });
       if (error) toast.error("Erreur");
-      else startTransition(() => router.refresh());
+      else {
+        await awardTrainingBadges(supabase, horseId);
+        startTransition(() => router.refresh());
+      }
     }
   };
 

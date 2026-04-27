@@ -76,6 +76,20 @@ export const HEALTH_TYPE_LABELS: Record<string, string> = {
   ondes_choc: "Ondes de choc",
 };
 
+export const HEALTH_TYPE_EMOJIS: Record<string, string> = {
+  vaccin: "💉", vermifuge: "🌿", dentiste: "🦷", osteo: "🤲",
+  ferrage: "🔨", veterinaire: "🩺", masseuse: "🤲", autre: "📋",
+  acupuncture: "🪡", physio_laser: "💡", physio_ultrasons: "🔊", physio_tens: "⚡",
+  pemf: "🧲", infrarouge: "🌡️", cryotherapie: "🧊", thermotherapie: "♨️",
+  pressotherapie: "🩹", ems: "⚡", bandes_repos: "🩹", etirements_passifs: "🤸",
+  infiltrations: "💉", mesotherapie: "🔬",
+  balneotherapie: "🛁", water_treadmill: "💧", tapis_marcheur: "🔄", ondes_choc: "💥",
+};
+
+export function getHealthEmoji(type: string): string {
+  return HEALTH_TYPE_EMOJIS[type] ?? "📋";
+}
+
 // TRAV-26 — Source unique : src/constants/sessionTypes.ts
 // Rétro-compatibilité : TRAINING_TYPE_LABELS et TRAINING_EMOJIS re-exportés avec legacy keys
 import { SESSION_TYPE_EMOJIS, SESSION_TYPE_LABELS } from "@/constants/sessionTypes";

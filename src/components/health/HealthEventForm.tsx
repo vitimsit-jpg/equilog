@@ -5,23 +5,14 @@ import { createClient } from "@/lib/supabase/client";
 import toast from "react-hot-toast";
 import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
+import CareTypeSelector from "./CareTypeSelector";
 import Textarea from "@/components/ui/Textarea";
 import Button from "@/components/ui/Button";
 import type { HealthRecord, HealthType, HorseIndexMode } from "@/lib/supabase/types";
 import { trackEvent } from "@/lib/trackEvent";
+import { awardHealthOrNutritionBadges } from "@/lib/badges/triggers";
 import { HEALTH_TYPE_LABELS } from "@/lib/utils";
 import { format, addDays } from "date-fns";
-
-const STANDARD_TYPES: HealthType[] = ["vaccin", "vermifuge", "dentiste", "osteo", "ferrage", "veterinaire", "masseuse", "autre"];
-const IS_THERAPEUTIC_TYPES: HealthType[] = ["acupuncture", "physio_laser", "physio_ultrasons", "physio_tens", "pemf", "infrarouge", "cryotherapie", "thermotherapie", "pressotherapie", "ems", "bandes_repos", "etirements_passifs", "infiltrations", "mesotherapie"];
-const IR_EXTRA_TYPES: HealthType[] = ["balneotherapie", "water_treadmill", "tapis_marcheur", "ondes_choc"];
-
-function getTypeOptions(horseMode?: HorseIndexMode | null) {
-  const types: HealthType[] = [...STANDARD_TYPES];
-  if (horseMode === "IS" || horseMode === "IR") types.push(...IS_THERAPEUTIC_TYPES);
-  if (horseMode === "IR") types.push(...IR_EXTRA_TYPES);
-  return types.map((value) => ({ value, label: HEALTH_TYPE_LABELS[value] ?? value }));
-}
 
 // Default intervals in days per type
 const defaultIntervals: Partial<Record<HealthType, number | null>> = {
@@ -246,20 +237,20 @@ export default function HealthEventForm({ horseId, onSaved, onCancel, defaultVal
     }
 
     toast.success("Soin enregistré !");
-    if (!defaultValues?.id) trackEvent({ event_name: "health_record_created", event_category: "health", properties: { type: form.type } });
+    if (!defaultValues?.id) {
+      trackEvent({ event_name: "health_record_created", event_category: "health", properties: { type: form.type } });
+      await awardHealthOrNutritionBadges(supabase, horseId);
+    }
     onSaved();
     setLoading(false);
   };
 
-  const typeOptions = getTypeOptions(horseMode);
-
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <Select
-        label="Type de soin"
-        value={form.type}
-        onChange={(e) => handleTypeChange(e.target.value as HealthType)}
-        options={typeOptions}
+      <CareTypeSelector
+        selectedType={form.type}
+        onChange={handleTypeChange}
+        horseMode={horseMode}
       />
 
       {form.type === "vaccin" && (
